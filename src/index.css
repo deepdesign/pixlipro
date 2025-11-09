@@ -610,6 +610,11 @@ body {
   transform: translateY(-2px);
 }
 
+.retro-tab-active:hover,
+.retro-tab-active:focus-visible {
+  color: var(--accent-primary-contrast);
+}
+
 .section {
   @apply flex flex-col;
   gap: theme('spacing.5');
