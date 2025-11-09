@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Button } from './components/retroui/Button'
-import { Card } from './components/retroui/Card'
-import { Tabs, TabsTriggerList, TabsTrigger, TabsPanels, TabsContent } from './components/retroui/Tab'
-import { Switch } from './components/retroui/Switch'
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectValue,
-} from './components/retroui/Select'
+import { Card } from '@/components/Card'
+import { Button } from '@/components/Button'
+
+import { Select, SelectTrigger, SelectContent, SelectGroup, SelectItem, SelectValue } from '@/components/Select'
+import { Switch } from '@/components/Switch'
+import { Tabs, TabsTriggerList, TabsTrigger, TabsPanels, TabsContent } from '@/components/Tabs'
 
 import {
   createSpriteController,
@@ -59,7 +53,7 @@ const THEME_COLOR_PREVIEW: Record<ThemeColor, string> = {
 }
 
 const SPRITE_MODES: Array<{ value: SpriteMode; label: string; description: string }> = [
-  { value: 'pixel-glass', label: 'Pixel Glass', description: 'Dense pixel mosaics with retro motion' },
+  { value: 'tile', label: 'Tile', description: 'Rounded tiles that layer into clustered grids' },
   { value: 'circle', label: 'Circle', description: 'Soft orbital clusters with rounded silhouettes' },
   { value: 'square', label: 'Square', description: 'Chunky voxel tiles snapped to a tight grid' },
   { value: 'triangle', label: 'Triangle', description: 'Angular shards with sharp tessellations' },
@@ -73,14 +67,8 @@ const SPRITE_MODES: Array<{ value: SpriteMode; label: string; description: strin
 
 const PALETTE_OPTIONS = palettes.map((palette) => ({ value: palette.id, label: palette.name }))
 
-const CLUSTER_PRESET_OPTIONS = [
-  { value: 'single', label: 'Single Tile Preset' },
-  { value: 'nebula', label: 'Nebula Cluster' },
-  { value: 'minimal', label: 'Minimal Grid' },
-  { value: 'shuffle', label: 'Shuffle Cluster' },
-]
-
 const MOVEMENT_MODES: Array<{ value: MovementMode; label: string }> = [
+  { value: 'none', label: 'None' },
   { value: 'sway', label: 'Sway' },
   { value: 'pulse', label: 'Pulse' },
   { value: 'orbit', label: 'Orbit' },
@@ -101,7 +89,7 @@ const formatBlendMode = (mode: BlendModeOption) =>
     .join(' ')
 
 const formatMovementMode = (mode: MovementMode) =>
-  MOVEMENT_MODES.find((entry) => entry.value === mode)?.label ?? 'Sway'
+  MOVEMENT_MODES.find((entry) => entry.value === mode)?.label ?? 'None'
 
 const useMediaQuery = (query: string) => {
   const [matches, setMatches] = useState(() => {
@@ -131,12 +119,7 @@ const useMediaQuery = (query: string) => {
 
 const TooltipIcon = ({ id, text, label }: { id: string; text: string; label: string }) => (
   <span className="retro-tooltip">
-    <button
-      type="button"
-      className="tooltip-trigger"
-      aria-describedby={id}
-      aria-label={`More about ${label}`}
-    >
+    <button type="button" className="tooltip-trigger" aria-describedby={id} aria-label={`More about ${label}`}>
       ?
     </button>
     <span id={id} role="tooltip" className="tooltip-content">
@@ -168,6 +151,7 @@ const ControlSlider = ({
   disabled?: boolean
   tooltip?: string
 }) => {
+  const tooltipId = tooltip ? `${id}-tip` : undefined
   return (
     <div className="control-field">
       <div className="field-heading">
@@ -175,7 +159,7 @@ const ControlSlider = ({
           <span className="field-label" id={`${id}-label`}>
             {label}
           </span>
-          {tooltip && <TooltipIcon id={`${id}-tip`} text={tooltip} label={label} />}
+          {tooltipId && <TooltipIcon id={tooltipId} text={tooltip!} label={label} />}
         </div>
         <span className="field-value">{displayValue}</span>
       </div>
@@ -228,15 +212,16 @@ const ControlSelect = ({
           </span>
           {tooltip && tooltipId && <TooltipIcon id={tooltipId} text={tooltip} label={label} />}
         </div>
+        {currentLabel ? <span className="field-value">{currentLabel}</span> : null}
       </div>
       <Select value={value ?? undefined} onValueChange={onChange} disabled={disabled}>
-        <SelectTrigger className="control-dropdown-trigger" aria-labelledby={`${id}-label`}>
+        <SelectTrigger aria-labelledby={`${id}-label`}>
           <SelectValue placeholder={placeholder ?? 'Select'}>{resolvedLabel}</SelectValue>
         </SelectTrigger>
-        <SelectContent className="control-dropdown-menu">
+        <SelectContent>
           <SelectGroup>
             {options.map((option) => (
-              <SelectItem key={option.value} value={option.value} className="control-dropdown-item">
+              <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>
             ))}
@@ -248,12 +233,7 @@ const ControlSelect = ({
 }
 
 const BitlabLogo = ({ className = '' }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 330 45"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
+  <svg className={className} viewBox="0 0 330 45" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path
       fill="currentColor"
       d="M52.5 7.5h-7.5V0h7.5v7.5h7.5v30h-7.5v7.5H0v-7.5h45v-7.5h7.5v-7.5h-7.5v-7.5h7.5v-7.5zm-30 7.5V7.5h7.5V15h-7.5zm0 15v-7.5h7.5V30h-7.5zM90 45h-30v-7.5h22.5V0H90v45zM90 7.5h15v7.5H90V7.5zm45 22.5h-7.5V7.5h15V0h7.5v15h-15v15h7.5v15h-45v-7.5h37.5v-7.5zM210 45h-60v-7.5h52.5v-7.5H210V45zm-37.5-15V0h7.5v30h-7.5zM262.5 7.5h-7.5V0h7.5v7.5h7.5v37.5h-60v-7.5h22.5v-7.5h7.5v7.5h22.5V7.5zm-30 15V7.5h7.5v15h-7.5zM322.5 7.5h-7.5V0h7.5v7.5h7.5v30h-7.5v7.5h-52.5v-7.5h45v-7.5h7.5v-7.5h-7.5v-7.5h7.5v-7.5zm-30 7.5V7.5h7.5V15h-7.5zm0 15v-7.5h7.5V30h-7.5z"
@@ -299,14 +279,8 @@ const App = () => {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredThemeMode())
   const [themeColor, setThemeColor] = useState<ThemeColor>(() => getStoredThemeColor())
   const [themeShape, setThemeShape] = useState<'box' | 'rounded'>(() => getStoredThemeShape())
-  const [clusterPreset, setClusterPreset] = useState<'single' | 'nebula' | 'minimal' | 'shuffle'>('shuffle')
   const [controlTabIndex, setControlTabIndex] = useState(0)
   const isStudioLayout = useMediaQuery('(min-width: 1760px)')
-  const themeColorLabel = useMemo(
-    () => THEME_COLOR_OPTIONS.find((option) => option.value === themeColor)?.label ?? THEME_COLOR_OPTIONS[0].label,
-    [themeColor],
-  )
-  const themeShapeLabel = useMemo(() => (themeShape === 'rounded' ? 'Rounded' : 'Box'), [themeShape])
 
   const cycleThemeMode = useCallback(() => {
     setThemeMode((prev) => {
@@ -377,8 +351,8 @@ const App = () => {
     })
 
     controllerRef.current = controller
-    setSpriteState(controller.getState())
     controller.randomizeAll()
+    setSpriteState(controller.getState())
 
     return () => {
       controller.destroy()
@@ -410,6 +384,14 @@ const App = () => {
     controllerRef.current?.setMovementMode(mode)
   }, [])
 
+  const handleClusterIntensityChange = useCallback((value: number) => {
+    controllerRef.current?.setClusterIntensity(value)
+  }, [])
+
+  const handleClusterMotionChange = useCallback((value: number) => {
+    controllerRef.current?.setClusterMotion(value)
+  }, [])
+
   const handleIconAssetSelect = useCallback((iconId: string) => {
     controllerRef.current?.setIconAsset(iconId)
   }, [])
@@ -424,47 +406,6 @@ const App = () => {
     setThemeShape(value === 'rounded' ? 'rounded' : 'box')
   }, [])
 
-  const randomiseCluster = useCallback(() => {
-    controllerRef.current?.randomizeCluster()
-  }, [])
-
-  const applySingleTilePreset = useCallback(() => {
-    controllerRef.current?.applySingleTilePreset()
-  }, [])
-
-  const applyNebulaPreset = useCallback(() => {
-    controllerRef.current?.applyNebulaPreset()
-  }, [])
-
-  const applyMinimalPreset = useCallback(() => {
-    controllerRef.current?.applyMinimalGridPreset()
-  }, [])
-
-  const handleClusterPresetSelect = useCallback(
-    (value: string) => {
-      if (!controllerRef.current) return
-      switch (value) {
-        case 'single':
-          applySingleTilePreset()
-          break
-        case 'nebula':
-          applyNebulaPreset()
-          break
-        case 'minimal':
-          applyMinimalPreset()
-          break
-        case 'shuffle':
-        default:
-          randomiseCluster()
-          break
-      }
-      const presetValue =
-        value === 'single' || value === 'nebula' || value === 'minimal' ? value : 'shuffle'
-      setClusterPreset(presetValue as 'single' | 'nebula' | 'minimal' | 'shuffle')
-    },
-    [applyMinimalPreset, applyNebulaPreset, applySingleTilePreset, randomiseCluster],
-  )
-
   const handleRandomiseAll = useCallback(() => {
     controllerRef.current?.randomizeAll()
   }, [])
@@ -472,7 +413,7 @@ const App = () => {
   const statusPalette = currentPalette.name
   const statusMode = currentModeLabel
   const statusBlend = spriteState ? formatBlendMode(spriteState.blendMode as BlendModeOption) : 'None'
-  const statusMotion = spriteState ? formatMovementMode(spriteState.movementMode) : 'Sway'
+  const statusMotion = spriteState ? formatMovementMode(spriteState.movementMode) : 'None'
 
   const applyDocumentTheme = useCallback((mode: ThemeMode, color: ThemeColor, shape: 'box' | 'rounded') => {
     if (typeof document === 'undefined') {
@@ -546,6 +487,7 @@ const App = () => {
             disabled={!ready}
             options={SPRITE_MODES.map((mode) => ({ value: mode.value, label: mode.label }))}
             tooltip="Swap between pixel mosaics, geometric sprite layers, or a single icon motif."
+            currentLabel={currentModeLabel}
           />
           {spriteState.spriteMode === 'icon' && (
             <div className="icon-context">
@@ -566,15 +508,25 @@ const App = () => {
                 }))}
                 placeholder="Select Icon"
                 tooltip="Choose the pixelarticons asset rendered for icon mode outputs."
-                currentLabel={currentIconAsset?.label}
               />
             </div>
           )}
 
           <ControlSlider
+            id="cluster-intensity"
+            label="Cluster"
+            min={0}
+            max={100}
+            value={Math.round(spriteState.clusterIntensity)}
+            displayValue={`${Math.round(spriteState.clusterIntensity)}%`}
+            onChange={handleClusterIntensityChange}
+            disabled={!ready}
+            tooltip="Blend between single sprites (0) and packed clusters (100)."
+          />
+          <ControlSlider
             id="density-range"
             label="Tile Density"
-            min={20}
+            min={0}
             max={400}
             value={Math.round(spriteState.scalePercent)}
             displayValue={`${Math.round(spriteState.scalePercent)}%`}
@@ -585,8 +537,8 @@ const App = () => {
           <ControlSlider
             id="scale-base"
             label="Scale Base"
-            min={40}
-            max={220}
+            min={0}
+            max={100}
             value={Math.round(spriteState.scaleBase)}
             displayValue={`${Math.round(spriteState.scaleBase)}%`}
             onChange={(value) => controllerRef.current?.setScaleBase(value)}
@@ -596,42 +548,14 @@ const App = () => {
           <ControlSlider
             id="scale-range"
             label="Scale Range"
-            min={30}
-            max={360}
+            min={0}
+            max={100}
             value={Math.round(spriteState.scaleSpread)}
             displayValue={`${Math.round(spriteState.scaleSpread)}%`}
             onChange={(value) => controllerRef.current?.setScaleSpread(value)}
             disabled={!ready}
             tooltip="Expands or tightens the difference between the smallest and largest sprites."
           />
-          {spriteState.spriteMode === 'pixel-glass' && (
-            <>
-              <ControlSlider
-                id="cluster-amount"
-                label="Cluster Amount"
-                min={0}
-                max={100}
-                value={Math.round(spriteState.clusterAmount)}
-                displayValue={`${Math.round(spriteState.clusterAmount)}%`}
-                onChange={(value) => controllerRef.current?.setClusterAmount(value)}
-                disabled={!ready}
-                tooltip="Blend between a single featured tile (0) and a fully packed pixel-glass cluster (100)."
-              />
-              <ControlSelect
-                id="cluster-preset"
-                label="Cluster Preset"
-                value={clusterPreset}
-                onChange={handleClusterPresetSelect}
-                options={CLUSTER_PRESET_OPTIONS}
-                disabled={!ready}
-                tooltip="Apply ready-made cluster recipes or trigger a fresh random shuffle."
-                currentLabel={
-                  CLUSTER_PRESET_OPTIONS.find((option) => option.value === clusterPreset)?.label ??
-                  CLUSTER_PRESET_OPTIONS[3].label
-                }
-              />
-            </>
-          )}
         </div>
 
         <div className="panel-footer">
@@ -678,13 +602,24 @@ const App = () => {
             id="motion-speed"
             label="Animation Speed"
             min={0}
-            max={300}
-            step={5}
+            max={150}
+            step={2}
             value={Math.round(spriteState.motionSpeed)}
             displayValue={`${Math.round(spriteState.motionSpeed)}%`}
             onChange={(value) => controllerRef.current?.setMotionSpeed(value)}
             disabled={!ready}
             tooltip="Slow every layer down or accelerate the motion-wide choreography."
+          />
+          <ControlSlider
+            id="cluster-motion"
+            label="Cluster Movement"
+            min={0}
+            max={100}
+            value={Math.round(spriteState.clusterMotion)}
+            displayValue={`${Math.round(spriteState.clusterMotion)}%`}
+            onChange={handleClusterMotionChange}
+            disabled={!ready || spriteState.clusterIntensity <= 0}
+            tooltip="Dial how much grouped sprites drift together and orbit as a unit."
           />
         </div>
 
@@ -784,9 +719,7 @@ const App = () => {
             disabled={!ready}
             options={BACKGROUND_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
             tooltip="Choose the colour applied behind the canvas."
-            currentLabel={
-              BACKGROUND_OPTIONS.find((option) => option.value === spriteState.backgroundMode)?.label
-            }
+            currentLabel={BACKGROUND_OPTIONS.find((option) => option.value === spriteState.backgroundMode)?.label}
           />
         </div>
 
@@ -803,53 +736,33 @@ const App = () => {
     <div className="utilities-actions">
       <Button
         type="button"
+        size="md"
         className="utilities-button"
-        variant="secondary"
+        variant="link"
         onClick={() => controllerRef.current?.reset()}
         disabled={!ready}
       >
         Reset
       </Button>
-      <Button type="button" className="utilities-button" variant="outline" disabled>
+      <Button type="button" size="md" className="utilities-button utilities-button--full" variant="secondary" disabled>
         Save Preset
       </Button>
     </div>
   )
 
   const renderDisplayContent = () => (
-    <>
-      <Card className="panel canvas-card">
-        <div className="canvas-wrapper">
-          <div className="sketch-container" ref={sketchContainerRef} aria-live="polite" />
-        </div>
-        <div className="status-bar">
-          <span className="status-chip">Palette · {statusPalette}</span>
-          <span className="status-chip">Mode · {statusMode}</span>
-          <span className="status-chip">Blend · {statusBlend}</span>
-          <span className="status-chip">Motion · {statusMotion}</span>
-          <span className="status-chip">{frameRate.toFixed(0)} FPS</span>
-        </div>
-      </Card>
-
-      <Card className="panel">
-        <h2 className="control-label">Session Notes</h2>
-        <p className="notes-text">
-          Sculpt vivid voxel compositions inside BitLab. Iterate on iconography, mutate colour systems, elevate motion envelopes,
-          and layer blend modes to surface unexpected pixel poetry.
-        </p>
-        <div className="external-links">
-          <a href="https://github.com/halfmage/pixelarticons" target="_blank" rel="noreferrer">
-            Pixel Art Icons
-          </a>
-          <a href="https://p5js.org/" target="_blank" rel="noreferrer">
-            p5.js
-          </a>
-          <a href="https://www.retroui.dev/docs" target="_blank" rel="noreferrer">
-            RetroUI Docs
-          </a>
-        </div>
-      </Card>
-    </>
+    <Card className="panel canvas-card">
+      <div className="canvas-wrapper">
+        <div className="sketch-container" ref={sketchContainerRef} aria-live="polite" />
+      </div>
+      <div className="status-bar">
+        <span className="status-chip">Palette · {statusPalette}</span>
+        <span className="status-chip">Mode · {statusMode}</span>
+        <span className="status-chip">Blend · {statusBlend}</span>
+        <span className="status-chip">Motion · {statusMotion}</span>
+        <span className="status-chip">{frameRate.toFixed(0)} FPS</span>
+      </div>
+    </Card>
   )
 
   return (
@@ -863,7 +776,7 @@ const App = () => {
           <div className="header-actions">
             <Select value={themeColor} onValueChange={handleThemeSelect}>
               <SelectTrigger className="header-theme-trigger" aria-label="Theme colour">
-                <SelectValue placeholder="Theme">{themeColorLabel}</SelectValue>
+                <SelectValue placeholder="Theme">{THEME_COLOR_OPTIONS.find((option) => option.value === themeColor)?.label ?? 'Theme'}</SelectValue>
               </SelectTrigger>
               <SelectContent className="header-theme-menu">
                 <SelectGroup>
@@ -882,7 +795,7 @@ const App = () => {
             </Select>
             <Select value={themeShape} onValueChange={handleShapeSelect}>
               <SelectTrigger className="header-theme-trigger" aria-label="Theme shape">
-                <SelectValue placeholder="Shape">{themeShapeLabel}</SelectValue>
+                <SelectValue placeholder="Shape">{themeShape === 'rounded' ? 'Rounded' : 'Box'}</SelectValue>
               </SelectTrigger>
               <SelectContent className="header-theme-menu">
                 <SelectGroup>
@@ -897,8 +810,8 @@ const App = () => {
             </Select>
             <Button
               type="button"
-              size="icon"
-              variant="outline"
+              size="md"
+              variant="icon"
               className="header-icon-button"
               onClick={cycleThemeMode}
               aria-label={`Switch theme mode (current ${themeModeText})`}
@@ -921,17 +834,9 @@ const App = () => {
                   {!isStudioLayout && <TabsTrigger>Motion</TabsTrigger>}
                 </TabsTriggerList>
                 <TabsPanels>
-                  <TabsContent>
-                    {renderSpriteControls()}
-                  </TabsContent>
-                  <TabsContent>
-                    {renderFxControls()}
-                  </TabsContent>
-                  {!isStudioLayout && (
-                    <TabsContent>
-                      {renderMotionControls(false)}
-                    </TabsContent>
-                  )}
+                  <TabsContent>{renderSpriteControls()}</TabsContent>
+                  <TabsContent>{renderFxControls()}</TabsContent>
+                  {!isStudioLayout && <TabsContent>{renderMotionControls(false)}</TabsContent>}
                 </TabsPanels>
               </Tabs>
             </div>
@@ -952,13 +857,29 @@ const App = () => {
       </main>
 
       <footer className="app-footer">
-        <span>© {new Date().getFullYear()} BitLab · Generative Playground</span>
         <span>
-          Inspired by{' '}
+          © {new Date().getFullYear()} BitLab · Generative Playground ·{' '}
+          <a href="https://jamescutts.me/" target="_blank" rel="noreferrer">
+            jamescutts.me
+          </a>
+        </span>
+        <span className="footer-links">
+          <a href="https://github.com/halfmage/pixelarticons" target="_blank" rel="noreferrer">
+            Pixel Art Icons
+          </a>{' '}
+          ·{' '}
+          <a href="https://p5js.org/" target="_blank" rel="noreferrer">
+            p5.js
+          </a>{' '}
+          ·{' '}
+          <a href="https://www.retroui.dev/docs" target="_blank" rel="noreferrer">
+            RetroUI Docs
+          </a>{' '}
+          · Inspired by{' '}
           <a href="https://github.com/djnavarro/series-advent" target="_blank" rel="noreferrer">
             Series Advent
           </a>{' '}
-          ·{' '}
+          &amp;{' '}
           <a href="https://github.com/djnavarro/series-pastiche" target="_blank" rel="noreferrer">
             Series Pastiche
           </a>
