@@ -18,18 +18,8 @@ export const FullscreenHUD = ({
   visible,
 }: FullscreenHUDProps) => {
   const [hudVisible, setHudVisible] = useState(true);
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hudRef = useRef<HTMLDivElement | null>(null);
-
-  const showHUD = useCallback(() => {
-    setHudVisible(true);
-    if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current);
-    }
-    hideTimeoutRef.current = setTimeout(() => {
-      setHudVisible(false);
-    }, HUD_AUTO_HIDE_DELAY);
-  }, []);
 
   const handleMouseEnter = useCallback(() => {
     setHudVisible(true);

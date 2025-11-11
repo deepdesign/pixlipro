@@ -7,7 +7,6 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { createPortal } from "react-dom";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 
@@ -40,7 +39,7 @@ import {
 } from "./generator";
 import { PresetManager } from "./components/PresetManager";
 import { Badge } from "./components/retroui/Badge";
-import { Moon, Monitor, Sun, Maximize2, X, RefreshCw, Bookmark, Download } from "lucide-react";
+import { Moon, Monitor, Sun, Maximize2, X, RefreshCw, Bookmark } from "lucide-react";
 import { palettes } from "./data/palettes";
 const BLEND_MODES: BlendModeOption[] = [
   "NONE",
@@ -577,7 +576,7 @@ const App = () => {
   const [showPresetManager, setShowPresetManager] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hudVisible, setHudVisible] = useState(true);
-  const hudTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hudTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const isStudioLayout = useMediaQuery("(min-width: 1760px)");
   const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -733,26 +732,6 @@ const App = () => {
     controllerRef.current?.randomizeAll();
   }, []);
 
-  const handleScreenshot = useCallback(() => {
-    const canvas = sketchContainerRef.current?.querySelector("canvas");
-    if (!canvas) {
-      return;
-    }
-
-    try {
-      // Get canvas as data URL
-      const dataURL = (canvas as HTMLCanvasElement).toDataURL("image/png");
-      
-      // Create download link
-      const link = document.createElement("a");
-      link.download = `bitlab-${new Date().toISOString().split("T")[0]}-${Date.now()}.png`;
-      link.href = dataURL;
-      link.click();
-    } catch (error) {
-      console.error("Failed to capture screenshot:", error);
-    }
-  }, []);
-
   const handleFullscreenToggle = useCallback(async () => {
     // Use the Card element instead of canvasWrapper for fullscreen
     const cardElement = document.querySelector('.canvas-card--fullscreen') || canvasWrapperRef.current?.closest('.canvas-card') || canvasWrapperRef.current;
@@ -815,18 +794,6 @@ const App = () => {
       }
     }
   }, []);
-
-  // Show HUD on interaction in fullscreen mode
-  const showHUD = useCallback(() => {
-    if (!isFullscreen) return;
-    setHudVisible(true);
-    if (hudTimeoutRef.current) {
-      clearTimeout(hudTimeoutRef.current);
-    }
-    hudTimeoutRef.current = setTimeout(() => {
-      setHudVisible(false);
-    }, 3000);
-  }, [isFullscreen]);
 
   const handleHUDMouseEnter = useCallback(() => {
     if (!isFullscreen) return;
