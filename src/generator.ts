@@ -41,8 +41,8 @@ const MOVEMENT_SPEED_MULTIPLIERS: Record<MovementMode, number> = {
   cascade: 2.9,     // ~2.9x slower (0.045 vs 0.13)
   comet: 3.0,       // ~3x slower - reduced speed by 25% from 2.4x
   ripple: 3.25,     // ~3.25x slower (avg 0.04 vs 0.13)
-  spiral: 4.4,      // ~4.4x slower - halved speed from 2.2x
-  orbit: 1.1,       // ~1.1x slower - doubled speed from 2.2x
+  spiral: 7.3,      // ~7.3x slower (~60% of previous max speed)
+  orbit: 1.8,       // ~1.8x slower (~60% of previous max speed)
   zigzag: 2.2,      // ~2.2x slower (0.06 vs 0.13)
   pulse: 1.6,       // ~1.6x slower (avg 0.08 vs 0.13)
   wavefront: 10.0,  // ~10x slower - wavefront uses phased * 0.055 internally, needs significant slowdown
@@ -95,7 +95,12 @@ export type SpriteMode =
   | "ring"
   | "diamond"
   | "star"
-  | "line";
+  | "line"
+  | "pentagon"
+  | "asterisk"
+  | "cross"
+  | "capsule"
+  | "ellipse";
 
 interface ShapeTile {
   kind: "shape";
@@ -149,6 +154,7 @@ export interface GeneratorState {
   rotationEnabled: boolean;
   rotationAmount: number;
   rotationSpeed: number;
+  rotationAnimated: boolean;
 }
 
 export interface SpriteControllerOptions {
@@ -166,6 +172,11 @@ const shapeModes = [
   "diamond",
   "star",
   "line",
+  "pentagon",
+  "asterisk",
+  "cross",
+  "capsule",
+  "ellipse",
 ] as const;
 const spriteModePool: SpriteMode[] = [...shapeModes];
 
@@ -175,7 +186,7 @@ export const DEFAULT_STATE: GeneratorState = {
   seed: "DEADBEEF",
   paletteId: defaultPaletteId,
   paletteVariance: 68,
-  hueShift: 18,
+  hueShift: 0,
   scalePercent: 320,
   scaleBase: 72,
   scaleSpread: 62,
@@ -191,6 +202,7 @@ export const DEFAULT_STATE: GeneratorState = {
   rotationEnabled: true,
   rotationAmount: 72,
   rotationSpeed: 48,
+  rotationAnimated: true,
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -356,21 +368,10 @@ const computeMovementOffsets = (
       return { offsetX, offsetY, scaleMultiplier: 1 };
     }
     case "drift": {
-      const offsetX =
-        Math.cos(phased * 0.02 + phase * 0.45) *
-        layerTileSize *
-        0.08 *
-        motionScale;
-      const offsetY =
-        Math.sin(phased * 0.018 + phase * 0.3) *
-        layerTileSize *
-        0.06 *
-        motionScale;
-      return {
-        offsetX,
-        offsetY,
-        scaleMultiplier: clampScale(1 + Math.sin(phase) * motionScale * 0.15),
-      };
+      const driftX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.45;
+      const driftY = Math.cos(phased * 0.024 + phase * 0.12) * baseUnit * motionScale * 0.5;
+      const scaleMultiplier = clampScale(1 + Math.sin(phased * 0.016) * motionScale * 0.16);
+      return { offsetX: driftX, offsetY: driftY, scaleMultiplier };
     }
     case "ripple": {
       const wave = Math.sin(phased * 0.04 + layerIndex * 0.6);
@@ -416,7 +417,7 @@ const computeMovementOffsets = (
       return { offsetX, offsetY, scaleMultiplier };
     }
     case "spiral": {
-      const radius = baseUnit * (0.8 + layerIndex * 0.25 + motionScale * 1.8);
+      const radius = baseUnit * (0.55 + layerIndex * 0.18 + motionScale * 1.35);
       const angle = phased * (0.04 + layerIndex * 0.02);
       const spiralFactor = 1 + Math.sin(angle * 0.5) * 0.4;
       const offsetX = Math.cos(angle) * radius * spiralFactor;
@@ -428,7 +429,7 @@ const computeMovementOffsets = (
     }
     case "comet": {
       const pathLength =
-        layerTileSize * (1.2 + layerIndex * 0.35 + motionScale * 1.6);
+        layerTileSize * (0.85 + layerIndex * 0.28 + motionScale * 1.2);
       const travel = phased * (0.035 + layerIndex * 0.01);
       const orbital = travel + phase;
       const tail = (Math.sin(travel * 0.9 + phase * 0.6) + 1) * 0.5;
@@ -548,8 +549,21 @@ const computeSprite = (state: GeneratorState): PreparedSprite => {
     // Adjust positioning bounds based on scale - larger sprites need tighter spacing
     // When scale is high, reduce the range so sprites are positioned closer together
     const scaleRatio = baseScale / MAX_TILE_SCALE; // 0-1, where 1 = max scale
-    const minBound = lerp(0.05, 0.2, scaleRatio); // At max scale, use 0.2 instead of 0.05
-    const maxBound = lerp(0.95, 0.8, scaleRatio); // At max scale, use 0.8 instead of 0.95
+    let minBound = lerp(0.05, 0.2, scaleRatio);
+    let maxBound = lerp(0.95, 0.8, scaleRatio);
+
+    const isOrbitMode = state.movementMode === "orbit";
+    const isSpiralMode = state.movementMode === "spiral";
+
+    if (isOrbitMode) {
+      minBound = lerp(0.04, 0.18, scaleRatio);
+      maxBound = lerp(0.96, 0.82, scaleRatio);
+    }
+
+    if (isSpiralMode) {
+      minBound = lerp(0.035, 0.17, scaleRatio);
+      maxBound = lerp(0.965, 0.83, scaleRatio);
+    }
     
     for (let index = 0; index < tileTotal; index += 1) {
       const col = index % gridCols;
@@ -558,8 +572,17 @@ const computeSprite = (state: GeneratorState): PreparedSprite => {
       const jitterStrengthY = gridRows === 1 ? 0.2 : 0.6;
       const jitterX = (positionRng() - 0.5) * jitterStrengthX;
       const jitterY = (positionRng() - 0.5) * jitterStrengthY;
-      const u = clamp((col + 0.5 + jitterX) / gridCols, minBound, maxBound);
-      const v = clamp((row + 0.5 + jitterY) / gridRows, minBound, maxBound);
+
+      let u = clamp((col + 0.5 + jitterX) / gridCols, minBound, maxBound);
+      let v = clamp((row + 0.5 + jitterY) / gridRows, minBound, maxBound);
+
+      if (isOrbitMode || isSpiralMode) {
+        const focusStrength = scaleRatio * (isOrbitMode ? 0.14 : 0.12);
+        const centreBiasX = (0.5 - u) * focusStrength;
+        const centreBiasY = (0.5 - v) * focusStrength;
+        u = clamp(u + centreBiasX, minBound, maxBound);
+        v = clamp(v + centreBiasY, minBound, maxBound);
+      }
 
       const scaleRange = Math.max(0, maxScaleFactor - minScaleFactor);
       const scale =
@@ -638,6 +661,7 @@ export interface SpriteController {
   setRotationEnabled: (value: boolean) => void;
   setRotationAmount: (value: number) => void;
   setRotationSpeed: (value: number) => void;
+  setRotationAnimated: (value: boolean) => void;
   usePalette: (paletteId: PaletteId) => void;
   setBackgroundMode: (mode: BackgroundMode) => void;
   applySingleTilePreset: () => void;
@@ -658,6 +682,26 @@ export const createSpriteController = (
   };
   let prepared = computeSprite(state);
   let p5Instance: p5 | null = null;
+
+  const randomBlendMode = () =>
+    blendModePool[Math.floor(Math.random() * blendModePool.length)] ?? "NONE";
+
+  const reassignAutoBlendModes = () => {
+    if (!prepared) {
+      return;
+    }
+
+    prepared.layers.forEach((layer) => {
+      if (layer.mode !== "shape") {
+        return;
+      }
+      const layerBlend = randomBlendMode();
+      layer.blendMode = layerBlend;
+      layer.tiles.forEach((tile) => {
+        tile.blendMode = randomBlendMode();
+      });
+    });
+  };
 
   const notifyState = () => {
     options.onStateChange?.({ ...state });
@@ -825,7 +869,7 @@ export const createSpriteController = (
             const rotationTime = scaledAnimationTime; // Use smoothly accumulating scaled time
             // Recalculate rotation speed dynamically from state (no regeneration needed)
             const rotationSpeedBase = clamp(state.rotationSpeed, 0, 100) / 100;
-            const rotationSpeed = rotationSpeedBase > 0
+            const rotationSpeed = state.rotationAnimated && rotationSpeedBase > 0
               ? rotationSpeedBase * ROTATION_SPEED_MAX * tile.rotationSpeedMultiplier
               : 0;
             // Recalculate rotation base dynamically from state (no regeneration needed)
@@ -912,10 +956,52 @@ export const createSpriteController = (
                 break;
               }
               case "line": {
-                const length = shapeSize * 18;
+                const length = shapeSize * 36;
                 const thickness = Math.max(2, shapeSize * 0.12);
                 p.rectMode(p.CENTER);
                 p.rect(0, 0, length, thickness);
+                break;
+              }
+              case "pentagon": {
+                const radius = halfSize;
+                p.beginShape();
+                for (let k = 0; k < 5; k += 1) {
+                  const angle = p.TWO_PI * (k / 5) - p.HALF_PI;
+                  p.vertex(Math.cos(angle) * radius, Math.sin(angle) * radius);
+                }
+                p.endShape(p.CLOSE);
+                break;
+              }
+              case "asterisk": {
+                const barThickness = Math.max(2, shapeSize * 0.18);
+                const barLength = shapeSize;
+                p.push();
+                p.rectMode(p.CENTER);
+                p.rect(0, 0, barThickness, barLength);
+                p.rect(0, 0, barLength, barThickness);
+                p.rotate(p.PI / 4);
+                p.rect(0, 0, barThickness, barLength);
+                p.rect(0, 0, barLength, barThickness);
+                p.pop();
+                break;
+              }
+              case "cross": {
+                const barThickness = Math.max(2, shapeSize * 0.35);
+                const barLength = shapeSize;
+                p.rectMode(p.CENTER);
+                p.rect(0, 0, barThickness, barLength);
+                p.rect(0, 0, barLength, barThickness);
+                break;
+              }
+              case "capsule": {
+                const capsuleWidth = shapeSize * 1.05;
+                const capsuleHeight = shapeSize * 0.5;
+                p.rectMode(p.CENTER);
+                p.rect(0, 0, capsuleWidth, capsuleHeight, capsuleHeight * 0.5);
+                break;
+              }
+              case "ellipse": {
+                p.ellipse(0, 0, shapeSize, shapeSize * 0.65);
                 break;
               }
               default:
@@ -966,14 +1052,8 @@ export const createSpriteController = (
       state.scaleBase = randomInt(52, 88);
       state.scaleSpread = randomInt(42, 96);
       state.paletteVariance = randomInt(32, 128);
-      state.hueShift = randomInt(0, 85);
+      state.hueShift = 0;
       state.motionIntensity = randomInt(42, 98);
-      state.motionSpeed = randomInt(4, 11);
-      state.layerOpacity = randomInt(55, 88);
-      state.blendMode =
-        blendModePool[Math.floor(Math.random() * blendModePool.length)];
-      state.blendModeAuto = true;
-      state.previousBlendMode = state.blendMode;
       state.movementMode =
         movementModes[Math.floor(Math.random() * movementModes.length)];
       state.backgroundMode = "palette";
@@ -983,13 +1063,13 @@ export const createSpriteController = (
         ? randomInt(28, 145)
         : randomInt(0, 35);
       state.rotationSpeed = rotationActive ? randomInt(18, 72) : 0;
+      state.rotationAnimated = rotationActive;
       updateSprite();
     },
     randomizeColors: () => {
       updateSeed();
       state.paletteId = getRandomPalette().id;
       state.paletteVariance = randomInt(32, 126);
-      state.hueShift = randomInt(0, 85);
       updateSprite();
     },
     randomizeScale: () => {
@@ -1011,14 +1091,19 @@ export const createSpriteController = (
         ? randomInt(24, 140)
         : Math.min(state.rotationAmount, 20);
       state.rotationSpeed = rotationActive ? randomInt(15, 68) : 0;
+      state.rotationAnimated = rotationActive;
       updateSprite();
     },
     randomizeBlendMode: () => {
-      state.blendModeAuto = false;
-      state.blendMode =
-        blendModePool[Math.floor(Math.random() * blendModePool.length)];
-      state.previousBlendMode = state.blendMode;
-      updateSprite();
+      if (state.blendModeAuto) {
+        reassignAutoBlendModes();
+        notifyState();
+        return;
+      }
+      const nextBlend = randomBlendMode();
+      state.blendMode = nextBlend;
+      state.previousBlendMode = nextBlend;
+      notifyState();
     },
     setScalePercent: (value: number) => {
       applyState({ scalePercent: clamp(value, 0, MAX_DENSITY_PERCENT_UI) });
@@ -1056,27 +1141,21 @@ export const createSpriteController = (
       }, { recompute: false });
     },
     setBlendModeAuto: (value: boolean) => {
-      if (value) {
-        const stored =
-          state.blendModeAuto && state.previousBlendMode
-            ? state.previousBlendMode
-            : state.blendMode ?? "NONE";
-        // Refresh seed so auto blend redistributes when toggled on
-        updateSeed();
-        applyState(
-          {
-            blendModeAuto: true,
-            previousBlendMode: stored,
-          },
-          { recompute: true },
-        );
-      } else {
-        const fallback = state.previousBlendMode ?? state.blendMode ?? "NONE";
-        applyState(
-          { blendModeAuto: false, blendMode: fallback },
-          { recompute: false },
-        );
+      if (value === state.blendModeAuto) {
+        return;
       }
+
+      if (value) {
+        state.blendModeAuto = true;
+        notifyState();
+        return;
+      }
+
+      const fallback = state.previousBlendMode ?? state.blendMode ?? "NONE";
+      state.previousBlendMode = fallback;
+      state.blendModeAuto = false;
+      state.blendMode = fallback;
+      notifyState();
     },
     setLayerOpacity: (value: number) => {
       // Layer opacity is applied directly in rendering, no regeneration needed
@@ -1109,6 +1188,10 @@ export const createSpriteController = (
     setRotationSpeed: (value: number) => {
       applyState({ rotationSpeed: clamp(value, 0, 100) });
     },
+    setRotationAnimated: (value: boolean) => {
+      state.rotationAnimated = value;
+      notifyState();
+    },
     usePalette: (paletteId: PaletteId) => {
       if (getPalette(paletteId)) {
         applyState({ paletteId });
@@ -1131,6 +1214,7 @@ export const createSpriteController = (
         motionSpeed: 12.5,
         rotationEnabled: true,
         rotationAmount: 35,
+        rotationAnimated: true,
       });
     },
     applyNebulaPreset: () => {
@@ -1149,6 +1233,7 @@ export const createSpriteController = (
         layerOpacity: 62,
         rotationEnabled: true,
         rotationAmount: 72,
+        rotationAnimated: true,
       });
     },
     applyMinimalGridPreset: () => {
@@ -1167,6 +1252,7 @@ export const createSpriteController = (
         layerOpacity: 48,
         rotationEnabled: false,
         rotationAmount: 0,
+        rotationAnimated: false,
       });
     },
     reset: () => {

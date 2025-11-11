@@ -131,6 +131,31 @@ const SPRITE_MODES: Array<{
     label: "Line",
     description: "Neon scanlines with motion-friendly poses",
   },
+  {
+    value: "pentagon",
+    label: "Pentagon",
+    description: "Balanced five-point tiles for structured bursts",
+  },
+  {
+    value: "asterisk",
+    label: "Asterisk",
+    description: "Radiating sparks that pop with rotation",
+  },
+  {
+    value: "cross",
+    label: "Cross",
+    description: "Bold plus signs that anchor grid compositions",
+  },
+  {
+    value: "capsule",
+    label: "Capsule",
+    description: "Rounded pills that make sleek comet trails",
+  },
+  {
+    value: "ellipse",
+    label: "Ellipse",
+    description: "Elongated orbs that soften orbit patterns",
+  },
 ];
 
 const TILE_DENSITY_MIN = 50;
@@ -491,8 +516,53 @@ const ShapeIcon = ({ shape, size = 24 }: { shape: SpriteMode; size?: number }) =
       }
       
       case "line":
-        return <rect x={2} y={10} width={20} height={4} rx={2} fill="currentColor" />;
-      
+        return <rect x={2} y={10} width={20} height={4} fill="currentColor" />;
+
+      case "pentagon": {
+        const points = [];
+        for (let i = 0; i < 5; i += 1) {
+          const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+          const x = center + radius * 1.1 * Math.cos(angle);
+          const y = center + radius * 1.1 * Math.sin(angle);
+          points.push(`${x},${y}`);
+        }
+        return <polygon points={points.join(" ")} fill="currentColor" />;
+      }
+
+      case "asterisk":
+        return (
+          <g stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+            <line x1={center} y1={center - radius} x2={center} y2={center + radius} />
+            <line x1={center - radius} y1={center} x2={center + radius} y2={center} />
+            <line
+              x1={center - radius * 0.8}
+              y1={center - radius * 0.8}
+              x2={center + radius * 0.8}
+              y2={center + radius * 0.8}
+            />
+            <line
+              x1={center - radius * 0.8}
+              y1={center + radius * 0.8}
+              x2={center + radius * 0.8}
+              y2={center - radius * 0.8}
+            />
+          </g>
+        );
+
+      case "cross":
+        return (
+          <g fill="currentColor">
+            <rect x={center - 3} y={center - 10} width={6} height={20} rx={2} />
+            <rect x={center - 10} y={center - 3} width={20} height={6} rx={2} />
+          </g>
+        );
+
+      case "capsule":
+        return <rect x={center - 8} y={center - 6} width={16} height={12} rx={6} fill="currentColor" />;
+
+      case "ellipse":
+        return <ellipse cx={center} cy={center} rx={radius * 1.2} ry={radius * 0.75} fill="currentColor" />;
+ 
       default:
         return <circle cx={center} cy={center} r={radius} fill="currentColor" />;
     }
@@ -709,6 +779,16 @@ const App = () => {
   const handleRotationSpeedChange = useCallback((value: number) => {
     controllerRef.current?.setRotationSpeed(value);
   }, []);
+
+  const handleRotationAnimatedToggle = useCallback(
+    (checked: boolean) => {
+      controllerRef.current?.setRotationAnimated(checked);
+      if (checked && spriteState && spriteState.rotationSpeed === 0) {
+        controllerRef.current?.setRotationSpeed(25);
+      }
+    },
+    [spriteState],
+  );
 
 
   const handleThemeSelect = useCallback((value: string) => {
@@ -1166,10 +1246,8 @@ const App = () => {
             <div className="switch-row">
               <Switch
                 id="rotation-animate"
-                checked={spriteState.rotationSpeed > 0}
-                onCheckedChange={(checked) =>
-                  handleRotationSpeedChange(checked ? 25 : 0)
-                }
+                checked={spriteState.rotationAnimated}
+                onCheckedChange={handleRotationAnimatedToggle}
                 disabled={!ready}
                 aria-labelledby="rotation-animate-label"
               />
@@ -1303,14 +1381,26 @@ const App = () => {
                 />
               </div>
             </div>
-            <div className="switch-row">
+            <div className="switch-row" style={{ gap: "0.75rem" }}>
               <Switch
                 id="blend-auto"
                 checked={spriteState.blendModeAuto}
                 onCheckedChange={handleBlendAutoToggle}
-                disabled={!ready}
                 aria-labelledby={blendAutoLabelId}
+                disabled={!ready}
               />
+              <Button
+                type="button"
+                size="md"
+                variant="outline"
+                onClick={() => controllerRef.current?.randomizeBlendMode()}
+                disabled={!ready || !spriteState.blendModeAuto}
+                aria-label="Randomise sprite blend modes"
+                title="Randomise sprite blend modes"
+                className="blend-random-button"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
