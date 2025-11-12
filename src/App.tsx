@@ -645,6 +645,7 @@ const App = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hudVisible, setHudVisible] = useState(true);
   const hudTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showStatusInfo, setShowStatusInfo] = useState(false);
   
   const isStudioLayout = useMediaQuery("(min-width: 1760px)");
   const [isWideLayout, setIsWideLayout] = useState(false);
