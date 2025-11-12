@@ -41,7 +41,7 @@ import { PresetManager } from "./components/PresetManager";
 import { ExportModal } from "./components/ExportModal";
 import { MobileMenu } from "./components/MobileMenu";
 import { Badge } from "./components/retroui/Badge";
-import { Moon, Monitor, Sun, Maximize2, X, RefreshCw, Bookmark, Camera } from "lucide-react";
+import { Moon, Monitor, Sun, Maximize2, X, RefreshCw, Bookmark, Camera, HelpCircle } from "lucide-react";
 import { palettes } from "./data/palettes";
 import { shouldSplitColumns, getAppMainPadding } from "./lib/responsiveLayout";
 import { useIsMobile } from "./hooks/useIsMobile";
@@ -1608,21 +1608,58 @@ const App = () => {
         } : undefined}
       >
       <div className="status-bar-left">
-        <Badge variant="surface" size="sm">
-          Palette · {statusPalette}
-        </Badge>
-        <Badge variant="surface" size="sm">
-          Mode · {statusMode}
-        </Badge>
-        <Badge variant="surface" size="sm">
-          Blend · {statusBlend}
-        </Badge>
-        <Badge variant="surface" size="sm">
-          Motion · {statusMotion}
-        </Badge>
-        <Badge variant="surface" size="sm">
-          {frameRate.toFixed(0)} FPS
-        </Badge>
+        {isMobile ? (
+          <>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={() => setShowStatusInfo(!showStatusInfo)}
+              className="status-bar-info-toggle"
+              aria-label="Toggle status information"
+              title="Status information"
+            >
+              <HelpCircle className="status-bar-icon" />
+            </Button>
+            {showStatusInfo && (
+              <div className="status-bar-info-mobile">
+                <Badge variant="surface" size="sm">
+                  Palette · {statusPalette}
+                </Badge>
+                <Badge variant="surface" size="sm">
+                  Mode · {statusMode}
+                </Badge>
+                <Badge variant="surface" size="sm">
+                  Blend · {statusBlend}
+                </Badge>
+                <Badge variant="surface" size="sm">
+                  Motion · {statusMotion}
+                </Badge>
+                <Badge variant="surface" size="sm">
+                  {frameRate.toFixed(0)} FPS
+                </Badge>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <Badge variant="surface" size="sm">
+              Palette · {statusPalette}
+            </Badge>
+            <Badge variant="surface" size="sm">
+              Mode · {statusMode}
+            </Badge>
+            <Badge variant="surface" size="sm">
+              Blend · {statusBlend}
+            </Badge>
+            <Badge variant="surface" size="sm">
+              Motion · {statusMotion}
+            </Badge>
+            <Badge variant="surface" size="sm">
+              {frameRate.toFixed(0)} FPS
+            </Badge>
+          </>
+        )}
         </div>
       <div className="status-bar-right">
         <Button
@@ -1721,13 +1758,12 @@ const App = () => {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <button type="button" className="app-logo-button" aria-label="BitLab">
-          <BitlabLogo className="app-logo-svg" />
-        </button>
-        <div className="header-toolbar">
-          <div className="header-spacer" />
-          {isMobile ? (
+      <header className={`app-header${isMobile ? ' app-header--mobile' : ''}`}>
+        {isMobile ? (
+          <div className="app-header-mobile-row">
+            <button type="button" className="app-logo-button app-logo-button--mobile" aria-label="BitLab">
+              <BitlabLogo className="app-logo-svg" />
+            </button>
             <MobileMenu
               themeColor={themeColor}
               themeShape={themeShape}
@@ -1739,8 +1775,15 @@ const App = () => {
               themeColorOptions={THEME_COLOR_OPTIONS}
               themeColorPreview={THEME_COLOR_PREVIEW}
             />
-          ) : (
-            <div className="header-actions">
+          </div>
+        ) : (
+          <>
+            <button type="button" className="app-logo-button" aria-label="BitLab">
+              <BitlabLogo className="app-logo-svg" />
+            </button>
+            <div className="header-toolbar">
+              <div className="header-spacer" />
+              <div className="header-actions">
               <Select value={themeColor} onValueChange={handleThemeSelect}>
                 <SelectTrigger
                   className="header-theme-trigger"
@@ -1802,9 +1845,10 @@ const App = () => {
               >
                 <ThemeModeIconComponent className="h-4 w-4" aria-hidden="true" />
               </Button>
+              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </header>
 
       <main className="app-main">
@@ -1939,29 +1983,31 @@ const App = () => {
           )}
         </div>
       </main>
-      <footer className="app-footer">
+      <footer className={`app-footer${isMobile ? ' app-footer--mobile' : ''}`}>
         <div className="footer-brand">
-          <BitlabLogo className="footer-logo" />
-        <span>
+          {!isMobile && <BitlabLogo className="footer-logo" />}
+          <span>
             © {new Date().getFullYear()} BitLab · Generative Playground ·{" "}
             <a href="https://jamescutts.me/" target="_blank" rel="noreferrer">
               jamescutts.me
             </a>
           </span>
         </div>
-        <span className="footer-links">
-          <a href="https://p5js.org/" target="_blank" rel="noreferrer">
-            p5.js
-          </a>{" "}
-          ·{" "}
-          <a
-            href="https://www.retroui.dev/docs"
-            target="_blank"
-            rel="noreferrer"
-          >
-            RetroUI Docs
-          </a>
-        </span>
+        {!isMobile && (
+          <span className="footer-links">
+            <a href="https://p5js.org/" target="_blank" rel="noreferrer">
+              p5.js
+            </a>{" "}
+            ·{" "}
+            <a
+              href="https://www.retroui.dev/docs"
+              target="_blank"
+              rel="noreferrer"
+            >
+              RetroUI Docs
+            </a>
+          </span>
+        )}
       </footer>
 
       {showPresetManager && (
