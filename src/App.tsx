@@ -41,6 +41,7 @@ import { PresetManager } from "./components/PresetManager";
 import { Badge } from "./components/retroui/Badge";
 import { Moon, Monitor, Sun, Maximize2, X, RefreshCw, Bookmark } from "lucide-react";
 import { palettes } from "./data/palettes";
+import { shouldSplitColumns, getAppMainPadding } from "./lib/responsiveLayout";
 const BLEND_MODES: BlendModeOption[] = [
   "NONE",
   "MULTIPLY",
@@ -512,8 +513,9 @@ const ShapeIcon = ({ shape, size = 24 }: { shape: SpriteMode; size?: number }) =
         const points = [];
         for (let i = 0; i < 5; i += 1) {
           const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-          const x = center + radius * 1.1 * Math.cos(angle);
-          const y = center + radius * 1.1 * Math.sin(angle);
+          const pentagonRadius = radius * 1.25;
+          const x = center + pentagonRadius * Math.cos(angle);
+          const y = center + pentagonRadius * Math.sin(angle);
           points.push(`${x},${y}`);
         }
         return <polygon points={points.join(" ")} fill="currentColor" />;
@@ -627,13 +629,65 @@ const App = () => {
     getStoredThemeShape(),
   );
   const [controlTabIndex, setControlTabIndex] = useState(0);
+  const [motionTabIndex, setMotionTabIndex] = useState(0);
   const [showPresetManager, setShowPresetManager] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hudVisible, setHudVisible] = useState(true);
   const hudTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const isStudioLayout = useMediaQuery("(min-width: 1760px)");
+  const [isWideLayout, setIsWideLayout] = useState(false);
   const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
+  const layoutRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Check if columns should be split or merged based on viewport width
+   * 
+   * Uses the responsive layout utilities to determine if there's enough
+   * space to split columns while maintaining the canvas at maximum size.
+   * 
+   * This prevents the "snapping" behavior where columns split before the
+   * canvas reaches its maximum size.
+   */
+  const checkLayout = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    const viewportWidth = window.innerWidth;
+    const appMainPadding = getAppMainPadding();
+    const shouldSplit = shouldSplitColumns(viewportWidth, appMainPadding);
+    
+    setIsWideLayout(shouldSplit);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Initial check
+    checkLayout();
+    
+    // Check on resize
+    window.addEventListener('resize', checkLayout);
+    
+    return () => {
+      window.removeEventListener('resize', checkLayout);
+    };
+  }, [checkLayout]);
+
+  // Set up ResizeObserver on layout container for more accurate detection
+  useEffect(() => {
+    if (!layoutRef.current || typeof ResizeObserver === 'undefined') return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Small delay to ensure layout has updated
+      setTimeout(checkLayout, 0);
+    });
+    
+    resizeObserver.observe(layoutRef.current);
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [checkLayout]);
 
   const cycleThemeMode = useCallback(() => {
     setThemeMode((prev) => {
@@ -683,11 +737,13 @@ const App = () => {
     );
   }, [spriteState]);
 
-  useEffect(() => {
-    if (isStudioLayout && controlTabIndex > 1) {
-      setControlTabIndex(0);
-    }
-  }, [controlTabIndex, isStudioLayout]);
+  // Removed: This was preventing Motion/FX tabs from working when merged
+  // The tabs should work fine when merged since they're rendered conditionally
+  // useEffect(() => {
+  //   if (!isWideLayout && controlTabIndex > 1) {
+  //     setControlTabIndex(0);
+  //   }
+  // }, [isWideLayout, controlTabIndex]);
 
 
   useEffect(() => {
@@ -1608,7 +1664,8 @@ const App = () => {
 
       <main className="app-main">
         <div
-          className={`app-layout${isStudioLayout ? " app-layout--studio" : ""}`}
+          ref={layoutRef}
+          className={`app-layout${isStudioLayout ? " app-layout--studio" : ""}${isWideLayout ? " app-layout--wide" : ""}`}
         >
           <aside className="control-column">
             <Card className="panel">
@@ -1619,13 +1676,34 @@ const App = () => {
                 <TabsTriggerList className="retro-tabs">
                   <TabsTrigger>Sprites</TabsTrigger>
                   <TabsTrigger>Layers</TabsTrigger>
-                  {!isStudioLayout && <TabsTrigger>Motion</TabsTrigger>}
+                  {!isWideLayout && (
+                    <>
+                      <TabsTrigger>Motion</TabsTrigger>
+                      <TabsTrigger>FX</TabsTrigger>
+                    </>
+                  )}
                 </TabsTriggerList>
                 <TabsPanels>
                   <TabsContent>{renderSpriteControls()}</TabsContent>
                   <TabsContent>{renderFxControls()}</TabsContent>
-                  {!isStudioLayout && (
-                    <TabsContent>{renderMotionControls(false)}</TabsContent>
+                  {!isWideLayout && (
+                    <>
+                      <TabsContent>{renderMotionControls(false)}</TabsContent>
+                      <TabsContent>
+                        <div className="section">
+                          <h3 className="section-title">FX Effects</h3>
+                          <p style={{ 
+                            color: 'var(--text-muted)', 
+                            fontSize: '0.75rem', 
+                            lineHeight: '1.6',
+                            marginTop: '1rem'
+                          }}>
+                            Advanced effects and post-processing controls coming soon. 
+                            Stay tuned for filters, distortions, color grading, and more creative tools.
+                          </p>
+                        </div>
+                      </TabsContent>
+                    </>
                   )}
                 </TabsPanels>
               </Tabs>
@@ -1636,9 +1714,36 @@ const App = () => {
             {renderDisplayContent()}
           </div>
 
-          {isStudioLayout && (
+          {isWideLayout && (
             <aside className="motion-column">
-              <Card className="panel">{renderMotionControls(true)}</Card>
+              <Card className="panel">
+                <Tabs
+                  selectedIndex={motionTabIndex}
+                  onChange={setMotionTabIndex}
+                >
+                  <TabsTriggerList className="retro-tabs">
+                    <TabsTrigger>Motion</TabsTrigger>
+                    <TabsTrigger>FX</TabsTrigger>
+                  </TabsTriggerList>
+                  <TabsPanels>
+                    <TabsContent>{renderMotionControls(false)}</TabsContent>
+                    <TabsContent>
+                      <div className="section">
+                        <h3 className="section-title">FX Effects</h3>
+                        <p style={{ 
+                          color: 'var(--text-muted)', 
+                          fontSize: '0.75rem', 
+                          lineHeight: '1.6',
+                          marginTop: '1rem'
+                        }}>
+                          Advanced effects and post-processing controls coming soon. 
+                          Stay tuned for filters, distortions, color grading, and more creative tools.
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </TabsPanels>
+                </Tabs>
+              </Card>
             </aside>
           )}
         </div>

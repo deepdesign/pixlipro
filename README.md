@@ -16,15 +16,6 @@ BitLab is a vibrant generative art workbench built with React, p5.js, Tailwind, 
 </p>
 
 <p align="center">
-  <a href="https://bitlab.jamescutts.me/">
-    <img
-      src="https://img.shields.io/badge/Live%20Demo-bitlab.jamescutts.me-ff4f8b?style=for-the-badge&logo=debian&logoColor=white"
-      alt="Live Demo"
-    />
-  </a>
-</p>
-
-<p align="center">
   <img src="public/screengrabs/Screenshot%202025-11-10%20105941.png" width="48%" alt="BitLab Canvas view" />
   <img src="public/screengrabs/Screenshot%202025-11-10%20105947.png" width="48%" alt="BitLab Control panels" />
 </p>
@@ -45,6 +36,17 @@ BitLab is a vibrant generative art workbench built with React, p5.js, Tailwind, 
 - [🗂 Project Structure](#-project-structure)
 - [🤝 Contributing](#-contributing)
 - [📜 License](#-license)
+
+---
+
+<p align="center">
+  <a href="https://bitlab.jamescutts.me/">
+    <img
+      src="https://img.shields.io/badge/Live%20Demo-bitlab.jamescutts.me-ff4f8b?style=for-the-badge&logo=debian&logoColor=white"
+      alt="Live Demo"
+    />
+  </a>
+</p>
 
 ---
 

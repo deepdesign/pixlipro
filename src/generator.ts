@@ -720,7 +720,7 @@ export const createSpriteController = (
     let targetSpeedFactor = 1.0; // Target speed factor from slider
 
     p.setup = () => {
-      const size = container.clientWidth || 640;
+      const size = Math.max(750, container.clientWidth || 750);
       canvas = p.createCanvas(size, size);
       canvas.parent(container);
       p.pixelDensity(1);
@@ -745,8 +745,9 @@ export const createSpriteController = (
         // CSS will scale it down to fit the height, making it appear larger
         size = window.innerWidth;
       } else {
-        // Normal mode: use container width
-        size = container.clientWidth || 640;
+        // Normal mode: use container width, but enforce minimum based on status bar
+        // Status bar needs ~750px to fit all elements (5 badges + 3 buttons) on one row
+        size = Math.max(750, container.clientWidth || 750);
       }
       
       p.resizeCanvas(size, size);
