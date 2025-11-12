@@ -44,7 +44,7 @@ import { Badge } from "./components/retroui/Badge";
 import { Moon, Monitor, Sun, Maximize2, X, RefreshCw, Bookmark, Camera } from "lucide-react";
 import { palettes } from "./data/palettes";
 import { shouldSplitColumns, getAppMainPadding } from "./lib/responsiveLayout";
-import { useIsMobile, useIsTablet, useIsPhone } from "./hooks/useIsMobile";
+import { useIsMobile } from "./hooks/useIsMobile";
 const BLEND_MODES: BlendModeOption[] = [
   "NONE",
   "MULTIPLY",
@@ -653,8 +653,6 @@ const App = () => {
   
   // Mobile device detection
   const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
-  const isPhone = useIsPhone();
 
   /**
    * Check if columns should be split or merged based on viewport width
