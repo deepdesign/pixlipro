@@ -2,6 +2,18 @@
 
 <br />
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/favicon/svg/bitlab-b-logo-white.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="public/favicon/svg/bitlab-b-logo-black.svg" />
+    <img
+      src="public/favicon/svg/bitlab-b-logo-black.svg"
+      alt="BitLab modular logomark"
+      width="120"
+    />
+  </picture>
+</p>
+
 ## 🎨 Generative Pixel Playground
 
 BitLab is a vibrant generative art workbench built with React, p5.js, Tailwind, and RetroUI. Mix pixel iconography, palette theory, and motion envelopes to compose shimmering sprite tapestries in real time.
