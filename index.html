@@ -21,9 +21,200 @@
       href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
     />
     <title>BitLab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        background: #0b0b1d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2147483000;
+        transition: opacity 0.35s ease, visibility 0.35s ease;
+      }
+
+      #initial-loader.initial-loader--hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .initial-loader-stack {
+        position: relative;
+        width: 96px;
+        aspect-ratio: 60 / 45;
+      }
+
+      .initial-loader-logo {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        background: var(--loader-color);
+        mix-blend-mode: hard-light;
+        mask: url("/bitlab-b-logo-white.svg") center / contain no-repeat;
+        -webkit-mask: url("/bitlab-b-logo-white.svg") center / contain no-repeat;
+        transform-origin: center;
+        animation: none;
+      }
+
+      .initial-loader-logo--one {
+        --loader-color: #ff3cac;
+        animation: initial-loader-top 2.4s steps(32, end) infinite;
+      }
+
+      .initial-loader-logo--two {
+        --loader-color: #4cc9f0;
+        animation: initial-loader-mid 2.4s steps(20, end) infinite;
+      }
+
+      .initial-loader-logo--three {
+        --loader-color: #9ef6ff;
+        animation: initial-loader-bottom 2.4s steps(32, end) infinite;
+      }
+
+      .initial-loader-sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      @keyframes initial-loader-top {
+        0%,
+        8% {
+          transform: translate(0, 0);
+        }
+        10% {
+          transform: translate(6px, -2px);
+        }
+        14% {
+          transform: translate(-6px, 3px);
+        }
+        18% {
+          transform: translate(4px, -1px);
+        }
+        22% {
+          transform: translate(-5px, 2px);
+        }
+        30%,
+        60% {
+          transform: translate(0, 0);
+        }
+        64% {
+          transform: translate(5px, -3px);
+        }
+        70% {
+          transform: translate(-4px, 2px);
+        }
+        76% {
+          transform: translate(6px, -1px);
+        }
+        84% {
+          transform: translate(-5px, 3px);
+        }
+        100% {
+          transform: translate(0, 0);
+        }
+      }
+
+      @keyframes initial-loader-bottom {
+        0%,
+        8% {
+          transform: translate(0, 0);
+        }
+        10% {
+          transform: translate(-6px, 2px);
+        }
+        14% {
+          transform: translate(6px, -3px);
+        }
+        18% {
+          transform: translate(-4px, 1px);
+        }
+        22% {
+          transform: translate(5px, -2px);
+        }
+        30%,
+        60% {
+          transform: translate(0, 0);
+        }
+        64% {
+          transform: translate(-5px, 3px);
+        }
+        70% {
+          transform: translate(4px, -2px);
+        }
+        76% {
+          transform: translate(-6px, 1px);
+        }
+        84% {
+          transform: translate(5px, -3px);
+        }
+        100% {
+          transform: translate(0, 0);
+        }
+      }
+
+      @keyframes initial-loader-mid {
+        0%,
+        12% {
+          transform: translate(0, 0);
+        }
+        16% {
+          transform: translate(-1px, 0);
+        }
+        20% {
+          transform: translate(2px, 0);
+        }
+        28%,
+        62% {
+          transform: translate(0, 0);
+        }
+        68% {
+          transform: translate(-1px, 0);
+        }
+        74% {
+          transform: translate(1px, 0);
+        }
+        100% {
+          transform: translate(0, 0);
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="initial-loader" role="status">
+      <div class="initial-loader-stack" aria-hidden="true">
+        <span class="initial-loader-logo initial-loader-logo--one"></span>
+        <span class="initial-loader-logo initial-loader-logo--two"></span>
+        <span class="initial-loader-logo initial-loader-logo--three"></span>
+      </div>
+      <span class="initial-loader-sr">Loading BitLab</span>
+    </div>
     <div id="app"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        requestAnimationFrame(() => {
+          const script = document.createElement("script");
+          script.type = "module";
+          script.src = "/src/main.tsx";
+          document.body.appendChild(script);
+        });
+      });
+    </script>
   </body>
 </html>

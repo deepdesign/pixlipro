@@ -689,6 +689,26 @@ const App = () => {
   // Mobile device detection
   const isMobile = useIsMobile();
 
+  useEffect(() => {
+    const initialLoader = document.getElementById("initial-loader");
+    if (!initialLoader) {
+      return;
+    }
+    initialLoader.classList.add("initial-loader--hidden");
+    const removeLoader = () => {
+      initialLoader.removeEventListener("transitionend", removeLoader);
+      if (initialLoader.parentNode) {
+        initialLoader.parentNode.removeChild(initialLoader);
+      }
+    };
+    initialLoader.addEventListener("transitionend", removeLoader);
+    const fallbackTimeout = window.setTimeout(removeLoader, 500);
+    return () => {
+      initialLoader.removeEventListener("transitionend", removeLoader);
+      window.clearTimeout(fallbackTimeout);
+    };
+  }, []);
+
   /**
    * Check if columns should be split or merged based on viewport width
    * 

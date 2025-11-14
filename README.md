@@ -71,6 +71,7 @@ BitLab is a vibrant generative art workbench built with React, p5.js, Tailwind, 
 - **Blend Architectures** – Layer-specific blend modes (multiply, screen, hard light, overlay) with optional per-sprite randomisation.
 - **Theme Designer** – System/light/dark cycling, six colourway accents, and RetroUI Box/Rounded chassis toggle applied across the entire shell.
 - **Status HUD** – Live palette, sprite mode, blend, motion, density, and FPS read-outs follow you into fullscreen.
+- **Instant Loader** – Lightweight inline bootstrapper renders the BitLab spinner before the bundle downloads, then hands off seamlessly to React once the generator is ready.
 - **High-Resolution Export** – Export your canvas at any resolution with presets for social media, wallpapers, and print. Aspect ratio locking, custom dimensions, and high-quality PNG output with smooth scaling.
 - **Tailwind Retro Components** – Buttons, Selects, Switches, Tabs, Cards, and Accordion rebuilt on the Tailwind spacing scale while honouring RetroUI tokens.
 - **Footer Resources** – Slim footer featuring the BitLab logotype, quick access to RetroUI docs, p5.js, and `jamescutts.me`.
