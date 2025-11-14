@@ -847,7 +847,7 @@ html[data-theme="dark"][data-theme-color="rose"] body {
 .app-shell {
   @apply min-h-screen flex flex-col;
   padding-bottom: theme("spacing.3");
-  gap: theme("spacing.4");
+  gap: 0;
 }
 
 .app-frame {
@@ -874,7 +874,7 @@ html[data-theme="dark"][data-theme-color="rose"] body {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  margin-top: -8px;
+  margin-top: theme("spacing.5");
 }
 
 .app-frame--footer {
@@ -882,11 +882,24 @@ html[data-theme="dark"][data-theme-color="rose"] body {
   margin-top: auto;
 }
 
+/* Debug outlines for header and card containers */
+/* Debug outlines for header and card containers */
+/* .app-frame--header,
+.app-header,
+.app-header > * {
+  border: 1px solid rgba(255, 0, 0, 0.5);
+}
+
+.app-frame--main,
+.app-layout,
+.app-layout > * {
+  border: 1px solid rgba(255, 0, 0, 0.5);
+} */
 .app-header {
-  @apply grid items-center text-[var(--text-primary)];
+  @apply grid items-end text-[var(--text-primary)];
   gap: theme("spacing.5");
   padding-inline: theme("spacing.6");
-  padding-top: theme("spacing.7");
+  padding-top: 0;
   padding-bottom: 0;
   grid-template-columns: minmax(0, min(100%, var(--control-column-width))) 1fr;
   max-width: 100%;
@@ -906,7 +919,8 @@ body:has(.app-layout--wide) .app-header {
   @apply flex items-center justify-end;
   gap: theme("spacing.3");
   flex: 1 1 auto;
-  margin-bottom: calc(-2 * theme("spacing.2") - 4px);
+  margin-bottom: 0;
+  align-self: end;
 }
 
 .app-logo-button {
@@ -920,8 +934,9 @@ body:has(.app-layout--wide) .app-header {
   padding: 0;
   justify-self: start;
   display: flex;
-  align-items: center;
-  margin-top: 8px;
+  align-items: flex-end;
+  margin-top: 0;
+  align-self: end;
 }
 
 .app-logo-svg {
@@ -2200,7 +2215,6 @@ body:has(.app-layout--wide) .app-header {
   max-width: 100%;
   position: relative;
   overflow: visible;
-  margin-bottom: theme("spacing.2");
 }
 
 .canvas-card {
@@ -2212,7 +2226,7 @@ body:has(.app-layout--wide) .app-header {
 .canvas-card__content {
   display: flex;
   flex-direction: column;
-  gap: theme("spacing.4");
+  gap: theme("spacing.5");
   padding: 0 !important;
 }
 
@@ -2247,7 +2261,7 @@ body:has(.app-layout--wide) .app-header {
 
 .status-bar {
   @apply flex items-start;
-  margin-top: theme("spacing.2");
+  margin-top: 0;
   gap: theme("spacing.3");
   justify-content: space-between;
   transition: opacity 0.3s ease, transform 0.3s ease;
