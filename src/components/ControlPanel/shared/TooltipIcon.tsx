@@ -1,4 +1,4 @@
-import { Info } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 
 interface TooltipIconProps {
   id: string;
@@ -6,19 +6,24 @@ interface TooltipIconProps {
   label: string;
 }
 
+/**
+ * TooltipIcon Component
+ * 
+ * Displays a help icon with a tooltip that appears on hover.
+ * Uses RetroUI tooltip styling.
+ */
 export function TooltipIcon({ id, text, label }: TooltipIconProps) {
   return (
-    <span className="tooltip-wrapper">
+    <span className="retro-tooltip">
       <button
         type="button"
         className="tooltip-trigger"
-        aria-label={`${label} - ${text}`}
         aria-describedby={id}
-        data-tooltip-id={id}
+        aria-label={`Information about ${label}`}
       >
-        <Info className="tooltip-icon" />
+        <HelpCircle className="h-5 w-5" strokeWidth={1} />
       </button>
-      <span id={id} className="tooltip-text" role="tooltip">
+      <span id={id} role="tooltip" className="tooltip-content">
         {text}
       </span>
     </span>

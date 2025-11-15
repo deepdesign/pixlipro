@@ -26,19 +26,26 @@ export function useSpriteController(containerRef: React.RefObject<HTMLDivElement
 
     controllerRef.current = controller;
     controller.randomizeAll();
-    setSpriteState(controller.getState());
+    // Set state synchronously to ensure it's available immediately
+    const initialState = controller.getState();
+    setSpriteState(initialState);
 
     return () => {
       controller.destroy();
       controllerRef.current = null;
+      setSpriteState(null);
     };
   }, [containerRef]);
+
+  // Check if controller is ready
+  // Note: p5 instance might not be ready immediately, so we just check controller and state
+  const isControllerReady = controllerRef.current !== null && spriteState !== null;
 
   return {
     controller: controllerRef.current,
     spriteState,
     frameRate,
-    ready: spriteState !== null && controllerRef.current !== null,
+    ready: isControllerReady,
   };
 }
 

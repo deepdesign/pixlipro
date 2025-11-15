@@ -18,4 +18,6 @@ export {
 export { generateCrtNoise, generateGrain, generateBayerDither, applyNoiseOverlay } from "./fxNoise";
 export * from "./responsiveLayout";
 export * from "./conversions";
+export { formatBlendMode } from "./formatting";
+export { generatePaletteOptions } from "./paletteOptions";
 

@@ -6,19 +6,6 @@ import {
   useState,
 } from "react";
 import { Card } from "@/components/Card";
-import { Button } from "@/components/Button";
-
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectValue,
-} from "@/components/retroui/Select";
-import { Slider } from "@/components/retroui/Slider";
-import { Switch } from "@/components/retroui/Switch";
 import {
   Tabs,
   TabsTriggerList,
@@ -32,7 +19,6 @@ import type {
   GeneratorState,
   SpriteMode,
   MovementMode,
-  BackgroundMode,
 } from "./types/generator";
 import { PresetManager } from "./components/PresetManager";
 import { ExportModal } from "./components/ExportModal";
@@ -40,116 +26,25 @@ import { CustomPaletteManager } from "./components/CustomPaletteManager";
 import { Header } from "./components/Header";
 import { StatusBar } from "./components/StatusBar";
 import { BitlabLogo } from "./components/Header/BitlabLogo";
-import { Lock, Unlock, ImagePlus, RefreshCw } from "lucide-react";
+import {
+  SpriteControls,
+  FxControls,
+  MotionControls,
+} from "./components/ControlPanel";
+import { palettes, getPalette } from "./data/palettes";
 import { useIsMobile } from "./hooks/useIsMobile";
-import { palettes, getAllPalettes, getPalette } from "./data/palettes";
 import { useTheme } from "./hooks/useTheme";
 import { useFullscreen } from "./hooks/useFullscreen";
 import { useSpriteController } from "./hooks/useSpriteController";
-import { BLEND_MODES } from "./constants/blend";
+import { formatMovementMode } from "./constants/movement";
 import { SPRITE_MODES } from "./constants/sprites";
 import {
-  densityToUi,
-  uiToDensity,
-  varianceToUi,
-  uiToVariance,
-  speedToUi,
-  uiToSpeed,
+  formatBlendMode,
+  generatePaletteOptions,
 } from "./lib/utils";
 
 
-// Helper function to generate palette options (will be used in useMemo)
-const generatePaletteOptions = () => {
-  const categoryOrder = [
-    "Neon/Cyber",
-    "Warm/Fire",
-    "Cool/Ocean",
-    "Nature",
-    "Soft/Pastel",
-    "Dark/Mysterious",
-    "Custom",
-  ];
-  
-  // Get all palettes (built-in + custom)
-  const allPalettes = getAllPalettes();
-  
-  // Group palettes by category
-  const byCategory = new Map<string, typeof allPalettes>();
-  for (const palette of allPalettes) {
-    const category = palette.category || "Other";
-    if (!byCategory.has(category)) {
-      byCategory.set(category, []);
-    }
-    byCategory.get(category)!.push(palette);
-  }
-  
-  // Sort within each category alphabetically by name
-  for (const palettes of byCategory.values()) {
-    palettes.sort((a, b) => a.name.localeCompare(b.name));
-  }
-  
-  // Create grouped structure with category labels
-  const result: Array<{ 
-    value: string; 
-    label: string; 
-    category?: string; 
-    colors?: string[];
-  }> = [];
-  
-  for (const category of categoryOrder) {
-    const categoryPalettes = byCategory.get(category);
-    if (categoryPalettes) {
-      for (const palette of categoryPalettes) {
-        result.push({ 
-          value: palette.id, 
-          label: palette.name,
-          category: category,
-          colors: palette.colors,
-        });
-      }
-    }
-  }
-  
-  // Add any uncategorized palettes at the end
-  for (const [category, categoryPalettes] of byCategory.entries()) {
-    if (!categoryOrder.includes(category)) {
-      for (const palette of categoryPalettes) {
-        result.push({ 
-          value: palette.id, 
-          label: palette.name,
-          category: category,
-          colors: palette.colors,
-        });
-      }
-    }
-  }
-  
-  return result;
-};
-
-// CANVAS_PALETTE_OPTIONS will be generated inside App component using useMemo
-
-const MOVEMENT_MODES: Array<{ value: MovementMode; label: string }> = [
-  { value: "pulse", label: "Pulse" },
-  { value: "drift", label: "Drift" },
-  { value: "ripple", label: "Ripple" },
-  { value: "zigzag", label: "Zigzag" },
-  { value: "cascade", label: "Cascade" },
-  { value: "spiral", label: "Spiral Orbit" },
-  { value: "comet", label: "Comet Trail" },
-  { value: "linear", label: "Linear" },
-  { value: "isometric", label: "Isometric" },
-];
-
-const formatBlendMode = (mode: BlendModeOption) =>
-  mode
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-
-const formatMovementMode = (mode: MovementMode) =>
-  MOVEMENT_MODES.find((entry) => entry.value === mode)?.label ?? "None";
+// Constants and formatting functions are now imported from their respective modules
 
 const useMediaQuery = (query: string) => {
   const [matches, setMatches] = useState(() => {
@@ -177,476 +72,7 @@ const useMediaQuery = (query: string) => {
   return matches;
 };
 
-const TooltipIcon = ({
-  id,
-  text,
-  label,
-}: {
-  id: string;
-  text: string;
-  label: string;
-}) => (
-  <span className="retro-tooltip">
-    <button
-      type="button"
-      className="tooltip-trigger"
-      aria-describedby={id}
-      aria-label={`More about ${label}`}
-    >
-      ?
-    </button>
-    <span id={id} role="tooltip" className="tooltip-content">
-      {text}
-    </span>
-  </span>
-);
-
-const ControlSlider = ({
-  id,
-  label,
-  min,
-  max,
-  step = 1,
-  value,
-  onChange,
-  displayValue,
-  disabled,
-  tooltip,
-}: {
-  id: string;
-  label: string;
-  min: number;
-  max: number;
-  step?: number;
-  value: number;
-  displayValue: string;
-  onChange: (value: number) => void;
-  disabled?: boolean;
-  tooltip?: string;
-}) => {
-  const tooltipId = tooltip ? `${id}-tip` : undefined;
-  const sliderValue = Number.isFinite(value) ? value : min;
-
-  const handleSliderChange = useCallback(
-    (values: number[]) => {
-      if (!values.length) {
-        return;
-      }
-      const [next] = values;
-      if (!Number.isFinite(next)) {
-        return;
-      }
-      const clamped = Math.min(max, Math.max(min, next));
-      onChange(clamped);
-    },
-    [max, min, onChange],
-  );
-
-  return (
-    <div className="control-field">
-      <div className="field-heading">
-        <div className="field-heading-left">
-          <span className="field-label" id={`${id}-label`}>
-            {label}
-          </span>
-          {tooltipId && (
-            <TooltipIcon id={tooltipId} text={tooltip!} label={label} />
-          )}
-        </div>
-        <span className="field-value">{displayValue}</span>
-      </div>
-      <Slider
-        className="control-slider"
-        value={[sliderValue]}
-        min={min}
-        max={max}
-        step={step}
-        onValueChange={handleSliderChange}
-        disabled={disabled}
-        aria-labelledby={`${id}-label`}
-      />
-    </div>
-  );
-};
-
-const ControlSelect = ({
-  id,
-  label,
-  options,
-  value,
-  onChange,
-  disabled,
-  placeholder,
-  tooltip,
-  currentLabel,
-  onItemSelect,
-  onItemPointerDown,
-  locked,
-  onLockToggle,
-  prefixButton,
-}: {
-  id: string;
-  label: string;
-  options: Array<{ value: string; label: string; category?: string; colors?: string[] }>;
-  value: string | null;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-  placeholder?: string;
-  tooltip?: string;
-  currentLabel?: string;
-  onItemSelect?: (value: string) => void;
-  onItemPointerDown?: (value: string) => void;
-  locked?: boolean;
-  onLockToggle?: () => void;
-  prefixButton?: React.ReactNode;
-}) => {
-  const tooltipId = tooltip ? `${id}-tip` : undefined;
-  const resolvedLabel =
-    currentLabel ??
-    options.find((option) => option.value === value)?.label ??
-    placeholder ??
-    "Select";
-
-  // Separate options with and without categories
-  const optionsWithCategories = options.filter(opt => opt.category);
-  const optionsWithoutCategories = options.filter(opt => !opt.category);
-  const hasCategories = optionsWithCategories.length > 0;
-  
-  const groupedOptions = hasCategories ? (() => {
-    const categoryOrder = [
-      "Neon/Cyber",
-      "Warm/Fire",
-      "Cool/Ocean",
-      "Nature",
-      "Soft/Pastel",
-      "Dark/Mysterious",
-    ];
-    const groups = new Map<string, typeof options>();
-    for (const option of optionsWithCategories) {
-      const category = option.category || "Other";
-      if (!groups.has(category)) {
-        groups.set(category, []);
-      }
-      groups.get(category)!.push(option);
-    }
-    // Return ordered array of [category, options] pairs
-    const ordered: Array<[string, typeof options]> = [];
-    for (const category of categoryOrder) {
-      if (groups.has(category)) {
-        ordered.push([category, groups.get(category)!]);
-      }
-    }
-    // Add any uncategorized groups
-    for (const [category, categoryOptions] of groups.entries()) {
-      if (!categoryOrder.includes(category)) {
-        ordered.push([category, categoryOptions]);
-      }
-    }
-    return ordered;
-  })() : null;
-
-  return (
-    <div className="control-field">
-      <div className="field-heading">
-        <div className="field-heading-left">
-          <span className="field-label" id={`${id}-label`}>
-            {label}
-          </span>
-          {tooltip && tooltipId && (
-            <TooltipIcon id={tooltipId} text={tooltip} label={label} />
-          )}
-        </div>
-        {currentLabel ? (
-          <span className="field-value">{currentLabel}</span>
-        ) : null}
-      </div>
-      <div className="control-select-with-lock">
-      <Select
-        value={value ?? undefined}
-        onValueChange={onChange}
-        disabled={disabled || locked}
-      >
-          <SelectTrigger aria-labelledby={`${id}-label`}>
-            <SelectValue placeholder={placeholder ?? "Select"}>
-              {resolvedLabel}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {/* Render options without categories first (e.g., "auto" option) */}
-              {optionsWithoutCategories.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  value={option.value}
-                  onSelect={
-                    onItemSelect ? () => onItemSelect(option.value) : undefined
-                  }
-                  onPointerDown={
-                    onItemPointerDown
-                      ? (event) => {
-                          if (event.pointerType === "mouse" && event.button !== 0) {
-                            return;
-                          }
-                          onItemPointerDown(option.value);
-                        }
-                      : undefined
-                  }
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-            {hasCategories && groupedOptions ? (
-              // Render with category groups
-              groupedOptions.map(([category, categoryOptions]) => (
-                <SelectGroup key={category}>
-                  <SelectLabel className="control-select-category-label">
-                    {category}
-                  </SelectLabel>
-                  {categoryOptions.map((option) => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                      onSelect={
-                        onItemSelect ? () => onItemSelect(option.value) : undefined
-                      }
-                      onPointerDown={
-                        onItemPointerDown
-                          ? (event) => {
-                              if (event.pointerType === "mouse" && event.button !== 0) {
-                                return;
-                              }
-                              onItemPointerDown(option.value);
-                            }
-                          : undefined
-                      }
-                      className={option.colors ? "control-dropdown-item-with-preview" : undefined}
-                    >
-                      {option.colors && (
-                        <span className="control-select-color-preview">
-                          {option.colors.map((color, idx) => (
-                            <span
-                              key={idx}
-                              className="control-select-color-square"
-                              style={{ backgroundColor: color }}
-                              aria-hidden="true"
-                            />
-                          ))}
-                        </span>
-                      )}
-                      <span className="control-select-item-label">{option.label}</span>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              ))
-            ) : null}
-            {/* Fallback: render without categories if no categories exist */}
-            {!hasCategories && optionsWithoutCategories.length === 0 && (
-              <SelectGroup>
-                {options.map((option) => (
-                  <SelectItem
-                    key={option.value}
-                    value={option.value}
-                    onSelect={
-                      onItemSelect ? () => onItemSelect(option.value) : undefined
-                    }
-                    onPointerDown={
-                      onItemPointerDown
-                        ? (event) => {
-                            if (event.pointerType === "mouse" && event.button !== 0) {
-                              return;
-                            }
-                            onItemPointerDown(option.value);
-                          }
-                        : undefined
-                    }
-                  >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            )}
-          </SelectContent>
-        </Select>
-        {prefixButton}
-        {onLockToggle && (
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            onClick={onLockToggle}
-            disabled={disabled}
-            className={locked ? "control-lock-button control-lock-button-locked" : "control-lock-button"}
-            aria-label={locked ? "Unlock" : "Lock"}
-            title={locked ? "Unlock this value" : "Lock this value"}
-          >
-            {locked ? (
-              <Lock className="h-4 w-4" />
-            ) : (
-              <Unlock className="h-4 w-4" />
-            )}
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Component to render vector shape icons
-const ShapeIcon = ({ shape, size = 24 }: { shape: SpriteMode; size?: number }) => {
-  const viewBox = "0 0 24 24";
-  const center = 12;
-  const radius = 8;
-  
-  const renderShape = () => {
-    switch (shape) {
-      case "circle":
-        return <circle cx={center} cy={center} r={radius * 1.2} fill="currentColor" />;
-      
-      case "square":
-        return <rect x={4} y={4} width={16} height={16} fill="currentColor" />;
-      
-      case "rounded":
-        return <rect x={4} y={4} width={16} height={16} rx={3} ry={3} fill="currentColor" />;
-      
-      case "triangle":
-        return (
-          <polygon
-        points={`${center},3 21,21 3,21`}
-            fill="currentColor"
-          />
-        );
-      
-      case "hexagon": {
-        const hexRadius = radius * 1.2; // Make hexagon bigger
-        const points = [];
-        for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI / 3) * i - Math.PI / 6;
-          const x = center + hexRadius * Math.cos(angle);
-          const y = center + hexRadius * Math.sin(angle);
-          points.push(`${x},${y}`);
-        }
-        return <polygon points={points.join(" ")} fill="currentColor" />;
-      }
-      
-      case "ring":
-        return (
-          <circle
-            cx={center}
-            cy={center}
-            r={radius}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={3}
-          />
-        );
-      
-      case "diamond": {
-        const diamondSize = 9; // Make diamond bigger
-        return (
-          <polygon
-            points={`${center},${center - diamondSize} ${center + diamondSize},${center} ${center},${center + diamondSize} ${center - diamondSize},${center}`}
-            fill="currentColor"
-          />
-        );
-      }
-      
-      case "star": {
-        const outerRadius = radius * 1.45; // Make star bigger
-        const innerRadius = radius * 0.6; // Adjust inner radius proportionally
-        const points = [];
-        for (let i = 0; i < 10; i++) {
-          const angle = (Math.PI / 5) * i - Math.PI / 2;
-          const r = i % 2 === 0 ? outerRadius : innerRadius;
-          const x = center + r * Math.cos(angle);
-          const y = center + r * Math.sin(angle);
-          points.push(`${x},${y}`);
-        }
-        return <polygon points={points.join(" ")} fill="currentColor" />;
-      }
-      
-      case "line":
-        return <rect x={2} y={10} width={20} height={4} fill="currentColor" />;
-
-      case "pentagon": {
-        const points = [];
-        for (let i = 0; i < 5; i += 1) {
-          const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-          const pentagonRadius = radius * 1.25;
-          const x = center + pentagonRadius * Math.cos(angle);
-          const y = center + pentagonRadius * Math.sin(angle);
-          points.push(`${x},${y}`);
-        }
-        return <polygon points={points.join(" ")} fill="currentColor" />;
-      }
-
-      case "asterisk":
-        return (
-          <g stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-            <line x1={center} y1={center - radius} x2={center} y2={center + radius} />
-            <line x1={center - radius} y1={center} x2={center + radius} y2={center} />
-            <line
-              x1={center - radius * 0.8}
-              y1={center - radius * 0.8}
-              x2={center + radius * 0.8}
-              y2={center + radius * 0.8}
-            />
-            <line
-              x1={center - radius * 0.8}
-              y1={center + radius * 0.8}
-              x2={center + radius * 0.8}
-              y2={center - radius * 0.8}
-            />
-          </g>
-        );
-
-      case "cross":
-        return (
-          <g fill="currentColor">
-            <rect x={center - 3} y={center - 10} width={6} height={20} />
-            <rect x={center - 10} y={center - 3} width={20} height={6} />
-          </g>
-        );
-
-      case "pixels": {
-        // 3x3 grid of squares with spacing
-        const gridSize = 3;
-        const squareSize = 4;
-        const gap = 1;
-        const totalSize = gridSize * squareSize + (gridSize - 1) * gap;
-        const startX = center - totalSize / 2;
-        const startY = center - totalSize / 2;
-        
-        return (
-          <g fill="currentColor">
-            {Array.from({ length: gridSize * gridSize }, (_, i) => {
-              const row = Math.floor(i / gridSize);
-              const col = i % gridSize;
-              const x = startX + col * (squareSize + gap);
-              const y = startY + row * (squareSize + gap);
-              return <rect key={i} x={x} y={y} width={squareSize} height={squareSize} />;
-            })}
-          </g>
-        );
-      }
- 
-      default:
-        return <circle cx={center} cy={center} r={radius} fill="currentColor" />;
-    }
-  };
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={viewBox}
-      style={{ display: "block" }}
-      fill="currentColor"
-    >
-      {renderShape()}
-    </svg>
-  );
-};
+// Shared control components are now imported from ControlPanel/shared
 
 
 
@@ -682,7 +108,6 @@ const App = () => {
   const [lockedCanvasPalette, setLockedCanvasPalette] = useState(false);
   const [lockedBlendMode, setLockedBlendMode] = useState(false);
   const [lockedSpriteMode, setLockedSpriteMode] = useState(false);
-  const [showLoader, setShowLoader] = useState(true);
   const [forceLoader, setForceLoader] = useState(false);
   
   const isStudioLayout = useMediaQuery("(min-width: 1760px)");
@@ -729,11 +154,21 @@ const App = () => {
   // Header overflow logic is now handled by Header component
 
   useEffect(() => {
+    // Wait for sprite controller to be ready before hiding loader
+    if (forceLoader) {
+        return;
+      }
+
+    // Simple check: wait for spriteState and controller to be ready
+    if (!spriteState || !controller) {
+        return;
+      }
+
     let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
     let initialLoader: HTMLElement | null = null;
     let handleTransitionEnd: ((event: TransitionEvent) => void) | null = null;
     
-    // Hide loader immediately when component mounts
+    // Hide loader once sprite controller is ready
     const hideLoader = () => {
       initialLoader = document.getElementById("initial-loader");
       if (!initialLoader) {
@@ -778,10 +213,10 @@ const App = () => {
       }, 400);
     };
     
-    // Use requestAnimationFrame to ensure DOM is ready, but don't add extra delay
+    // Use requestAnimationFrame to ensure DOM is ready
     const frameId = requestAnimationFrame(hideLoader);
     
-    // Cleanup
+    // Cleanup for the effect
     return () => {
       cancelAnimationFrame(frameId);
       if (fallbackTimeout) {
@@ -791,7 +226,7 @@ const App = () => {
         initialLoader.removeEventListener("transitionend", handleTransitionEnd);
       }
     };
-  }, []);
+  }, [spriteState, controller, forceLoader]);
 
   /**
    * Check if columns should be split or merged based on viewport width
@@ -858,24 +293,8 @@ const App = () => {
     const debugLoader = params.get("debugLoader");
     if (debugLoader === "1") {
       setForceLoader(true);
-      setShowLoader(true);
     }
   }, []);
-
-  useEffect(() => {
-    if (!spriteState || !showLoader) {
-      return;
-    }
-    if (forceLoader) {
-      return;
-    }
-    if (typeof window === "undefined") {
-      setShowLoader(false);
-      return;
-    }
-    const timeoutId = window.setTimeout(() => setShowLoader(false), 450);
-    return () => window.clearTimeout(timeoutId);
-  }, [spriteState, showLoader, forceLoader]);
 
   // Calculate current canvas size for export modal
   // Use state to track canvas size so it updates when canvas is resized
@@ -1052,521 +471,12 @@ const App = () => {
 
   // Theme management is now handled by useTheme hook
 
-  const renderSpriteControls = () => {
-    if (!spriteState) {
-      return null;
-    }
+  // SpriteControls rendering is now handled by SpriteControls component
 
-    const densityValueUi = densityToUi(spriteState.scalePercent);
-
-    return (
-      <>
-        <div className="section">
-          <h3 className="section-title">Shape</h3>
-          {/* Label, status, and tooltip for sprite selection */}
-          <div className="control-field">
-            <div className="field-heading">
-              <div className="field-heading-left">
-                <span className="field-label" id="render-mode-label">
-                  Select Sprites
-                </span>
-                <TooltipIcon id="render-mode-tip" text="Choose the geometric shape used for sprites." label="Select Sprites" />
-              </div>
-              {currentModeLabel && (
-                <span className="field-value">{currentModeLabel}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Icon button row for sprite selection */}
-          <div className="sprite-icon-buttons" style={{ marginTop: '0.25rem', marginBottom: '0' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              {SPRITE_MODES.map((mode) => {
-                const isSelected = spriteState.spriteMode === mode.value;
-                return (
-                  <Button
-                    key={mode.value}
-                    type="button"
-                    size="icon"
-                    variant={isSelected ? "default" : "outline"}
-                    onClick={() => handleModeChange(mode.value)}
-                    disabled={!ready || lockedSpriteMode}
-                    title={mode.label}
-                    aria-label={mode.label}
-                  >
-                    <ShapeIcon shape={mode.value} size={24} />
-                  </Button>
-                );
-              })}
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => setLockedSpriteMode(!lockedSpriteMode)}
-                disabled={!ready}
-                className={lockedSpriteMode ? "control-lock-button control-lock-button-locked" : "control-lock-button"}
-                aria-label={lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"}
-                title={lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"}
-              >
-                {lockedSpriteMode ? (
-                  <Lock className="h-4 w-4" />
-                ) : (
-                  <Unlock className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Random sprites switch */}
-          <div className="control-field" style={{ marginTop: '1rem' }}>
-            <div className="switch-row" style={{ gap: "0.75rem" }}>
-              <Switch
-                id="random-sprites"
-                checked={spriteState.randomSprites ?? false}
-                onCheckedChange={handleRandomSpritesToggle}
-                disabled={!ready || lockedSpriteMode}
-                aria-labelledby="random-sprites-label"
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => controllerRef.current?.randomizeSpriteShapes()}
-                disabled={!ready || !spriteState.randomSprites}
-                aria-label="Randomise sprite shapes"
-                title="Randomise sprite shapes"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <div className="field-heading-left">
-                <span className="field-label" id="random-sprites-label">Random sprites</span>
-                <TooltipIcon 
-                  id="random-sprites-tip" 
-                  text="When enabled, each sprite on the canvas uses a random shape from the selection." 
-                  label="Random sprites" 
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="section" style={{ marginTop: '2rem' }}>
-          <hr className="section-divider" />
-          <h3 className="section-title">Density &amp; Scale</h3>
-          <ControlSlider
-            id="density-range"
-            label="Tile Density"
-            min={0}
-            max={100}
-            value={densityValueUi}
-            displayValue={`${densityValueUi}%`}
-            onChange={(value) =>
-              controllerRef.current?.setScalePercent(uiToDensity(value))
-            }
-            disabled={!ready}
-            tooltip="Controls how many tiles spawn per layer; higher values create a busier canvas."
-          />
-          <ControlSlider
-            id="scale-base"
-            label="Scale Base"
-            min={0}
-            max={100}
-            value={Math.round(spriteState.scaleBase)}
-            displayValue={`${Math.round(spriteState.scaleBase)}%`}
-            onChange={(value) => controllerRef.current?.setScaleBase(value)}
-            disabled={!ready}
-            tooltip="Sets the baseline sprite size before any random spread is applied."
-          />
-          <ControlSlider
-            id="scale-range"
-            label="Scale Range"
-            min={0}
-            max={100}
-            value={Math.round(spriteState.scaleSpread)}
-            displayValue={`${Math.round(spriteState.scaleSpread)}%`}
-            onChange={(value) => controllerRef.current?.setScaleSpread(value)}
-            disabled={!ready}
-            tooltip="Expands or tightens the difference between the smallest and largest sprites."
-          />
-        </div>
-
-        <div className="section" style={{ marginTop: '2rem' }}>
-          <hr className="section-divider" />
-          <h3 className="section-title">Rotation</h3>
-          <div className="control-field control-field--rotation">
-            <div className="switch-row" style={{ gap: "0.75rem" }}>
-              <Switch
-                id="rotation-toggle"
-                checked={spriteState.rotationEnabled}
-                onCheckedChange={handleRotationToggle}
-                disabled={!ready}
-                aria-labelledby="rotation-toggle-label"
-              />
-              <div className="field-heading-left">
-                <span className="field-label" id="rotation-toggle-label">
-                  Allow Rotation Offsets
-                </span>
-                <TooltipIcon
-                  id="rotation-toggle-tip"
-                  text="Allow sprites to inherit a static rotation offset based on the slider below."
-                  label="Allow Rotation Offsets"
-                />
-              </div>
-            </div>
-          </div>
-          {spriteState.rotationEnabled && (
-            <div className="rotation-slider-wrapper" style={{ marginBottom: '1.5rem' }}>
-              <ControlSlider
-                id="rotation-amount"
-                label="Rotation Amount"
-                min={0}
-                max={180}
-                value={Math.round(spriteState.rotationAmount)}
-                displayValue={`${Math.round(spriteState.rotationAmount)}°`}
-                onChange={handleRotationAmountChange}
-                disabled={!ready}
-                tooltip="Set the maximum angle sprites can rotate (distributed randomly, no animation)."
-              />
-            </div>
-          )}
-        </div>
-      </>
-    );
-  };
-
-  const renderMotionControls = (showHeading: boolean) => {
-    if (!spriteState) {
-      return null;
-    }
-
-    return (
-      <>
-        <div className="section">
-          {showHeading && <h3 className="section-title">Motion</h3>}
-          <ControlSelect
-            id="movement-mode"
-            label="Movement"
-            value={spriteState.movementMode}
-            onChange={(value) => handleMovementSelect(value as MovementMode)}
-            disabled={!ready}
-            options={MOVEMENT_MODES.map((mode) => ({
-              value: mode.value,
-              label: mode.label,
-            }))}
-            tooltip="Select the animation path applied to each sprite layer."
-            currentLabel={formatMovementMode(spriteState.movementMode)}
-            locked={lockedMovementMode}
-            onLockToggle={() => setLockedMovementMode(!lockedMovementMode)}
-          />
-          <ControlSlider
-            id="motion-range"
-            label="Motion Intensity"
-            min={0}
-            max={100}
-            value={Math.round(spriteState.motionIntensity)}
-            displayValue={`${Math.round(spriteState.motionIntensity)}%`}
-            onChange={(value) =>
-              controllerRef.current?.setMotionIntensity(value)
-            }
-            disabled={!ready}
-            tooltip="Adjust how far sprites travel within their chosen movement path."
-          />
-          <ControlSlider
-            id="motion-speed"
-            label="Motion Speed"
-            min={0}
-            max={100}
-            value={speedToUi(spriteState.motionSpeed)}
-            displayValue={`${speedToUi(spriteState.motionSpeed)}%`}
-            onChange={(value) => controllerRef.current?.setMotionSpeed(uiToSpeed(value))}
-            disabled={!ready}
-            tooltip="Slow every layer down or accelerate the motion-wide choreography."
-          />
-        </div>
-
-        <div className="section" style={{ marginTop: '2rem' }}>
-          <hr className="section-divider" />
-          <h3 className="section-title">Rotation</h3>
-          <div className="control-field control-field--rotation">
-            <div className="switch-row" style={{ gap: "0.75rem" }}>
-              <Switch
-                id="rotation-animate"
-                checked={spriteState.rotationAnimated}
-                onCheckedChange={handleRotationAnimatedToggle}
-                disabled={!ready}
-                aria-labelledby="rotation-animate-label"
-              />
-              <div className="field-heading-left">
-                <span className="field-label" id="rotation-animate-label">
-                  Animate Rotation
-                </span>
-                <TooltipIcon
-                  id="rotation-animate-tip"
-                  text="Toggle continuous spinning when rotation offsets are enabled."
-                  label="Animate Rotation"
-                />
-              </div>
-            </div>
-          </div>
-          {spriteState.rotationAnimated && (
-            <div className="rotation-slider-wrapper">
-              <ControlSlider
-                id="rotation-speed"
-                label="Rotation Speed"
-                min={0}
-                max={100}
-                value={Math.round(spriteState.rotationSpeed)}
-                displayValue={`${Math.round(spriteState.rotationSpeed)}%`}
-                onChange={handleRotationSpeedChange}
-                disabled={!ready}
-                tooltip="Control how quickly sprites spin when rotation is enabled."
-              />
-            </div>
-          )}
-        </div>
-      </>
-    );
-  };
+  // MotionControls rendering is now handled by MotionControls component
 
 
-  const renderFxControls = () => {
-    if (!spriteState) {
-      return null;
-    }
-    const blendAutoLabelId = "blend-auto-label";
-    const isCanvasGradient = spriteState.canvasFillMode === "gradient";
-    const currentCanvasLabel =
-      CANVAS_PALETTE_OPTIONS.find(
-        (option) => option.value === spriteState.backgroundMode,
-      )?.label ?? CANVAS_PALETTE_OPTIONS[0].label;
-
-    const handleCanvasPaletteChange = (value: string) => {
-      if (!controllerRef.current) {
-        return;
-      }
-      if (isCanvasGradient) {
-        controllerRef.current.setBackgroundMode(value as BackgroundMode);
-        controllerRef.current.setCanvasGradientMode(value as BackgroundMode);
-      } else {
-        controllerRef.current.setBackgroundMode(value as BackgroundMode);
-      }
-    };
-
-    return (
-      <>
-        <div className="section">
-          <h3 className="section-title">Palette &amp; Variance</h3>
-          <ControlSelect
-            id="palette-presets"
-            label="Sprite palette"
-            value={currentPalette.id}
-            onChange={(value) => handlePaletteSelection(value)}
-            onItemSelect={handlePaletteOptionSelect}
-            onItemPointerDown={handlePaletteOptionSelect}
-            disabled={!ready}
-            options={PALETTE_OPTIONS}
-            tooltip="Select the core palette used for tinting sprites before variance is applied."
-            currentLabel={currentPalette.name}
-            locked={lockedSpritePalette}
-            onLockToggle={() => setLockedSpritePalette(!lockedSpritePalette)}
-            prefixButton={
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => setShowCustomPaletteManager(true)}
-                disabled={!ready}
-                aria-label="Manage custom palettes"
-                title="Manage custom palettes"
-                style={{ flexShrink: 0 }}
-              >
-                <ImagePlus className="h-4 w-4" />
-              </Button>
-            }
-          />
-          <div className="control-field">
-            <div className="switch-row" style={{ gap: "0.75rem" }}>
-              <Switch
-                checked={spriteState.spriteFillMode === "gradient"}
-                onCheckedChange={(checked) =>
-                  controllerRef.current?.setSpriteFillMode(checked ? "gradient" : "solid")
-                }
-                disabled={!ready}
-              />
-              <div className="field-heading-left">
-                <span className="field-label">Use gradients</span>
-                <TooltipIcon
-                  id="sprite-fill-mode-tip"
-                  text="Enable gradient fills for sprites instead of solid colors."
-                  label="Use gradients"
-                />
-              </div>
-            </div>
-          </div>
-          <ControlSlider
-            id="palette-range"
-            label="Sprite palette variance"
-            min={0}
-            max={100}
-            value={varianceToUi(spriteState.paletteVariance)}
-            displayValue={`${varianceToUi(spriteState.paletteVariance)}%`}
-            onChange={(value) =>
-              controllerRef.current?.setPaletteVariance(uiToVariance(value))
-            }
-            disabled={!ready}
-            tooltip="Controls how much each colour can drift away from the base palette swatches."
-          />
-          <ControlSlider
-            id="hue-shift"
-            label="Sprite hue shift"
-            min={0}
-            max={100}
-            value={spriteState.hueShift ?? 0}
-            displayValue={`${spriteState.hueShift ?? 0}%`}
-            onChange={(value) =>
-              controllerRef.current?.setHueShift(value)
-            }
-            disabled={!ready}
-            tooltip="Shifts all palette colors around the color wheel (0-360°)."
-          />
-        </div>
-
-        <div className="section" style={{ marginTop: '2rem' }}>
-          <hr className="section-divider" />
-          <h3 className="section-title">CANVAS</h3>
-          <ControlSelect
-            id={isCanvasGradient ? "canvas-gradient" : "background-mode"}
-            label="Canvas"
-            value={spriteState.backgroundMode}
-            onChange={handleCanvasPaletteChange}
-            disabled={!ready}
-            options={CANVAS_PALETTE_OPTIONS}
-            tooltip={
-              isCanvasGradient
-                ? "Choose the theme for the canvas gradient background."
-                : "Choose the colour applied behind the canvas."
-            }
-            currentLabel={currentCanvasLabel}
-            locked={lockedCanvasPalette}
-            onLockToggle={() => setLockedCanvasPalette(!lockedCanvasPalette)}
-          />
-          <div className="control-field">
-            <div className="switch-row" style={{ gap: "0.75rem" }}>
-              <Switch
-                checked={isCanvasGradient}
-                onCheckedChange={(checked) =>
-                  controllerRef.current?.setCanvasFillMode(
-                    checked ? "gradient" : "solid",
-                  )
-                }
-                disabled={!ready}
-              />
-              <div className="field-heading-left">
-                <span className="field-label">Use gradients</span>
-                <TooltipIcon
-                  id="canvas-fill-mode-tip"
-                  text="Enable gradient fills for canvas background instead of solid color."
-                  label="Use gradients"
-                />
-              </div>
-            </div>
-          </div>
-          <ControlSlider
-            id="background-hue-shift"
-            label="Canvas hue shift"
-            min={0}
-            max={100}
-            value={Math.round(spriteState.backgroundHueShift ?? 0)}
-            displayValue={`${Math.round(spriteState.backgroundHueShift ?? 0)}%`}
-            onChange={(value) =>
-              controllerRef.current?.setBackgroundHueShift(value)
-            }
-            disabled={!ready}
-            tooltip="Shifts the canvas colors around the color wheel (0-360°)."
-          />
-          <ControlSlider
-            id="background-brightness"
-            label="Canvas brightness"
-            min={0}
-            max={100}
-            value={Math.round(spriteState.backgroundBrightness ?? 50)}
-            displayValue={`${Math.round(spriteState.backgroundBrightness ?? 50)}%`}
-            onChange={(value) =>
-              controllerRef.current?.setBackgroundBrightness(value)
-            }
-            disabled={!ready}
-            tooltip="Adjusts the canvas brightness (0% = darkest, 100% = brightest)."
-          />
-        </div>
-
-        <div className="section" style={{ marginTop: '2rem' }}>
-          <hr className="section-divider" />
-          <h3 className="section-title">Blend &amp; Opacity</h3>
-          <ControlSlider
-            id="opacity-range"
-            label="Layer Opacity"
-            min={15}
-            max={100}
-            value={Math.round(spriteState.layerOpacity)}
-            displayValue={`${Math.round(spriteState.layerOpacity)}%`}
-            onChange={(value) => controllerRef.current?.setLayerOpacity(value)}
-            disabled={!ready}
-            tooltip="Sets the base transparency for each rendered layer before blending."
-          />
-          <ControlSelect
-            id="blend-mode"
-            label="Blend Mode"
-            value={spriteState.blendMode as string}
-            onChange={(value) => handleBlendSelect(value as BlendModeOption)}
-            disabled={!ready || spriteState.blendModeAuto}
-            options={BLEND_MODES.map((mode) => ({
-              value: mode,
-              label: formatBlendMode(mode),
-            }))}
-            tooltip="Choose the compositing mode applied when layers draw over each other."
-            currentLabel={formatBlendMode(
-              spriteState.blendMode as BlendModeOption,
-            )}
-            locked={lockedBlendMode}
-            onLockToggle={() => setLockedBlendMode(!lockedBlendMode)}
-          />
-          <div className="control-field control-field--spaced">
-            <div className="switch-row" style={{ gap: "0.75rem" }}>
-              <Switch
-                id="blend-auto"
-                checked={spriteState.blendModeAuto}
-                onCheckedChange={handleBlendAutoToggle}
-                aria-labelledby={blendAutoLabelId}
-                disabled={!ready}
-              />
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => controllerRef.current?.randomizeBlendMode()}
-                disabled={!ready || !spriteState.blendModeAuto}
-                aria-label="Randomise sprite blend modes"
-                title="Randomise sprite blend modes"
-                className="blend-random-button"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-              <div className="field-heading-left">
-                <span className="field-label" id={blendAutoLabelId}>
-                  Random sprite blend
-                </span>
-                <TooltipIcon
-                  id="blend-auto-tip"
-                  text="Give every sprite an individual blend mode"
-                  label="Random sprite blend"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  };
+  // FxControls rendering is now handled by FxControls component
 
 
   const handleLoadPreset = useCallback(
@@ -1670,8 +580,8 @@ const App = () => {
       <div className="app-frame app-frame--compact app-frame--header">
         <Header
           themeMode={themeMode}
-          themeColor={themeColor}
-          themeShape={themeShape}
+              themeColor={themeColor}
+              themeShape={themeShape}
           onThemeModeChange={setThemeMode}
           onThemeColorChange={setThemeColor}
           onThemeShapeChange={setThemeShape}
@@ -1700,11 +610,65 @@ const App = () => {
                   )}
                 </TabsTriggerList>
                 <TabsPanels>
-                  <TabsContent>{renderSpriteControls()}</TabsContent>
-                  <TabsContent>{renderFxControls()}</TabsContent>
+                  <TabsContent>
+                    {spriteState && (
+                      <SpriteControls
+                        spriteState={spriteState}
+                        controller={controller}
+                        ready={ready}
+                        currentModeLabel={currentModeLabel}
+                        lockedSpriteMode={lockedSpriteMode}
+                        onLockSpriteMode={setLockedSpriteMode}
+                        onModeChange={handleModeChange}
+                        onRandomSpritesToggle={handleRandomSpritesToggle}
+                        onRotationToggle={handleRotationToggle}
+                        onRotationAmountChange={handleRotationAmountChange}
+                      />
+                    )}
+                  </TabsContent>
+                  <TabsContent>
+                    {spriteState && (
+                      <FxControls
+                        spriteState={spriteState}
+                        controller={controller}
+                        ready={ready}
+                        currentPaletteId={currentPalette.id}
+                        currentPaletteName={currentPalette.name}
+                        paletteOptions={PALETTE_OPTIONS}
+                        canvasPaletteOptions={CANVAS_PALETTE_OPTIONS}
+                        lockedSpritePalette={lockedSpritePalette}
+                        lockedCanvasPalette={lockedCanvasPalette}
+                        lockedBlendMode={lockedBlendMode}
+                        onLockSpritePalette={setLockedSpritePalette}
+                        onLockCanvasPalette={setLockedCanvasPalette}
+                        onLockBlendMode={setLockedBlendMode}
+                        onPaletteSelection={handlePaletteSelection}
+                        onPaletteOptionSelect={handlePaletteOptionSelect}
+                        onBlendSelect={handleBlendSelect}
+                        onBlendAutoToggle={handleBlendAutoToggle}
+                        onShowCustomPaletteManager={() =>
+                          setShowCustomPaletteManager(true)
+                        }
+                      />
+                    )}
+                  </TabsContent>
                   {!isWideLayout && (
                     <>
-                      <TabsContent>{renderMotionControls(true)}</TabsContent>
+                      <TabsContent>
+                        {spriteState && (
+                          <MotionControls
+                            spriteState={spriteState}
+                            controller={controller}
+                            ready={ready}
+                            showHeading={true}
+                            lockedMovementMode={lockedMovementMode}
+                            onLockMovementMode={setLockedMovementMode}
+                            onMovementSelect={handleMovementSelect}
+                            onRotationAnimatedToggle={handleRotationAnimatedToggle}
+                            onRotationSpeedChange={handleRotationSpeedChange}
+                          />
+                        )}
+                      </TabsContent>
                     </>
                   )}
                 </TabsPanels>
@@ -1718,7 +682,21 @@ const App = () => {
 
           {isWideLayout && (
             <aside className="motion-column">
-              <Card className="panel">{renderMotionControls(true)}</Card>
+              <Card className="panel">
+                {spriteState && (
+                  <MotionControls
+                    spriteState={spriteState}
+                    controller={controller}
+                    ready={ready}
+                    showHeading={true}
+                    lockedMovementMode={lockedMovementMode}
+                    onLockMovementMode={setLockedMovementMode}
+                    onMovementSelect={handleMovementSelect}
+                    onRotationAnimatedToggle={handleRotationAnimatedToggle}
+                    onRotationSpeedChange={handleRotationSpeedChange}
+                  />
+                )}
+              </Card>
             </aside>
           )}
           </div>

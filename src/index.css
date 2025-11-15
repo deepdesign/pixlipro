@@ -2116,7 +2116,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .field-heading-left {
   @apply inline-flex items-center;
-  gap: theme("spacing.2");
+  gap: theme("spacing.1");
 }
 
 .field-label {
@@ -2575,31 +2575,30 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   position: relative;
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
 }
 
 .tooltip-trigger {
-  width: 1.45rem;
-  height: 1.45rem;
+  width: auto;
+  height: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  line-height: 1;
   color: var(--text-subtle);
-  background: var(--panel-bg);
-  border: 2px solid var(--panel-border);
-  border-radius: var(--radius-sm);
-  box-shadow: 2px 2px 0 var(--panel-shadow);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   cursor: help;
-  transition:
-    filter 0.18s ease,
-    color 0.18s ease;
+  transition: color 0.18s ease;
+  padding: 0;
+  vertical-align: middle;
+  line-height: 1;
+  margin-top: -2px;
 }
 
 .tooltip-trigger:hover,
 .tooltip-trigger:focus-visible {
-  filter: brightness(1.08);
   color: var(--accent-primary);
   outline: none;
 }
