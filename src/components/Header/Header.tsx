@@ -84,15 +84,22 @@ export function Header({
 
   const handleThemeSelect = useCallback(
     (value: string) => {
-      if (
-        value === "amber" ||
-        value === "mint" ||
-        value === "violet" ||
-        value === "ember" ||
-        value === "lagoon" ||
-        value === "rose"
-      ) {
-        onThemeColorChange(value);
+      const validColors = [
+        "amber",
+        "mint",
+        "violet",
+        "ember",
+        "lagoon",
+        "rose",
+        "battleship",
+        "cyan",
+        "lime",
+        "coral",
+        "indigo",
+        "gold",
+      ];
+      if (validColors.includes(value)) {
+        onThemeColorChange(value as ThemeColor);
       }
     },
     [onThemeColorChange],

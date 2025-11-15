@@ -1,21 +1,23 @@
 # Feature Backlog
 
-_Last updated: 2025-11-10_
+_Last updated: 2025-01-18_
 
-## 1. Preset Management
+## 1. Preset Management ✅ **COMPLETED**
 
-### 1.1 Local Preset Storage (Cookies/LocalStorage)
+### 1.1 Local Preset Storage (Cookies/LocalStorage) ✅
 
+- **Status:** ✅ **Implemented** - See `docs/presets.md` for details
 - **Goal:** Save, name, load, and delete presets locally.
 - **Technical Guidance:**
   - Prefer `localStorage` or IndexedDB via [`idb-keyval`](https://github.com/jakearchibald/idb-keyval) over cookies (larger quota, not sent with requests).
   - Preset schema should capture seed, palette, sliders, toggles, icon selection, and timestamp.
   - Provide UI for naming, overwriting, deleting, and optionally exporting/importing presets as JSON.
 
-## 2. Export Enhancements
+## 2. Export Enhancements ✅ **COMPLETED**
 
-### 2.1 Arbitrary Output Dimensions
+### 2.1 Arbitrary Output Dimensions ✅
 
+- **Status:** ✅ **Implemented** - See `docs/export.md` for details
 - **Goal:** Export to any user-specified pixel dimensions while preserving input aspect ratio via cropping.
 - **Technical Guidance:**
   - Render to an off-screen p5 graphics buffer sized to the requested output, then crop/scale as needed.
@@ -48,10 +50,11 @@ _Last updated: 2025-11-10_
   - Show shortcuts in a subtle, secondary style (e.g., grayed out, smaller font) within tooltips.
   - Consider a keyboard shortcuts help modal (accessible via `?` or `Ctrl/Cmd + /`) listing all available shortcuts.
 
-## 4. Fullscreen Presentation Mode
+## 4. Fullscreen Presentation Mode ✅ **COMPLETED**
 
-### 4.1 Fullscreen Toggle with Minimal HUD
+### 4.1 Fullscreen Toggle with Minimal HUD ✅
 
+- **Status:** ✅ **Implemented** - Fullscreen mode with auto-hiding HUD is working
 - **Goal:** Fullscreen canvas with Randomise/Close controls appearing on mouse movement.
 - **Technical Guidance:**
   - Use the [Fullscreen API](https://developer.mozilla.org/docs/Web/API/Fullscreen_API) on the canvas wrapper.
