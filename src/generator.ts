@@ -7,7 +7,7 @@ import {
   palettes,
 } from "./data/palettes";
 import { getGradientsForPalette } from "./data/gradients";
-import { calculateGradientLine } from "./lib/gradientUtils";
+import { calculateGradientLine } from "./lib/utils";
 
 const MIN_TILE_SCALE = 0.12;
 const MAX_TILE_SCALE = 5.5; // Allow large sprites, but positioning will be adjusted

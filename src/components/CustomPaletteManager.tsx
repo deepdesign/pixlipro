@@ -20,8 +20,8 @@ import {
   importPaletteFromJSON,
   getMaxCustomPalettes,
   type CustomPalette,
-} from "@/lib/customPaletteStorage";
-import { extractColorsFromImage } from "@/lib/imageColorExtractor";
+} from "@/lib/storage";
+import { extractColorsFromImage } from "@/lib/services";
 
 interface CustomPaletteManagerProps {
   onClose: () => void;

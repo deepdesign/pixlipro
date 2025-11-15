@@ -18,7 +18,7 @@ import {
   exportPresetAsJSON,
   importPresetsFromJSON,
   type Preset,
-} from "@/lib/presetStorage";
+} from "@/lib/storage";
 import type { GeneratorState } from "@/generator";
 
 interface PresetManagerProps {

@@ -144,9 +144,8 @@ function generateAllGradients(): GradientPreset[] {
   return allGradients;
 }
 
-// Generate gradients at module load time
-// Note: Custom palettes added after page load won't have gradients until page refresh
-// This is acceptable since gradients are generated from localStorage on page load
+// Generate gradients at module load time (includes custom palettes from localStorage)
+// Custom palettes added at runtime will have gradients generated on-the-fly via getGradientsForPalette()
 export const gradientPresets: GradientPreset[] = generateAllGradients();
 
 /**

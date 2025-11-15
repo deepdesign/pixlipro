@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { isMobileDevice, isTabletDevice, isPhoneDevice } from "../lib/deviceDetection";
+import { isMobileDevice, isTabletDevice, isPhoneDevice } from "@/lib/utils";
 
 /**
  * React hook to detect if the current device is mobile.

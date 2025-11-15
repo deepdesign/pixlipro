@@ -4,7 +4,7 @@ import { Card } from "@/components/Card";
 import { Accordion } from "@/components/retroui/Accordion";
 import { X, Settings2 } from "lucide-react";
 import p5 from "p5";
-import { exportCanvas, downloadImage, createThumbnail, getCanvasFromP5 } from "../lib/exportService";
+import { exportCanvas, downloadImage, createThumbnail, getCanvasFromP5 } from "@/lib/services";
 import type { SpriteController } from "../generator";
 
 interface ExportModalProps {

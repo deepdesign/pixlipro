@@ -1,11 +1,9 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -29,180 +27,36 @@ import {
   TabsContent,
 } from "@/components/retroui/Tab";
 
-import {
-  createSpriteController,
-  type BlendModeOption,
-  type GeneratorState,
-  type SpriteController,
-  type SpriteMode,
-  type MovementMode,
-  type BackgroundMode,
-} from "./generator";
+import type {
+  BlendModeOption,
+  GeneratorState,
+  SpriteMode,
+  MovementMode,
+  BackgroundMode,
+} from "./types/generator";
 import { PresetManager } from "./components/PresetManager";
 import { ExportModal } from "./components/ExportModal";
 import { CustomPaletteManager } from "./components/CustomPaletteManager";
-import { MobileMenu } from "./components/MobileMenu";
-import { Badge } from "./components/retroui/Badge";
-import { Moon, Monitor, Sun, Maximize2, X, RefreshCw, Bookmark, Camera, HelpCircle, Info, Lock, Unlock, ImagePlus } from "lucide-react";
-import { palettes, getAllPalettes, getPalette } from "./data/palettes";
-// import { shouldSplitColumns, getAppMainPadding } from "./lib/responsiveLayout";
+import { Header } from "./components/Header";
+import { StatusBar } from "./components/StatusBar";
+import { BitlabLogo } from "./components/Header/BitlabLogo";
+import { Lock, Unlock, ImagePlus, RefreshCw } from "lucide-react";
 import { useIsMobile } from "./hooks/useIsMobile";
-const BLEND_MODES: BlendModeOption[] = [
-  "NONE",
-  "MULTIPLY",
-  "SCREEN",
-  "HARD_LIGHT",
-  "OVERLAY",
-  "SOFT_LIGHT",
-  "DARKEST",
-  "LIGHTEST",
-];
-type ThemeMode = "system" | "light" | "dark";
-type ThemeColor = "amber" | "mint" | "violet" | "ember" | "lagoon" | "rose";
+import { palettes, getAllPalettes, getPalette } from "./data/palettes";
+import { useTheme } from "./hooks/useTheme";
+import { useFullscreen } from "./hooks/useFullscreen";
+import { useSpriteController } from "./hooks/useSpriteController";
+import { BLEND_MODES } from "./constants/blend";
+import { SPRITE_MODES } from "./constants/sprites";
+import {
+  densityToUi,
+  uiToDensity,
+  varianceToUi,
+  uiToVariance,
+  speedToUi,
+  uiToSpeed,
+} from "./lib/utils";
 
-const THEME_MODE_STORAGE_KEY = "retro-theme-mode";
-const THEME_COLOR_STORAGE_KEY = "retro-theme-color";
-const THEME_SHAPE_STORAGE_KEY = "retro-theme-shape";
-const THEME_COLOR_OPTIONS: Array<{ value: ThemeColor; label: string }> = [
-  { value: "amber", label: "Sunburst" },
-  { value: "mint", label: "Neon Grid" },
-  { value: "violet", label: "Nebula" },
-  { value: "ember", label: "Ember Glow" },
-  { value: "lagoon", label: "Lagoon Tide" },
-  { value: "rose", label: "Rose Quartz" },
-];
-
-const THEME_COLOR_PREVIEW: Record<ThemeColor, string> = {
-  amber: "#ffdb33",
-  mint: "#58f5c2",
-  violet: "#c99cff",
-  ember: "#ff6b3d",
-  lagoon: "#3ad7ff",
-  rose: "#ff7cc8",
-};
-
-const SPRITE_MODES: Array<{
-  value: SpriteMode;
-  label: string;
-  description: string;
-}> = [
-  {
-    value: "rounded",
-    label: "Rounded",
-    description: "Soft-edged tiles that stack into cosy mosaics",
-  },
-  {
-    value: "circle",
-    label: "Circle",
-    description: "Looping orbs with smooth silhouettes",
-  },
-  {
-    value: "square",
-    label: "Square",
-    description: "Classic, chunky voxels ideal for bold patterns",
-  },
-  {
-    value: "triangle",
-    label: "Triangle",
-    description: "Directional shards with angular energy",
-  },
-  {
-    value: "hexagon",
-    label: "Hexagon",
-    description: "Honeycomb tessellations for tight grids",
-  },
-  {
-    value: "ring",
-    label: "Ring",
-    description: "Hollow forms that layer like retro radar pulses",
-  },
-  {
-    value: "diamond",
-    label: "Diamond",
-    description: "Sharp diamonds with dramatic negative space",
-  },
-  {
-    value: "star",
-    label: "Star",
-    description: "Bursting motifs that radiate from the centre",
-  },
-  {
-    value: "line",
-    label: "Line",
-    description: "Neon scanlines with motion-friendly poses",
-  },
-  {
-    value: "pentagon",
-    label: "Pentagon",
-    description: "Balanced five-point tiles for structured bursts",
-  },
-  {
-    value: "asterisk",
-    label: "Asterisk",
-    description: "Radiating sparks that pop with rotation",
-  },
-  {
-    value: "cross",
-    label: "Cross",
-    description: "Bold plus signs that anchor grid compositions",
-  },
-  {
-    value: "pixels",
-    label: "Pixels",
-    description: "3x3 grid of squares with spacing for pixelated patterns",
-  },
-];
-
-const TILE_DENSITY_MIN = 50;
-const TILE_DENSITY_MAX = 1000;
-
-const clampValue = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-const densityToUi = (value: number) => {
-  const bounded = clampValue(value, TILE_DENSITY_MIN, TILE_DENSITY_MAX);
-  return Math.round(
-    ((bounded - TILE_DENSITY_MIN) / (TILE_DENSITY_MAX - TILE_DENSITY_MIN)) *
-      100,
-  );
-};
-
-const uiToDensity = (value: number) => {
-  const bounded = clampValue(value, 0, 100);
-  return Math.round(
-    TILE_DENSITY_MIN + (bounded / 100) * (TILE_DENSITY_MAX - TILE_DENSITY_MIN),
-  );
-};
-
-const PALETTE_VARIANCE_MIN = 0;
-const PALETTE_VARIANCE_MAX = 150; // Increased from 100 to allow more variance
-
-const varianceToUi = (value: number) => {
-  const bounded = clampValue(value, PALETTE_VARIANCE_MIN, PALETTE_VARIANCE_MAX);
-  return Math.round(
-    ((bounded - PALETTE_VARIANCE_MIN) / (PALETTE_VARIANCE_MAX - PALETTE_VARIANCE_MIN)) *
-      100,
-  );
-};
-
-const uiToVariance = (value: number) => {
-  const bounded = clampValue(value, 0, 100);
-  return Math.round(
-    PALETTE_VARIANCE_MIN + (bounded / 100) * (PALETTE_VARIANCE_MAX - PALETTE_VARIANCE_MIN),
-  );
-};
-
-const MOTION_SPEED_MAX = 12.5;
-
-const speedToUi = (value: number) => {
-  const bounded = clampValue(value, 0, MOTION_SPEED_MAX);
-  return Math.round((bounded / MOTION_SPEED_MAX) * 100);
-};
-
-const uiToSpeed = (value: number) => {
-  const bounded = clampValue(value, 0, 100);
-  return Math.round((bounded / 100) * MOTION_SPEED_MAX);
-};
 
 // Helper function to generate palette options (will be used in useMemo)
 const generatePaletteOptions = () => {
@@ -795,82 +649,39 @@ const ShapeIcon = ({ shape, size = 24 }: { shape: SpriteMode; size?: number }) =
 };
 
 
-const BitlabLogo = ({ className = "" }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 330 45"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <path
-      fill="currentColor"
-      d="M52.5 7.5h-7.5V0h7.5v7.5h7.5v30h-7.5v7.5H0v-7.5h45v-7.5h7.5v-7.5h-7.5v-7.5h7.5v-7.5zm-30 7.5V7.5h7.5V15h-7.5zm0 15v-7.5h7.5V30h-7.5zM90 45h-30v-7.5h22.5V0H90v45zM90 7.5h15v7.5H90V7.5zm45 22.5h-7.5V7.5h15V0h7.5v15h-15v15h7.5v15h-45v-7.5h37.5v-7.5zM210 45h-60v-7.5h52.5v-7.5H210V45zm-37.5-15V0h7.5v30h-7.5zM262.5 7.5h-7.5V0h7.5v7.5h7.5v37.5h-60v-7.5h22.5v-7.5h7.5v7.5h22.5V7.5zm-30 15V7.5h7.5v15h-7.5zM322.5 7.5h-7.5V0h7.5v7.5h7.5v30h-7.5v7.5h-52.5v-7.5h45v-7.5h7.5v-7.5h-7.5v-7.5h7.5v-7.5zm-30 7.5V7.5h7.5V15h-7.5zm0 15v-7.5h7.5V30h-7.5z"
-    />
-  </svg>
-);
-
-const getStoredThemeMode = (): ThemeMode => {
-  if (typeof window === "undefined") {
-    return "system";
-  }
-  const stored = window.localStorage.getItem(THEME_MODE_STORAGE_KEY);
-  return stored === "light" || stored === "dark" || stored === "system"
-    ? stored
-    : "system";
-};
-
-const getStoredThemeColor = (): ThemeColor => {
-  if (typeof window === "undefined") {
-    return "amber";
-  }
-  const stored = window.localStorage.getItem(THEME_COLOR_STORAGE_KEY);
-  return stored === "mint" ||
-    stored === "violet" ||
-    stored === "ember" ||
-    stored === "lagoon" ||
-    stored === "rose"
-    ? (stored as ThemeColor)
-    : "amber";
-};
-
-const getStoredThemeShape = (): "box" | "rounded" => {
-  if (typeof window === "undefined") {
-    return "box";
-  }
-  const stored = window.localStorage.getItem(THEME_SHAPE_STORAGE_KEY);
-  return stored === "rounded" ? "rounded" : "box";
-};
 
 const App = () => {
   const sketchContainerRef = useRef<HTMLDivElement | null>(null);
-  const controllerRef = useRef<SpriteController | null>(null);
-  const [spriteState, setSpriteState] = useState<GeneratorState | null>(null);
-  const [frameRate, setFrameRate] = useState<number>(60);
-  const [themeMode, setThemeMode] = useState<ThemeMode>(() =>
-    getStoredThemeMode(),
-  );
-  const [themeColor, setThemeColor] = useState<ThemeColor>(() =>
-    getStoredThemeColor(),
-  );
-  const [themeShape, setThemeShape] = useState<"box" | "rounded">(() =>
-    getStoredThemeShape(),
-  );
+  const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
+  
+  // Use extracted hooks
+  const { themeMode, setThemeMode, themeColor, setThemeColor, themeShape, setThemeShape } = useTheme();
+  const {
+    isFullscreen,
+    hudVisible,
+    handleFullscreenToggle,
+    handleFullscreenClose,
+    handleHUDMouseEnter,
+    handleHUDMouseLeave,
+  } = useFullscreen(canvasWrapperRef);
+  const { controller, spriteState, frameRate, ready } = useSpriteController(sketchContainerRef);
+  const controllerRef = useRef(controller);
+  
+  // Update controller ref when controller changes
+  useEffect(() => {
+    controllerRef.current = controller;
+  }, [controller]);
+  
   const [controlTabIndex, setControlTabIndex] = useState(0);
   const [showPresetManager, setShowPresetManager] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCustomPaletteManager, setShowCustomPaletteManager] = useState(false);
   const [customPalettesRefresh, setCustomPalettesRefresh] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [hudVisible, setHudVisible] = useState(true);
-  const [isBadgeCompact, setIsBadgeCompact] = useState(false);
-  const [isBadgePopoverOpen, setIsBadgePopoverOpen] = useState(false);
   const [lockedMovementMode, setLockedMovementMode] = useState(false);
   const [lockedSpritePalette, setLockedSpritePalette] = useState(false);
   const [lockedCanvasPalette, setLockedCanvasPalette] = useState(false);
   const [lockedBlendMode, setLockedBlendMode] = useState(false);
   const [lockedSpriteMode, setLockedSpriteMode] = useState(false);
-  const hudTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [showStatusInfo, setShowStatusInfo] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
   const [forceLoader, setForceLoader] = useState(false);
   
@@ -881,28 +692,10 @@ const App = () => {
   // when to split the columns. Should we need that behaviour again, the old
   // state and effects can be restored from version control.
   const isWideLayout = false;
-  const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasCardShellRef = useRef<HTMLDivElement | null>(null);
   const layoutRef = useRef<HTMLDivElement | null>(null);
   const [isSmallCanvas, setIsSmallCanvas] = useState(false);
   const statusBarRef = useRef<HTMLDivElement | null>(null);
-  const statusBarLeftRef = useRef<HTMLDivElement | null>(null);
-  const statusBarRightRef = useRef<HTMLDivElement | null>(null);
-  const badgeMeasureRef = useRef<HTMLDivElement | null>(null);
-  const badgeTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const badgePopoverRef = useRef<HTMLDivElement | null>(null);
-  const headerActionsRef = useRef<HTMLDivElement | null>(null);
-  const headerToolbarRef = useRef<HTMLDivElement | null>(null);
-  const headerOverflowTriggerRef = useRef<HTMLButtonElement | null>(null);
-  // Initialize overflow state based on viewport width immediately (synchronously)
-  // This prevents the brief stacking flash before the overflow menu appears
-  const [showHeaderOverflow, setShowHeaderOverflow] = useState(() => {
-    if (typeof window === "undefined") return false;
-    // Check if viewport is below threshold where overflow would be needed
-    // This is a conservative estimate - the actual check will refine it
-    return window.innerWidth < 640;
-  });
-  const [isHeaderOverflowOpen, setIsHeaderOverflowOpen] = useState(false);
   
   // Mobile device detection
   const isMobile = useIsMobile();
@@ -933,207 +726,7 @@ const App = () => {
     };
   }, []);
 
-  // Check if header actions fit and show overflow menu if they don't
-  // Use refs to track state to prevent effect re-runs from causing loops
-  const showHeaderOverflowRef = useRef(showHeaderOverflow);
-  useEffect(() => {
-    showHeaderOverflowRef.current = showHeaderOverflow;
-  }, [showHeaderOverflow]);
-
-  useEffect(() => {
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-    let lastCheckTime = 0;
-    let pendingStateUpdate: boolean | null = null;
-    const DEBOUNCE_DELAY = 250; // Increased delay to prevent rapid toggling
-    const MIN_TIME_BETWEEN_CHECKS = 150; // Increased minimum time between checks
-
-    const checkHeaderFit = () => {
-      // Throttle checks to prevent too many rapid updates
-      const now = Date.now();
-      if (now - lastCheckTime < MIN_TIME_BETWEEN_CHECKS) {
-        debounceTimer = setTimeout(checkHeaderFit, MIN_TIME_BETWEEN_CHECKS - (now - lastCheckTime));
-        return;
-      }
-      lastCheckTime = now;
-
-      const headerToolbar = headerToolbarRef.current;
-      const headerActions = headerActionsRef.current;
-      if (!headerToolbar) {
-        return;
-      }
-
-      // Get the header container to check available space
-      const header = headerToolbar.closest(".app-header");
-      if (!header) {
-        return;
-      }
-
-      const headerRect = header.getBoundingClientRect();
-      const logoButton = header.querySelector(".app-logo-button");
-      const logoRect = logoButton?.getBoundingClientRect();
-      
-      // Get computed styles to check actual padding
-      const headerStyles = window.getComputedStyle(header);
-      const paddingLeft = parseFloat(headerStyles.paddingLeft) || 0;
-      const paddingRight = parseFloat(headerStyles.paddingRight) || 0;
-      const headerPadding = paddingLeft + paddingRight;
-      
-      // Get gap from toolbar
-      const toolbarStyles = window.getComputedStyle(headerToolbar);
-      const gap = parseFloat(toolbarStyles.gap) || 12;
-      
-      // Calculate available space: header width minus logo width minus gaps
-      const logoWidth = logoRect?.width ?? 0;
-      const minGapForActions = 20; // Minimum space needed for actions
-      
-      // Available width for actions (or hamburger button)
-      const availableWidth = headerRect.width - logoWidth - headerPadding - gap - minGapForActions;
-      
-      // Try to measure actual actions width if they're rendered
-      let actionsWidth = 0;
-      if (headerActions) {
-        const actionsRect = headerActions.getBoundingClientRect();
-        actionsWidth = actionsRect.width;
-      }
-      
-      // If we couldn't measure (actions not rendered because overflow is shown),
-      // use estimated width: Theme selector (~120px) + Shape button (44px) + Mode button (44px) + gaps (~12px) = ~220px
-      const estimatedActionsWidth = 220;
-      const actionsWidthToUse = actionsWidth > 0 ? actionsWidth : estimatedActionsWidth;
-      
-      // Increased hysteresis buffer to prevent flickering at threshold
-      // When showing overflow: need at least 40px extra space before switching back
-      // When hiding overflow: need at least 40px less space before switching back
-      const HYSTERESIS_BUFFER = 40;
-      const viewportWidth = window.innerWidth;
-      
-      // Use ref to get current state to avoid dependency issues
-      const currentNeedsOverflow = showHeaderOverflowRef.current;
-      
-      let needsOverflow: boolean;
-      if (currentNeedsOverflow) {
-        // Currently showing overflow - need significantly more space to hide it (with buffer)
-        needsOverflow = viewportWidth < 640 || actionsWidthToUse > (availableWidth - HYSTERESIS_BUFFER);
-      } else {
-        // Currently showing actions - need significantly less space to show overflow (with buffer)
-        needsOverflow = viewportWidth < 640 || actionsWidthToUse > (availableWidth + HYSTERESIS_BUFFER);
-      }
-      
-      // Only update state if it actually changed and we don't have a pending update
-      if (needsOverflow !== currentNeedsOverflow && pendingStateUpdate !== needsOverflow) {
-        // Clear any existing debounce timer
-        if (debounceTimer) {
-          clearTimeout(debounceTimer);
-        }
-        
-        // Store pending state
-        pendingStateUpdate = needsOverflow;
-        
-        // Debounce the state update to prevent rapid toggling
-        debounceTimer = setTimeout(() => {
-          // Double-check that state hasn't changed since we queued this update
-          if (showHeaderOverflowRef.current === currentNeedsOverflow) {
-            setShowHeaderOverflow(needsOverflow);
-          }
-          pendingStateUpdate = null;
-          debounceTimer = null;
-        }, DEBOUNCE_DELAY);
-      }
-    };
-
-    // Check immediately and also after a short delay to ensure DOM is ready
-    // Immediate check prevents stacking flash on initial render
-    checkHeaderFit();
-    const timeoutId = setTimeout(checkHeaderFit, 100);
-
-    // Set up ResizeObserver to watch for size changes
-    let resizeObserver: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined") {
-      resizeObserver = new ResizeObserver(() => {
-        // Use requestAnimationFrame to batch updates and ensure DOM has updated
-        requestAnimationFrame(() => {
-          checkHeaderFit();
-        });
-      });
-      
-      const headerToolbar = headerToolbarRef.current;
-      const header = headerToolbar?.closest(".app-header");
-      const logoButton = header?.querySelector(".app-logo-button");
-      
-      // Observe header and toolbar - these will change when viewport resizes
-      if (headerToolbar) {
-        resizeObserver.observe(headerToolbar);
-      }
-      if (header) {
-        resizeObserver.observe(header);
-      }
-      if (logoButton) {
-        resizeObserver.observe(logoButton);
-      }
-      
-      // Also observe headerActions if it exists (when overflow is not shown)
-      // This helps catch size changes when actions are visible
-      const headerActions = headerActionsRef.current;
-      if (headerActions) {
-        resizeObserver.observe(headerActions);
-      }
-    }
-
-    // Also listen to window resize - this ensures we catch viewport changes
-    // even if observed elements don't change size (e.g., when header width stays same but viewport expands)
-    const handleWindowResize = () => {
-      // Throttle to avoid too many checks
-      requestAnimationFrame(checkHeaderFit);
-    };
-    window.addEventListener("resize", handleWindowResize);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (debounceTimer) {
-        clearTimeout(debounceTimer);
-      }
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
-      window.removeEventListener("resize", handleWindowResize);
-    };
-  }, []); // Empty deps - use ref to track state to prevent re-run loops
-
-  // Handle click-away for header overflow menu
-  useEffect(() => {
-    if (!isHeaderOverflowOpen) {
-      return;
-    }
-    const handleClickAway = (event: MouseEvent) => {
-      const trigger = headerOverflowTriggerRef.current;
-      const popover = document.querySelector(".header-overflow-popover");
-      if (!trigger || !popover) {
-        return;
-      }
-      const target = event.target as Node;
-      if (
-        trigger.contains(target) ||
-        popover.contains(target)
-      ) {
-        return;
-      }
-      setIsHeaderOverflowOpen(false);
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsHeaderOverflowOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickAway);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickAway);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isHeaderOverflowOpen]);
+  // Header overflow logic is now handled by Header component
 
   useEffect(() => {
     let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -1212,10 +805,8 @@ const App = () => {
   // Responsive column splitting disabled – see note above.
   // const checkLayout = useCallback(() => {
   //   if (typeof window === "undefined") return;
-  //   const viewportWidth = window.innerWidth;
-  //   const appMainPadding = getAppMainPadding();
-  //   const shouldSplit = shouldSplitColumns(viewportWidth, appMainPadding);
-  //   setIsWideLayout(shouldSplit);
+  // NOTE: Responsive split/merge logic is currently disabled.
+  // If needed, restore from version control history.
   // }, []);
   //
   // useEffect(() => {
@@ -1238,43 +829,7 @@ const App = () => {
   //   };
   // }, [checkLayout]);
 
-  const cycleThemeMode = useCallback(() => {
-    setThemeMode((prev) => {
-      if (prev === "system") return "light";
-      if (prev === "light") return "dark";
-      return "system";
-    });
-  }, []);
-
-  const cycleThemeShape = useCallback(() => {
-    setThemeShape((prev) => (prev === "box" ? "rounded" : "box"));
-  }, []);
-
-  const themeModeText = useMemo(() => {
-    switch (themeMode) {
-      case "light":
-        return "Light";
-      case "dark":
-        return "Dark";
-      default:
-        return "System";
-    }
-  }, [themeMode]);
-
-  const ThemeModeIcon = useMemo(() => {
-    switch (themeMode) {
-      case "light":
-        return Sun;
-      case "dark":
-        return Moon;
-      default:
-        return Monitor;
-    }
-  }, [themeMode]);
-
-  const ThemeModeIconComponent = ThemeModeIcon;
-
-  const ready = spriteState !== null && controllerRef.current !== null;
+  // Theme mode/shape cycling and icon logic is now handled by Header component
 
   // Generate palette options reactively (includes custom palettes)
   const PALETTE_OPTIONS = useMemo(() => {
@@ -1293,87 +848,7 @@ const App = () => {
     setCustomPalettesRefresh((prev) => prev + 1);
   }, []);
 
-  useLayoutEffect(() => {
-    if (!statusBarRef.current) {
-      return;
-    }
-
-    const computeCompact = () => {
-      const bar = statusBarRef.current;
-      const right = statusBarRightRef.current;
-      const measure = badgeMeasureRef.current;
-      if (!bar || !right || !measure) {
-        return;
-      }
-      const available =
-        bar.clientWidth -
-        right.offsetWidth -
-        parseFloat(
-          getComputedStyle(bar).columnGap || getComputedStyle(bar).gap || "0",
-        ) -
-        8; // small buffer
-      const required = measure.offsetWidth;
-      setIsBadgeCompact(required > available);
-    };
-
-    const observers: ResizeObserver[] = [];
-
-    const elements = [
-      statusBarRef.current,
-      statusBarRightRef.current,
-      badgeMeasureRef.current,
-    ].filter(Boolean) as Element[];
-
-    elements.forEach((element) => {
-      const observer = new ResizeObserver(() => computeCompact());
-      observer.observe(element);
-      observers.push(observer);
-    });
-
-    computeCompact();
-
-    return () => {
-      observers.forEach((observer) => observer.disconnect());
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isBadgeCompact) {
-      setIsBadgePopoverOpen(false);
-    }
-  }, [isBadgeCompact]);
-
-  useEffect(() => {
-    if (!isBadgePopoverOpen) {
-      return;
-    }
-    const handleClickAway = (event: MouseEvent) => {
-      const trigger = badgeTriggerRef.current;
-      const popover = badgePopoverRef.current;
-      if (!trigger || !popover) {
-        return;
-      }
-      const target = event.target as Node;
-      if (
-        trigger.contains(target) ||
-        popover.contains(target)
-      ) {
-        return;
-      }
-      setIsBadgePopoverOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsBadgePopoverOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickAway);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickAway);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isBadgePopoverOpen]);
+  // Badge compact mode logic is now handled by StatusBar component
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1506,28 +981,7 @@ const App = () => {
   // }, [isWideLayout, controlTabIndex]);
 
 
-  useEffect(() => {
-    const container = sketchContainerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const controller = createSpriteController(container, {
-      onStateChange: (state) => {
-        setSpriteState(state);
-      },
-      onFrameRate: setFrameRate,
-    });
-
-    controllerRef.current = controller;
-    controller.randomizeAll();
-    setSpriteState(controller.getState());
-
-    return () => {
-      controller.destroy();
-      controllerRef.current = null;
-    };
-  }, []);
+  // Controller initialization is now handled by useSpriteController hook
 
   const handlePaletteSelection = useCallback((paletteId: string) => {
     if (!controllerRef.current) {
@@ -1588,268 +1042,15 @@ const App = () => {
   );
 
 
-  const handleThemeSelect = useCallback((value: string) => {
-    if (
-      value === "amber" ||
-      value === "mint" ||
-      value === "violet" ||
-      value === "ember" ||
-      value === "lagoon" ||
-      value === "rose"
-    ) {
-      setThemeColor(value);
-    }
-  }, []);
-
-  const handleShapeSelect = useCallback((value: string) => {
-    setThemeShape(value === "rounded" ? "rounded" : "box");
-  }, []);
+  // Theme selection handlers are now handled by Header component
 
   const handleRandomiseAll = useCallback(() => {
     controllerRef.current?.randomizeAll();
   }, []);
 
-  const handleFullscreenToggle = useCallback(async () => {
-    // Use the Card element instead of canvasWrapper for fullscreen
-    const cardElement = document.querySelector('.canvas-card--fullscreen') || canvasWrapperRef.current?.closest('.canvas-card') || canvasWrapperRef.current;
-    if (!cardElement) {
-      return;
-    }
+  // Fullscreen management is now handled by useFullscreen hook
 
-    try {
-      if (!document.fullscreenElement) {
-        // Try standard API first, then vendor prefixes
-        const requestFullscreen =
-          (cardElement as any).requestFullscreen ||
-          (cardElement as any).webkitRequestFullscreen ||
-          (cardElement as any).mozRequestFullScreen ||
-          (cardElement as any).msRequestFullscreen;
-        
-        if (requestFullscreen) {
-          await requestFullscreen.call(cardElement);
-          setIsFullscreen(true);
-        }
-      } else {
-        // Try standard API first, then vendor prefixes
-        const exitFullscreen =
-          document.exitFullscreen ||
-          (document as any).webkitExitFullscreen ||
-          (document as any).mozCancelFullScreen ||
-          (document as any).msExitFullscreen;
-        
-        if (exitFullscreen) {
-          await exitFullscreen.call(document);
-          setIsFullscreen(false);
-        }
-      }
-    } catch (error) {
-      console.error("Fullscreen error:", error);
-    }
-  }, []);
-
-  const handleFullscreenClose = useCallback(async () => {
-    const fullscreenElement =
-      document.fullscreenElement ||
-      (document as any).webkitFullscreenElement ||
-      (document as any).mozFullScreenElement ||
-      (document as any).msFullscreenElement;
-    
-    if (fullscreenElement) {
-      try {
-        const exitFullscreen =
-          document.exitFullscreen ||
-          (document as any).webkitExitFullscreen ||
-          (document as any).mozCancelFullScreen ||
-          (document as any).msExitFullscreen;
-        
-        if (exitFullscreen) {
-          await exitFullscreen.call(document);
-          setIsFullscreen(false);
-        }
-      } catch (error) {
-        console.error("Exit fullscreen error:", error);
-      }
-    }
-  }, []);
-
-  const handleHUDMouseEnter = useCallback(() => {
-    if (!isFullscreen) return;
-    setHudVisible(true);
-    if (hudTimeoutRef.current) {
-      clearTimeout(hudTimeoutRef.current);
-    }
-  }, [isFullscreen]);
-
-  const handleHUDMouseLeave = useCallback(() => {
-    if (!isFullscreen) return;
-    hudTimeoutRef.current = setTimeout(() => {
-      setHudVisible(false);
-    }, 3000);
-  }, [isFullscreen]);
-
-  // Listen for fullscreen changes (ESC key, etc.) and manage HUD visibility
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const fullscreenElement =
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).mozFullScreenElement ||
-        (document as any).msFullscreenElement;
-      const newIsFullscreen = !!fullscreenElement;
-      console.log('Fullscreen change detected:', { newIsFullscreen, fullscreenElement });
-      setIsFullscreen(newIsFullscreen);
-      
-      if (newIsFullscreen) {
-        // Show HUD immediately when entering fullscreen
-        setHudVisible(true);
-        if (hudTimeoutRef.current) {
-          clearTimeout(hudTimeoutRef.current);
-          hudTimeoutRef.current = null;
-        }
-        // Start auto-hide timer (disabled for debugging - set to 30 seconds)
-        hudTimeoutRef.current = setTimeout(() => {
-          setHudVisible(false);
-        }, 30000);
-      } else {
-        // Always show when not in fullscreen
-        setHudVisible(true);
-        if (hudTimeoutRef.current) {
-          clearTimeout(hudTimeoutRef.current);
-          hudTimeoutRef.current = null;
-        }
-      }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
-    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
-    
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
-      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
-      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
-    };
-  }, []);
-
-  // Track mouse/touch movement in fullscreen
-  useEffect(() => {
-    // Show HUD on any interaction when in fullscreen
-    const handleInteraction = () => {
-      // Check fullscreen state directly
-      const fullscreenElement =
-        document.fullscreenElement ||
-        (document as any).webkitFullscreenElement ||
-        (document as any).mozFullScreenElement ||
-        (document as any).msFullscreenElement;
-      
-      if (!fullscreenElement) {
-        // Not in fullscreen, always show
-        setHudVisible(true);
-        return;
-      }
-
-      // In fullscreen, show HUD on interaction
-      setHudVisible(true);
-      if (hudTimeoutRef.current) {
-        clearTimeout(hudTimeoutRef.current);
-      }
-      hudTimeoutRef.current = setTimeout(() => {
-        setHudVisible(false);
-      }, 3000);
-    };
-
-    window.addEventListener("mousemove", handleInteraction, { passive: true });
-    window.addEventListener("touchstart", handleInteraction, { passive: true });
-    window.addEventListener("mousedown", handleInteraction, { passive: true });
-    window.addEventListener("keydown", handleInteraction, { passive: true });
-
-    return () => {
-      window.removeEventListener("mousemove", handleInteraction);
-      window.removeEventListener("touchstart", handleInteraction);
-      window.removeEventListener("mousedown", handleInteraction);
-      window.removeEventListener("keydown", handleInteraction);
-      if (hudTimeoutRef.current) {
-        clearTimeout(hudTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const statusPalette = currentPalette.name;
-  const statusMode = currentModeLabel;
-  const statusBlend = spriteState
-    ? formatBlendMode(spriteState.blendMode as BlendModeOption)
-    : "None";
-  const statusMotion = spriteState
-    ? formatMovementMode(spriteState.movementMode)
-    : "None";
-
-  const applyDocumentTheme = useCallback(
-    (mode: ThemeMode, color: ThemeColor, shape: "box" | "rounded") => {
-      if (typeof document === "undefined") {
-        return;
-    }
-      const root = document.documentElement;
-    const prefersDark =
-        mode === "system" &&
-        typeof window !== "undefined" &&
-        typeof window.matchMedia === "function"
-          ? window.matchMedia("(prefers-color-scheme: dark)").matches
-          : false;
-      const resolved: Exclude<ThemeMode, "system"> =
-        mode === "system" ? (prefersDark ? "dark" : "light") : mode;
-      root.setAttribute("data-theme-mode", mode);
-      root.setAttribute("data-theme", resolved);
-      root.setAttribute("data-theme-color", color);
-      root.setAttribute("data-theme-shape", shape);
-      root.style.setProperty("color-scheme", resolved);
-    },
-    [],
-  );
-
-  useLayoutEffect(() => {
-    applyDocumentTheme(themeMode, themeColor, themeShape);
-  }, [applyDocumentTheme, themeMode, themeColor, themeShape]);
-
-  useEffect(() => {
-    if (
-      themeMode !== "system" ||
-      typeof window === "undefined" ||
-      typeof window.matchMedia !== "function"
-    ) {
-      return;
-    }
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = () => applyDocumentTheme("system", themeColor, themeShape);
-    if (typeof media.addEventListener === "function") {
-      media.addEventListener("change", handler);
-      return () => media.removeEventListener("change", handler);
-    }
-    media.addListener(handler);
-    return () => media.removeListener(handler);
-  }, [applyDocumentTheme, themeColor, themeMode, themeShape]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
-  }, [themeMode]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(THEME_COLOR_STORAGE_KEY, themeColor);
-  }, [themeColor]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(THEME_SHAPE_STORAGE_KEY, themeShape);
-  }, [themeShape]);
+  // Theme management is now handled by useTheme hook
 
   const renderSpriteControls = () => {
     if (!spriteState) {
@@ -2377,214 +1578,7 @@ const App = () => {
 
 
 
-  const renderStatusBar = () => {
-    const hudClassName = isFullscreen 
-      ? `status-bar status-bar--fullscreen-hud${!hudVisible ? ' status-bar--hidden' : ''}`
-      : 'status-bar';
-    
-    return (
-      <div
-        className={hudClassName}
-        onMouseEnter={handleHUDMouseEnter}
-        onMouseLeave={handleHUDMouseLeave}
-        data-fullscreen={isFullscreen}
-        data-hud-visible={hudVisible}
-        ref={statusBarRef}
-        style={isFullscreen ? { 
-          position: 'relative',
-          pointerEvents: 'auto',
-          opacity: 1,
-          visibility: 'visible',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          padding: '12px',
-          minWidth: '300px',
-          maxWidth: '90vw',
-          width: 'auto',
-          backgroundColor: 'rgba(19, 20, 45, 0.95)',
-          border: '2px solid rgba(255, 212, 71, 0.5)',
-          borderRadius: '8px',
-          boxShadow: '6px 6px 0 rgba(26, 13, 44, 0.85)',
-          backdropFilter: 'blur(8px)',
-        } : undefined}
-      >
-      <div className="status-bar-left" ref={statusBarLeftRef}>
-        <div
-          ref={badgeMeasureRef}
-          aria-hidden="true"
-          className="status-bar-badges-measure"
-        >
-          <Badge variant="surface" size="sm">
-            Sprite · {statusMode}
-          </Badge>
-          <Badge variant="surface" size="sm">
-            Palette · {statusPalette}
-          </Badge>
-          <Badge variant="surface" size="sm">
-            Blend · {statusBlend}
-          </Badge>
-          <Badge variant="surface" size="sm">
-            Motion · {statusMotion}
-          </Badge>
-          <Badge variant="surface" size="sm">
-            {frameRate.toFixed(0)} FPS
-          </Badge>
-        </div>
-        {isMobile ? (
-          <>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              onClick={() => setShowStatusInfo(!showStatusInfo)}
-              className="status-bar-info-toggle"
-              aria-label="Toggle status information"
-              title="Status information"
-            >
-              <HelpCircle className="status-bar-icon" />
-            </Button>
-            {showStatusInfo && (
-              <div className="status-bar-info-mobile">
-                <Badge variant="surface" size="sm">
-                  Sprite · {statusMode}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  Palette · {statusPalette}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  Blend · {statusBlend}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  Motion · {statusMotion}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  {frameRate.toFixed(0)} FPS
-                </Badge>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {isBadgeCompact ? (
-              <div className="status-bar-summary-wrapper">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  aria-label="Show status summary"
-                  title="Show status summary"
-                  onClick={() =>
-                    setIsBadgePopoverOpen((previous) => !previous)
-                  }
-                  ref={badgeTriggerRef}
-                >
-                  <Info className="status-bar-icon" />
-                </Button>
-                {isBadgePopoverOpen && (
-                  <div
-                    className="status-bar-summary-popover"
-                    role="dialog"
-                    ref={badgePopoverRef}
-                  >
-                    <Badge variant="surface" size="sm">
-                      Sprite · {statusMode}
-                    </Badge>
-                    <Badge variant="surface" size="sm">
-                      Palette · {statusPalette}
-                    </Badge>
-                    <Badge variant="surface" size="sm">
-                      Blend · {statusBlend}
-                    </Badge>
-                    <Badge variant="surface" size="sm">
-                      Motion · {statusMotion}
-                    </Badge>
-                    <Badge variant="surface" size="sm">
-                      {frameRate.toFixed(0)} FPS
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <>
-                <Badge variant="surface" size="sm">
-                  Sprite · {statusMode}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  Palette · {statusPalette}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  Blend · {statusBlend}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  Motion · {statusMotion}
-                </Badge>
-                <Badge variant="surface" size="sm">
-                  {frameRate.toFixed(0)} FPS
-                </Badge>
-              </>
-            )}
-          </>
-        )}
-        </div>
-      <div className="status-bar-right" ref={statusBarRightRef}>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          onClick={handleRandomiseAll}
-          disabled={!ready}
-          className="status-bar-randomise-button"
-          aria-label="Randomise all"
-          title="Randomise all"
-        >
-          <RefreshCw className="status-bar-icon" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          onClick={() => setShowPresetManager(true)}
-          disabled={!ready}
-          className="status-bar-presets-button"
-          aria-label="Presets"
-          title="Presets"
-        >
-          <Bookmark className="status-bar-icon" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          onClick={() => setShowExportModal(true)}
-          disabled={!ready}
-          className="status-bar-export-button"
-          aria-label="Export canvas"
-          title="Export canvas"
-        >
-          <Camera className="status-bar-icon" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          onClick={isFullscreen ? handleFullscreenClose : handleFullscreenToggle}
-          disabled={!ready}
-          className="status-bar-fullscreen-button"
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {isFullscreen ? (
-            <X className="status-bar-icon" />
-          ) : (
-            <Maximize2 className="status-bar-icon" />
-          )}
-        </Button>
-      </div>
-    </div>
-    );
-  };
+  // StatusBar rendering is now handled by StatusBar component
 
   const renderDisplayContent = () => (
     <div className="canvas-card-shell" ref={canvasCardShellRef}>
@@ -2622,11 +1616,49 @@ const App = () => {
                   whiteSpace: "nowrap",
                 }}
               >
-                {renderStatusBar()}
+                <StatusBar
+                  spriteState={spriteState}
+                  frameRate={frameRate}
+                  ready={ready}
+                  isFullscreen={isFullscreen}
+                  hudVisible={hudVisible}
+                  onMouseEnter={handleHUDMouseEnter}
+                  onMouseLeave={handleHUDMouseLeave}
+                  onRandomiseAll={handleRandomiseAll}
+                  onShowPresets={() => setShowPresetManager(true)}
+                  onShowExport={() => setShowExportModal(true)}
+                  onFullscreenToggle={handleFullscreenToggle}
+                  onFullscreenClose={handleFullscreenClose}
+                  formatBlendMode={formatBlendMode}
+                  formatMovementMode={formatMovementMode}
+                  currentModeLabel={currentModeLabel}
+                  currentPaletteName={currentPalette.name}
+                  statusBarRef={statusBarRef}
+                />
               </div>
             )}
           </div>
-          {!isFullscreen && renderStatusBar()}
+          {!isFullscreen && (
+            <StatusBar
+              spriteState={spriteState}
+              frameRate={frameRate}
+              ready={ready}
+              isFullscreen={isFullscreen}
+              hudVisible={hudVisible}
+              onMouseEnter={handleHUDMouseEnter}
+              onMouseLeave={handleHUDMouseLeave}
+              onRandomiseAll={handleRandomiseAll}
+              onShowPresets={() => setShowPresetManager(true)}
+              onShowExport={() => setShowExportModal(true)}
+              onFullscreenToggle={handleFullscreenToggle}
+              onFullscreenClose={handleFullscreenClose}
+              formatBlendMode={formatBlendMode}
+              formatMovementMode={formatMovementMode}
+              currentModeLabel={currentModeLabel}
+              currentPaletteName={currentPalette.name}
+              statusBarRef={statusBarRef}
+            />
+          )}
         </Card.Content>
       </Card>
     </div>
@@ -2636,197 +1668,14 @@ const App = () => {
     <>
     <div className="app-shell">
       <div className="app-frame app-frame--compact app-frame--header">
-        <header className={`app-header${isMobile ? " app-header--mobile" : ""}`}>
-          {isMobile ? (
-          <div className="app-header-mobile-row">
-            <button type="button" className="app-logo-button app-logo-button--mobile" aria-label="BitLab">
-              <BitlabLogo className="app-logo-svg" />
-            </button>
-            <MobileMenu
-              themeColor={themeColor}
-              themeShape={themeShape}
-              themeModeText={themeModeText}
-              ThemeModeIcon={ThemeModeIconComponent}
-              onThemeColorChange={handleThemeSelect}
-              onThemeShapeChange={handleShapeSelect}
-              onThemeModeCycle={cycleThemeMode}
-              themeColorOptions={THEME_COLOR_OPTIONS}
-              themeColorPreview={THEME_COLOR_PREVIEW}
-            />
-          </div>
-        ) : (
-          <>
-            <button type="button" className="app-logo-button" aria-label="BitLab">
-              <BitlabLogo className="app-logo-svg" />
-            </button>
-            <div className="header-toolbar" ref={headerToolbarRef}>
-              <div className="header-spacer"></div>
-              {showHeaderOverflow ? (
-                <div className="header-actions header-actions--overflow">
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    className="header-icon-button header-overflow-trigger"
-                    onClick={() => setIsHeaderOverflowOpen((prev) => !prev)}
-                    aria-label="Theme options"
-                    aria-expanded={isHeaderOverflowOpen}
-                    ref={headerOverflowTriggerRef}
-                  >
-                    <svg
-                      width={16}
-                      height={16}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      style={{ display: "block" }}
-                      aria-hidden="true"
-                    >
-                      <line x1={3} y1={6} x2={21} y2={6} />
-                      <line x1={3} y1={12} x2={21} y2={12} />
-                      <line x1={3} y1={18} x2={21} y2={18} />
-                    </svg>
-                  </Button>
-                  {isHeaderOverflowOpen && (
-                    <div
-                      className="header-overflow-popover"
-                      role="dialog"
-                      aria-label="Theme options"
-                    >
-                      <div className="header-overflow-content">
-                        <Select value={themeColor} onValueChange={handleThemeSelect}>
-                          <SelectTrigger
-                            className="header-theme-trigger"
-                            aria-label="Theme colour"
-                          >
-                            <SelectValue placeholder="Theme">
-                              {THEME_COLOR_OPTIONS.find(
-                                (option) => option.value === themeColor,
-                              )?.label ?? "Theme"}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="header-theme-menu">
-                            <SelectGroup>
-                              {THEME_COLOR_OPTIONS.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                  className="header-theme-item"
-                                  style={
-                                    {
-                                      "--theme-preview": THEME_COLOR_PREVIEW[option.value],
-                                    } as CSSProperties
-                                  }
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          className="header-icon-button"
-                          onClick={cycleThemeShape}
-                          aria-label={`Switch theme shape (current ${themeShape === "rounded" ? "rounded" : "box"})`}
-                          title={`Shape: ${themeShape === "rounded" ? "Rounded" : "Box"}`}
-                        >
-                          {themeShape === "rounded" ? (
-                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ display: "block" }} aria-hidden="true">
-                              <rect x={4} y={4} width={16} height={16} rx={3} ry={3} />
-                            </svg>
-                          ) : (
-                            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ display: "block" }} aria-hidden="true">
-                              <rect x={4} y={4} width={16} height={16} />
-                            </svg>
-                          )}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          className="header-icon-button"
-                          onClick={cycleThemeMode}
-                          aria-label={`Switch theme mode (current ${themeModeText})`}
-                          title={`Theme: ${themeModeText}`}
-                        >
-                          <ThemeModeIconComponent className="h-4 w-4" aria-hidden="true" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="header-actions" ref={headerActionsRef}>
-                  <Select value={themeColor} onValueChange={handleThemeSelect}>
-                    <SelectTrigger
-                      className="header-theme-trigger"
-                      aria-label="Theme colour"
-                    >
-                      <SelectValue placeholder="Theme">
-                        {THEME_COLOR_OPTIONS.find(
-                          (option) => option.value === themeColor,
-                        )?.label ?? "Theme"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="header-theme-menu">
-                      <SelectGroup>
-                        {THEME_COLOR_OPTIONS.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value}
-                            className="header-theme-item"
-                            style={
-                              {
-                                "--theme-preview": THEME_COLOR_PREVIEW[option.value],
-                              } as CSSProperties
-                            }
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    className="header-icon-button"
-                    onClick={cycleThemeShape}
-                    aria-label={`Switch theme shape (current ${themeShape === "rounded" ? "rounded" : "box"})`}
-                    title={`Shape: ${themeShape === "rounded" ? "Rounded" : "Box"}`}
-                  >
-                    {themeShape === "rounded" ? (
-                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ display: "block" }} aria-hidden="true">
-                        <rect x={4} y={4} width={16} height={16} rx={3} ry={3} />
-                      </svg>
-                    ) : (
-                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ display: "block" }} aria-hidden="true">
-                        <rect x={4} y={4} width={16} height={16} />
-                      </svg>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    className="header-icon-button"
-                    onClick={cycleThemeMode}
-                    aria-label={`Switch theme mode (current ${themeModeText})`}
-                    title={`Theme: ${themeModeText}`}
-                  >
-                    <ThemeModeIconComponent className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </>
-          )}
-        </header>
+        <Header
+          themeMode={themeMode}
+          themeColor={themeColor}
+          themeShape={themeShape}
+          onThemeModeChange={setThemeMode}
+          onThemeColorChange={setThemeColor}
+          onThemeShapeChange={setThemeShape}
+        />
       </div>
 
       <div className={`app-frame app-frame--compact app-frame--main${isSmallCanvas ? " app-frame--stacked" : ""}`}>

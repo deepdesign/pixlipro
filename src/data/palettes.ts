@@ -1,5 +1,3 @@
-import { getAllCustomPalettes } from "@/lib/customPaletteStorage";
-
 export interface Palette {
   id: string;
   name: string;
@@ -107,6 +105,10 @@ export const palettes: Palette[] = [
 ];
 
 export const defaultPaletteId = "neon";
+
+// Import directly from the file (not barrel) to avoid circular dependency issues
+// The barrel export might cause issues, so we import the function directly
+import { getAllCustomPalettes } from "@/lib/storage/customPaletteStorage";
 
 const getCustomPalettes = (): Palette[] => {
   if (typeof window === "undefined") {
