@@ -42,6 +42,7 @@ BitLab is a vibrant generative art workbench built with React, p5.js, Tailwind, 
 
 - [✨ Highlights](#-highlights)
 - [🗺 Experience Map](#-experience-map)
+- [🎨 Custom Palettes](#-custom-palettes)
 - [🚀 Quick Start](#-quick-start)
 - [🛠 Commands](#-commands)
 - [⚙️ Tech Stack](#️-tech-stack)
@@ -65,16 +66,20 @@ BitLab is a vibrant generative art workbench built with React, p5.js, Tailwind, 
 ## ✨ Highlights
 
 - **Generative Sprite Canvas** – Multi-layer p5.js engine with dialed-in controls for density (UI 0–100 ≙ 50–1000%), scale base/spread, palette variance, opacity, and animation tempo.
-- **Expanded Sprite Modes** – Tiles, circles, hexagons, rings, diamonds, stars, long neon scanlines, and more—each selectable via icon buttons for instant previews.
+- **Expanded Sprite Modes** – Tiles, circles, hexagons, rings, diamonds, stars, long neon scanlines, pixels (3x3 grid), and more—each selectable via icon buttons for instant previews.
+- **Random Sprites** – Toggle to randomize sprite shapes across the canvas, with a refresh button to re-roll the selection instantly.
 - **Motion Lab** – Density-driven layering paired with ten motion envelopes (sway → wavefront) and a master speed dial, now normalised so every mode feels punchy at the same slider value.
 - **Rotation System** – Independent rotation offsets (Sprites tab) and spin animation (Motion tab) with per-sprite direction, speed and angle variance.
 - **Blend Architectures** – Layer-specific blend modes (multiply, screen, hard light, overlay) with optional per-sprite randomisation.
+- **Custom Palette Management** – Create custom color palettes from images (upload or URL), extract dominant colors using k-means clustering, and manage up to 10 custom palettes. Export/import palettes as JSON for easy sharing.
+- **Organized Color Palettes** – 20+ built-in palettes organized by category (Neon/Cyber, Warm/Fire, Cool/Ocean, Nature, Soft/Pastel, Dark/Mysterious) with color preview squares in dropdowns.
 - **Theme Designer** – System/light/dark cycling, six colourway accents, and RetroUI Box/Rounded chassis toggle applied across the entire shell.
 - **Status HUD** – Live palette, sprite mode, blend, motion, density, and FPS read-outs follow you into fullscreen.
 - **Instant Loader** – Lightweight inline bootstrapper renders the BitLab spinner before the bundle downloads, then hands off seamlessly to React once the generator is ready.
 - **High-Resolution Export** – Export your canvas at any resolution with presets for social media, wallpapers, and print. Aspect ratio locking, custom dimensions, and high-quality PNG output with smooth scaling.
-- **Tailwind Retro Components** – Buttons, Selects, Switches, Tabs, Cards, and Accordion rebuilt on the Tailwind spacing scale while honouring RetroUI tokens.
-- **Footer Resources** – Slim footer featuring the BitLab logotype, quick access to RetroUI docs, p5.js, and `jamescutts.me`.
+- **Tailwind Retro Components** – Buttons, Selects, Switches, Tabs, Cards, Input, Label, and Accordion rebuilt on the Tailwind spacing scale while honouring RetroUI tokens.
+- **Versioning** – Automatic version injection from package.json displayed in the footer.
+- **Footer Resources** – Slim footer featuring the BitLab logotype, version number, quick access to RetroUI docs, p5.js, and `jamescutts.me`.
 
 ---
 
@@ -87,8 +92,39 @@ BitLab is a vibrant generative art workbench built with React, p5.js, Tailwind, 
 | **Sprite Selector** | Icon-buttons for each geometric mode line up beneath the "Generation" heading so you can audition shapes instantly. |
 | **Status Bar / HUD** | Palette, sprite mode, blend, motion, density, and FPS badges anchor to the canvas edge alongside Randomise, Presets, Export, and Fullscreen buttons. In fullscreen they float as an auto-hiding HUD. |
 | **Export Modal** | High-resolution export with dimension presets (Social, Wallpapers, Print), custom dimensions, aspect ratio locking, and PNG output. Animation pauses during export for crisp captures. |
+| **Custom Palette Manager** | Tabbed interface (Upload/URL/Import) for creating palettes from images. Extract colors, name your palette, export as JSON, and import shared palettes. Manage up to 10 custom palettes with edit, delete, and export options. |
 | **Canvas**       | BitLab renders layered motion paths with depth-aware scaling, leaving the status HUD and fullscreen controls within reach. |
-| **Footer**       | BitLab wordmark plus links to p5.js, RetroUI docs, and `jamescutts.me`. |
+| **Footer**       | BitLab wordmark, version number, plus links to p5.js, RetroUI docs, and `jamescutts.me`. |
+
+---
+
+## 🎨 Custom Palettes
+
+BitLab includes a powerful custom palette management system that lets you create color palettes from your own images.
+
+### Creating Custom Palettes
+
+1. **From Image Upload** – Click the palette management button (📷 icon) next to the palette selector, then use the "Upload" tab to select an image file from your device.
+2. **From Image URL** – Use the "URL" tab to paste an image URL. BitLab will extract colors from the image.
+3. **From JSON Import** – Use the "Import" tab to load a previously exported palette JSON file.
+
+### Features
+
+- **Smart Color Extraction** – Uses k-means clustering to extract 5 dominant colors from images
+- **Up to 10 Custom Palettes** – Store and manage multiple custom palettes
+- **Export & Share** – Export any palette as JSON to share with others
+- **Edit & Delete** – Rename or remove custom palettes as needed
+- **Category Organization** – Custom palettes appear in a "Custom" category in the palette dropdown
+- **Color Previews** – See color swatches in both the manager and dropdown selectors
+
+### Palette JSON Format
+
+```json
+{
+  "name": "My Palette",
+  "colors": ["#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF"]
+}
+```
 
 ---
 
@@ -154,8 +190,9 @@ The build artifacts land in `/dist` ready for static hosting.
 ├── src/
 │   ├── App.tsx           # Main UI & state wiring
 │   ├── generator.ts      # p5.js sprite logic & controller API
-│   ├── components/       # Tailwind-first Retro components (Button, Select, Switch, Tabs, Card, Accordion, ExportModal, PresetManager)
-│   ├── lib/              # Utility modules (responsiveLayout, exportService)
+│   ├── components/       # Tailwind-first Retro components (Button, Select, Switch, Tabs, Card, Accordion, ExportModal, PresetManager, CustomPaletteManager)
+│   ├── components/retroui/ # RetroUI components (Input, Label, Button, Select, Switch, Tabs, etc.)
+│   ├── lib/              # Utility modules (responsiveLayout, exportService, customPaletteStorage, imageColorExtractor)
 │   ├── data/             # palettes & supporting data
 │   └── index.css         # Tailwind import + RetroUI overrides
 ├── index.html            # Entry HTML + favicon
