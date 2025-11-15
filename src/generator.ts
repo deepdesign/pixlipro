@@ -747,6 +747,7 @@ export interface SpriteController {
   setCanvasFillMode: (mode: "solid" | "gradient") => void;
   setCanvasGradientMode: (mode: BackgroundMode) => void;
   setCanvasGradientDirection: (degrees: number) => void;
+  setRandomSprites: (enabled: boolean) => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
   applyMinimalGridPreset: () => void;
