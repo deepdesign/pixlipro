@@ -31,8 +31,7 @@ const getStoredThemeColor = (): ThemeColor => {
     "rose",
     "battleship",
     "cyan",
-    "lime",
-    "coral",
+    "midnight",
     "indigo",
     "gold",
   ];

@@ -93,8 +93,7 @@ export function Header({
         "rose",
         "battleship",
         "cyan",
-        "lime",
-        "coral",
+        "midnight",
         "indigo",
         "gold",
       ];

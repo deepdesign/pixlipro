@@ -121,12 +121,14 @@ export function isTouchDevice(): boolean {
     return false;
   }
 
-  return (
-    "ontouchstart" in window ||
-    navigator.maxTouchPoints > 0 ||
-    // @ts-ignore - legacy support
-    (navigator.msMaxTouchPoints && navigator.msMaxTouchPoints > 0)
-  );
+  // Check for touch support (including legacy IE)
+  const hasTouchStart = "ontouchstart" in window;
+  const hasMaxTouchPoints = navigator.maxTouchPoints > 0;
+  const hasLegacyTouchPoints = 
+    typeof (navigator as any).msMaxTouchPoints === "number" &&
+    (navigator as any).msMaxTouchPoints > 0;
+  
+  return hasTouchStart || hasMaxTouchPoints || hasLegacyTouchPoints;
 }
 
 /**

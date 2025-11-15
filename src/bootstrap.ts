@@ -59,7 +59,9 @@ let appInitialized = false;
 window.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     appInitialized = true;
-    console.log('[HMR] App initialization window closed - reload protection active');
+    if (import.meta.env.DEV) {
+      console.log('[HMR] App initialization window closed - reload protection active');
+    }
   }, 20000); // Give app 20 seconds to fully initialize
 });
 
@@ -88,7 +90,9 @@ if (import.meta.hot) {
     }
     
     // Otherwise block - likely connection loss, not a file change
-    console.log('[HMR] Blocked invalidate() - no recent file changes. Page will stay stable.');
+    if (import.meta.env.DEV) {
+      console.log('[HMR] Blocked invalidate() - no recent file changes. Page will stay stable.');
+    }
   };
 }
 

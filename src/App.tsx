@@ -237,33 +237,6 @@ const App = () => {
    * This prevents the "snapping" behavior where columns split before the
    * canvas reaches its maximum size.
    */
-  // Responsive column splitting disabled – see note above.
-  // const checkLayout = useCallback(() => {
-  //   if (typeof window === "undefined") return;
-  // NOTE: Responsive split/merge logic is currently disabled.
-  // If needed, restore from version control history.
-  // }, []);
-  //
-  // useEffect(() => {
-  //   if (typeof window === "undefined") return;
-  //   checkLayout();
-  //   window.addEventListener("resize", checkLayout);
-  //   return () => {
-  //     window.removeEventListener("resize", checkLayout);
-  //   };
-  // }, [checkLayout]);
-  //
-  // useEffect(() => {
-  //   if (!layoutRef.current || typeof ResizeObserver === "undefined") return;
-  //   const resizeObserver = new ResizeObserver(() => {
-  //     setTimeout(checkLayout, 0);
-  //   });
-  //   resizeObserver.observe(layoutRef.current);
-  //   return () => {
-  //     resizeObserver.disconnect();
-  //   };
-  // }, [checkLayout]);
-
   // Theme mode/shape cycling and icon logic is now handled by Header component
 
   // Generate palette options reactively (includes custom palettes)
@@ -289,10 +262,13 @@ const App = () => {
     if (typeof window === "undefined") {
       return;
     }
-    const params = new URLSearchParams(window.location.search);
-    const debugLoader = params.get("debugLoader");
-    if (debugLoader === "1") {
-      setForceLoader(true);
+    // Debug loader only in development
+    if (import.meta.env.DEV) {
+      const params = new URLSearchParams(window.location.search);
+      const debugLoader = params.get("debugLoader");
+      if (debugLoader === "1") {
+        setForceLoader(true);
+      }
     }
   }, []);
 
