@@ -49,6 +49,52 @@ const maxTimeout = window.setTimeout(() => {
   stopProgress();
 }, 5000);
 
+// Prevent Vite from auto-reloading when connection is lost
+// This intercepts invalidate() only - location.reload() interceptor was blocking app initialization
+let lastFileUpdate = Date.now();
+let pageLoadedAt = Date.now();
+let appInitialized = false;
+
+// Track when app is actually initialized (after main.tsx loads)
+window.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    appInitialized = true;
+    console.log('[HMR] App initialization window closed - reload protection active');
+  }, 20000); // Give app 20 seconds to fully initialize
+});
+
+if (import.meta.hot) {
+  // Track when files actually change
+  import.meta.hot.on('vite:beforeUpdate', () => {
+    lastFileUpdate = Date.now();
+  });
+  
+  // Block invalidate() if no files changed recently
+  const originalInvalidate = import.meta.hot.invalidate;
+  import.meta.hot.invalidate = () => {
+    const timeSinceUpdate = Date.now() - lastFileUpdate;
+    const timeSinceLoad = Date.now() - pageLoadedAt;
+    
+    // Always allow reloads in first 20 seconds (app initialization)
+    if (!appInitialized || timeSinceLoad < 20000) {
+      originalInvalidate();
+      return;
+    }
+    
+    // If files changed in last 10 seconds, allow reload (legitimate file change)
+    if (timeSinceUpdate < 10000) {
+      originalInvalidate();
+      return;
+    }
+    
+    // Otherwise block - likely connection loss, not a file change
+    console.log('[HMR] Blocked invalidate() - no recent file changes. Page will stay stable.');
+  };
+}
+
+// Note: Not intercepting location.reload() as it was interfering with app initialization
+// The invalidate() interceptor should be sufficient for most cases
+
 window.addEventListener("DOMContentLoaded", () => {
   updateLoadingPercent(10);
   startProgress();

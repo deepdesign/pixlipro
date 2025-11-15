@@ -1234,6 +1234,7 @@ const App = () => {
     updateCanvasSize();
     
     // Watch the container for size changes (triggers when layout changes)
+    // This will catch both container resizes and window resizes (since container resizes with window)
     let containerResizeObserver: ResizeObserver | null = null;
     if (container && typeof ResizeObserver !== 'undefined') {
       containerResizeObserver = new ResizeObserver(() => {
@@ -1245,21 +1246,10 @@ const App = () => {
       containerResizeObserver.observe(container);
     }
     
-    // Also listen for window resize events (p5.js triggers resizeCanvas on windowResized)
-    const handleWindowResize = () => {
-      // Small delay to ensure p5.js has resized the canvas
-      setTimeout(() => {
-        updateCanvasSize();
-      }, 100);
-    };
-    
-    window.addEventListener('resize', handleWindowResize);
-    
     return () => {
       if (containerResizeObserver) {
         containerResizeObserver.disconnect();
       }
-      window.removeEventListener('resize', handleWindowResize);
     };
   }, [spriteState, controllerRef.current, updateCanvasSize]);
   
@@ -1285,7 +1275,7 @@ const App = () => {
     );
   }, [spriteState]);
 
-  // Removed: This was preventing Motion/FX tabs from working when merged
+  // Removed: This was preventing Motion tab from working when merged
   // The tabs should work fine when merged since they're rendered conditionally
   // useEffect(() => {
   //   if (!isWideLayout && controlTabIndex > 1) {
@@ -2372,18 +2362,6 @@ const App = () => {
 
   return (
     <>
-      <div
-        className={`app-loading-overlay${
-          showLoader ? "" : " app-loading-overlay--hidden"
-        }`}
-      >
-        <div className="app-loading-logo-stack" aria-hidden="true">
-          <span className="app-loading-logo app-loading-logo--one" />
-          <span className="app-loading-logo app-loading-logo--two" />
-          <span className="app-loading-logo app-loading-logo--three" />
-        </div>
-        <span className="sr-only">Loading BitLab</span>
-      </div>
     <div className="app-shell">
       <div className="app-frame app-frame--compact app-frame--header">
         <header className={`app-header${isMobile ? " app-header--mobile" : ""}`}>

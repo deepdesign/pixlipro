@@ -752,13 +752,22 @@ export const createSpriteController = (
   container: HTMLElement,
   options: SpriteControllerOptions = {},
 ): SpriteController => {
-  let state: GeneratorState = {
-    ...DEFAULT_STATE,
-    seed: generateSeedString(),
-    previousBlendMode: DEFAULT_STATE.blendMode,
+  // Store state in an object that can be updated
+  // This ensures closures always read from the same reference, even after HMR
+  const stateRef = { 
+    current: {
+      ...DEFAULT_STATE,
+      seed: generateSeedString(),
+      previousBlendMode: DEFAULT_STATE.blendMode,
+    } as GeneratorState
   };
+  let state = stateRef.current;
   let prepared = computeSprite(state);
   let p5Instance: p5 | null = null;
+  
+  // Getter function to always return current state from the ref
+  // This ensures the draw loop always reads the latest state, even after HMR
+  const getState = () => stateRef.current;
 
   const randomBlendMode = () =>
     blendModePool[Math.floor(Math.random() * blendModePool.length)] ?? "NONE";
@@ -781,16 +790,17 @@ export const createSpriteController = (
   };
 
   const notifyState = () => {
-    options.onStateChange?.({ ...state });
+    options.onStateChange?.({ ...stateRef.current });
   };
 
   const updateSprite = () => {
-    prepared = computeSprite(state);
+    prepared = computeSprite(stateRef.current);
     notifyState();
   };
 
   const updateSeed = (seed?: string) => {
-    state.seed = seed ?? generateSeedString();
+    stateRef.current.seed = seed ?? generateSeedString();
+    state = stateRef.current; // Keep local variable in sync
   };
 
   const sketch = (p: p5) => {
@@ -820,7 +830,18 @@ export const createSpriteController = (
 
     };
 
-    const resizeCanvas = () => {
+    // Flag to prevent recursive resize calls
+    let isResizing = false;
+    
+    // Internal resize function (doesn't need UIEvent parameter)
+    const performResize = () => {
+      // Prevent recursive calls
+      if (isResizing) {
+        return;
+      }
+      
+      isResizing = true;
+      
       // In fullscreen, use viewport dimensions; otherwise use container width
       const isFullscreen = !!(
         document.fullscreenElement ||
@@ -844,7 +865,7 @@ export const createSpriteController = (
         //   clientWidth = cardWidth - border - padding = 960 - 4 - 40 = 916px
         // To get the intended canvas size (960px), we add padding back: 916 + 40 = 956px
         // But we want 960px, so we need to add border too: 916 + 40 + 4 = 960px
-        // Minimum card width is 360px, so minimum canvas size accounting for padding/border
+        // Minimum card width is 320px, so minimum canvas size accounting for padding/border
         const cardPadding = 40; // 20px each side = 40px total (spacing.5)
         const cardBorder = 4; // 2px each side = 4px total
         const containerWidth = container.clientWidth || 0;
@@ -854,12 +875,32 @@ export const createSpriteController = (
         size = Math.min(960, Math.max(minCanvasSize, containerWidth));
       }
       
+      // Resize the canvas - this may trigger p5.js to call windowResized internally
+      // but our flag will prevent recursive calls
       p.resizeCanvas(size, size);
-      // Force immediate redraw after resize
-      p.redraw();
+      
+      // Reset flag after resize completes
+      requestAnimationFrame(() => {
+        isResizing = false;
+      });
     };
 
-    p.windowResized = resizeCanvas;
+    // Wrapper for p5.js windowResized (must accept UIEvent for Zod validation)
+    // p5.js validates the function signature at runtime using Zod
+    // The function MUST accept UIEvent (required, not optional) to pass Zod validation
+    // However, p5.js may call it without an event in some cases (e.g., from resizeCanvas)
+    // When p5.js calls resizeCanvas, it internally calls windowResized without an event,
+    // causing Zod validation errors. We can't prevent this, but we can prevent recursive calls.
+    function windowResizedHandler(event: UIEvent) {
+      // If we're already resizing (from performResize), don't call performResize again
+      // This prevents infinite loops when p5.js calls windowResized from resizeCanvas
+      if (!isResizing) {
+        performResize();
+      }
+    }
+    
+    // Assign the handler - p5.js will validate the signature
+    p.windowResized = windowResizedHandler;
     
     // Watch container for size changes (triggers when layout changes cause container to resize)
     // This ensures canvas resizes even when window doesn't resize but container does
@@ -867,7 +908,7 @@ export const createSpriteController = (
       const containerResizeObserver = new ResizeObserver(() => {
         // Small delay to ensure layout has settled
         setTimeout(() => {
-          resizeCanvas();
+          performResize();
         }, 50);
       });
       containerResizeObserver.observe(container);
@@ -880,11 +921,7 @@ export const createSpriteController = (
     const handleFullscreenChange = () => {
       // Use a longer delay to ensure browser has updated dimensions
       setTimeout(() => {
-        resizeCanvas();
-        // Force a redraw
-        if (p5Instance) {
-          p5Instance.redraw();
-        }
+        performResize();
       }, 200);
     };
     
@@ -897,16 +934,20 @@ export const createSpriteController = (
       const drawSize = Math.min(p.width, p.height);
       const offsetX = (p.width - drawSize) / 2;
       const offsetY = (p.height - drawSize) / 2;
-      const motionScale = clamp(state.motionIntensity / 100, 0, 1.5);
+      // CRITICAL: Use getter function to always read current state
+      // This ensures we always read from the current state object, even after HMR module reloads
+      // The closure captures the getState function, which always returns the current state
+      const currentState = getState();
+      const motionScale = clamp(currentState.motionIntensity / 100, 0, 1.5);
       const deltaMs = typeof p.deltaTime === "number" ? p.deltaTime : 16.666;
       // Delta time for time-based effects
       (p as any).deltaMs = deltaMs;
-      const backgroundHueShiftDegrees = (state.backgroundHueShift / 100) * 360;
+      const backgroundHueShiftDegrees = (currentState.backgroundHueShift / 100) * 360;
       const MOTION_SPEED_MAX_INTERNAL = 12.5;
       // Apply mode-specific speed multiplier to normalize perceived speed across modes
       // Higher multiplier = slower animation (divide to slow down)
-      const modeSpeedMultiplier = MOVEMENT_SPEED_MULTIPLIERS[state.movementMode] ?? 1.0;
-      const baseSpeedFactor = Math.max(state.motionSpeed / MOTION_SPEED_MAX_INTERNAL, 0);
+      const modeSpeedMultiplier = MOVEMENT_SPEED_MULTIPLIERS[currentState.movementMode] ?? 1.0;
+      const baseSpeedFactor = Math.max(currentState.motionSpeed / MOTION_SPEED_MAX_INTERNAL, 0);
       targetSpeedFactor = baseSpeedFactor / modeSpeedMultiplier;
       
       // Accumulate base time at constant rate
@@ -926,17 +967,17 @@ export const createSpriteController = (
       
       const ctx = p.drawingContext as CanvasRenderingContext2D;
       ctx.imageSmoothingEnabled = false;
-      const backgroundBrightness = clamp(state.backgroundBrightness, 0, 100);
+      const backgroundBrightness = clamp(currentState.backgroundBrightness, 0, 100);
       const resolveBackgroundPaletteId = () =>
-        state.backgroundMode === "auto" ? state.paletteId : state.backgroundMode;
+        currentState.backgroundMode === "auto" ? currentState.paletteId : currentState.backgroundMode;
       const applyCanvasAdjustments = (hex: string) =>
         applyHueAndBrightness(hex, backgroundHueShiftDegrees, backgroundBrightness);
       
       // Handle canvas background (gradient or solid)
-      if (state.canvasFillMode === "gradient") {
+      if (currentState.canvasFillMode === "gradient") {
         // Calculate gradient line for full canvas
         const gradientLine = calculateGradientLine(
-          state.canvasGradientDirection,
+          currentState.canvasGradientDirection,
           p.width,
           p.height,
         );
@@ -948,10 +989,10 @@ export const createSpriteController = (
         );
 
         const resolveGradientPaletteId = () => {
-          if (state.canvasGradientMode === "auto") {
+          if (currentState.canvasGradientMode === "auto") {
             return resolveBackgroundPaletteId();
           }
-          return state.canvasGradientMode;
+          return currentState.canvasGradientMode;
         };
         const gradientPalette = getPalette(resolveGradientPaletteId());
         const gradientSourceColors =
@@ -1003,10 +1044,10 @@ export const createSpriteController = (
 
         p.push();
         layer.tiles.forEach((tile, tileIndex) => {
-          // Use state.blendMode when blendModeAuto is false, otherwise use stored tile/layer blend mode
-          const tileBlendMode = state.blendModeAuto
+          // Use currentState.blendMode when blendModeAuto is false, otherwise use stored tile/layer blend mode
+          const tileBlendMode = currentState.blendModeAuto
             ? (tile.blendMode ?? layer.blendMode)
-            : state.blendMode;
+            : currentState.blendMode;
           p.blendMode(blendMap[tileBlendMode] ?? p.BLEND);
           
           // Calculate movement offsets
@@ -1017,7 +1058,7 @@ export const createSpriteController = (
           if (tile.kind === "shape") {
             const baseShapeSize =
               baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
-            movement = computeMovementOffsets(state.movementMode, {
+            movement = computeMovementOffsets(currentState.movementMode, {
               time: scaledAnimationTime, // Use smoothly accumulating scaled time
               phase: tileIndex * 7,
               motionScale,
@@ -1036,8 +1077,8 @@ export const createSpriteController = (
             
             const finalMovement = movement;
             const shapeSize = baseShapeSize * finalMovement.scaleMultiplier;
-            // Use state.layerOpacity directly instead of stored layer.opacity for dynamic updates
-            const opacityValue = clamp(state.layerOpacity / 100, 0.12, 1);
+            // Use currentState.layerOpacity directly instead of stored layer.opacity for dynamic updates
+            const opacityValue = clamp(currentState.layerOpacity / 100, 0.12, 1);
             const opacityAlpha = Math.round(opacityValue * 255);
 
             p.push();
@@ -1057,49 +1098,49 @@ export const createSpriteController = (
             );
             p.translate(clampedX, clampedY);
             const rotationTime = scaledAnimationTime; // Use smoothly accumulating scaled time
-            // Recalculate rotation speed dynamically from state (no regeneration needed)
-            const rotationSpeedBase = clamp(state.rotationSpeed, 0, 100) / 100;
-            const rotationSpeed = state.rotationAnimated && rotationSpeedBase > 0
+            // Recalculate rotation speed dynamically from currentState (no regeneration needed)
+            const rotationSpeedBase = clamp(currentState.rotationSpeed, 0, 100) / 100;
+            const rotationSpeed = currentState.rotationAnimated && rotationSpeedBase > 0
               ? rotationSpeedBase * ROTATION_SPEED_MAX * tile.rotationSpeedMultiplier
               : 0;
-            // Recalculate rotation base dynamically from state (no regeneration needed)
-            const rotationRange = degToRad(clamp(state.rotationAmount, 0, MAX_ROTATION_DEGREES));
+            // Recalculate rotation base dynamically from currentState (no regeneration needed)
+            const rotationRange = degToRad(clamp(currentState.rotationAmount, 0, MAX_ROTATION_DEGREES));
             const rotationBase = rotationRange * tile.rotationBaseMultiplier;
             const rotationAngle =
-              (state.rotationEnabled ? rotationBase : 0) +
+              (currentState.rotationEnabled ? rotationBase : 0) +
               rotationSpeed * tile.rotationDirection * rotationTime;
             if (rotationAngle !== 0) {
               p.rotate(rotationAngle);
             }
             
             // Determine if we should use canvas context for gradients
-            const useGradient = state.spriteFillMode === "gradient";
+            const useGradient = currentState.spriteFillMode === "gradient";
             let gradientObj: CanvasGradient | null = null;
             
             if (useGradient) {
               // Use the palette color index to select the corresponding gradient
               // This ensures sprite using palette color 'b' uses gradient 'b'
-              const paletteGradients = getGradientsForPalette(state.paletteId);
+              const paletteGradients = getGradientsForPalette(currentState.paletteId);
               if (paletteGradients.length > 0) {
                 const gradientIndex = tile.paletteColorIndex % paletteGradients.length;
                 const gradientPreset = paletteGradients[gradientIndex];
                 if (gradientPreset) {
                   // Apply hue shift and variance to gradient colors
-                  const hueShiftDegrees = ((state.hueShift ?? 0) / 100) * 360;
-                  const variance = clamp((state.paletteVariance ?? 68) / 100, 0, 1.5);
+                  const hueShiftDegrees = ((currentState.hueShift ?? 0) / 100) * 360;
+                  const variance = clamp((currentState.paletteVariance ?? 68) / 100, 0, 1.5);
                   
                   // Apply hue shift and variance to each gradient color
                   const processedGradientColors = gradientPreset.colors.map((color, colorIndex) => {
                     // Apply hue shift first
                     const hueShiftedColor = shiftHue(color, hueShiftDegrees);
                     // Then apply variance using deterministic RNG based on tile position and color index
-                    const varianceRng = createMulberry32(hashSeed(`${state.seed}-color-${tile.u}-${tile.v}-${colorIndex}`));
+                    const varianceRng = createMulberry32(hashSeed(`${currentState.seed}-color-${tile.u}-${tile.v}-${colorIndex}`));
                     return jitterColor(hueShiftedColor, variance, varianceRng);
                   });
                   
                   // Calculate gradient line based on direction
                   const gradientLine = calculateGradientLine(
-                    state.spriteGradientDirection,
+                    currentState.spriteGradientDirection,
                     shapeSize,
                     shapeSize,
                   );
@@ -1394,7 +1435,9 @@ export const createSpriteController = (
     options: { recompute?: boolean } = {},
   ) => {
     const { recompute = true } = options;
-    state = { ...state, ...partial };
+    // Update state in the ref object - this ensures all closures see the update
+    stateRef.current = { ...stateRef.current, ...partial };
+    state = stateRef.current; // Keep local variable in sync
     if (recompute) {
       updateSprite();
     } else {
@@ -1403,105 +1446,113 @@ export const createSpriteController = (
   };
 
   const controller: SpriteController = {
-    getState: () => ({ ...state }),
+    getState: () => ({ ...stateRef.current }),
     applyState: (newState: GeneratorState) => {
-      state = { ...newState };
+      stateRef.current = { ...newState };
+      state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
     randomizeAll: () => {
       updateSeed();
       // Preserve rotation settings
-      const preserveRotationEnabled = state.rotationEnabled;
-      const preserveRotationAnimated = state.rotationAnimated;
-      const preserveRotationAmount = state.rotationAmount;
-      const preserveRotationSpeed = state.rotationSpeed;
+      const preserveRotationEnabled = stateRef.current.rotationEnabled;
+      const preserveRotationAnimated = stateRef.current.rotationAnimated;
+      const preserveRotationAmount = stateRef.current.rotationAmount;
+      const preserveRotationSpeed = stateRef.current.rotationSpeed;
       
       const nextMode =
         spriteModePool[Math.floor(Math.random() * spriteModePool.length)];
-      state.spriteMode = nextMode;
-      state.paletteId = getRandomPalette().id;
-      state.scalePercent = randomInt(220, 960);
-      state.scaleBase = randomInt(52, 88);
-      state.scaleSpread = randomInt(42, 96);
-      state.paletteVariance = randomInt(32, 128);
-      state.hueShift = 0;
-      state.motionIntensity = randomInt(42, 98);
-      state.movementMode =
+      stateRef.current.spriteMode = nextMode;
+      stateRef.current.paletteId = getRandomPalette().id;
+      stateRef.current.scalePercent = randomInt(220, 960);
+      stateRef.current.scaleBase = randomInt(52, 88);
+      stateRef.current.scaleSpread = randomInt(42, 96);
+      stateRef.current.paletteVariance = randomInt(32, 128);
+      stateRef.current.hueShift = 0;
+      stateRef.current.motionIntensity = randomInt(42, 98);
+      stateRef.current.movementMode =
         movementModes[Math.floor(Math.random() * movementModes.length)];
-      state.backgroundMode = "auto";
-      state.backgroundHueShift = 0;
-      state.backgroundBrightness = 50;
+      stateRef.current.backgroundMode = "auto";
+      stateRef.current.backgroundHueShift = 0;
+      stateRef.current.backgroundBrightness = 50;
       
       // Preserve rotation settings: if both are off, keep off; if either is on, keep on
       if (!preserveRotationEnabled && !preserveRotationAnimated) {
         // Both off - keep off
-        state.rotationEnabled = false;
-        state.rotationAnimated = false;
-        state.rotationAmount = preserveRotationAmount;
-        state.rotationSpeed = preserveRotationSpeed;
+        stateRef.current.rotationEnabled = false;
+        stateRef.current.rotationAnimated = false;
+        stateRef.current.rotationAmount = preserveRotationAmount;
+        stateRef.current.rotationSpeed = preserveRotationSpeed;
       } else {
         // At least one is on - keep on and preserve slider position
-        state.rotationEnabled = preserveRotationEnabled;
-        state.rotationAnimated = preserveRotationAnimated;
-        state.rotationAmount = preserveRotationAmount;
-        state.rotationSpeed = preserveRotationSpeed;
+        stateRef.current.rotationEnabled = preserveRotationEnabled;
+        stateRef.current.rotationAnimated = preserveRotationAnimated;
+        stateRef.current.rotationAmount = preserveRotationAmount;
+        stateRef.current.rotationSpeed = preserveRotationSpeed;
       }
       
+      state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
     randomizeColors: () => {
       updateSeed();
-      state.paletteId = getRandomPalette().id;
-      state.paletteVariance = randomInt(32, 126);
+      stateRef.current.paletteId = getRandomPalette().id;
+      stateRef.current.paletteVariance = randomInt(32, 126);
+      state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
     randomizeScale: () => {
-      state.scaleBase = randomInt(50, 88);
+      stateRef.current.scaleBase = randomInt(50, 88);
+      state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
     randomizeScaleRange: () => {
-      state.scaleSpread = randomInt(42, 96);
+      stateRef.current.scaleSpread = randomInt(42, 96);
+      state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
     randomizeMotion: () => {
       // Preserve rotation settings
-      const preserveRotationEnabled = state.rotationEnabled;
-      const preserveRotationAnimated = state.rotationAnimated;
-      const preserveRotationAmount = state.rotationAmount;
-      const preserveRotationSpeed = state.rotationSpeed;
+      const preserveRotationEnabled = stateRef.current.rotationEnabled;
+      const preserveRotationAnimated = stateRef.current.rotationAnimated;
+      const preserveRotationAmount = stateRef.current.rotationAmount;
+      const preserveRotationSpeed = stateRef.current.rotationSpeed;
       
-      state.motionIntensity = randomInt(40, 98);
-      state.movementMode =
+      stateRef.current.motionIntensity = randomInt(40, 98);
+      stateRef.current.movementMode =
         movementModes[Math.floor(Math.random() * movementModes.length)];
-      state.motionSpeed = randomInt(5, 12);
+      stateRef.current.motionSpeed = randomInt(5, 12);
       
       // Preserve rotation settings: if both are off, keep off; if either is on, keep on
       if (!preserveRotationEnabled && !preserveRotationAnimated) {
         // Both off - keep off
-        state.rotationEnabled = false;
-        state.rotationAnimated = false;
-        state.rotationAmount = preserveRotationAmount;
-        state.rotationSpeed = preserveRotationSpeed;
+        stateRef.current.rotationEnabled = false;
+        stateRef.current.rotationAnimated = false;
+        stateRef.current.rotationAmount = preserveRotationAmount;
+        stateRef.current.rotationSpeed = preserveRotationSpeed;
       } else {
         // At least one is on - keep on and preserve slider position
-        state.rotationEnabled = preserveRotationEnabled;
-        state.rotationAnimated = preserveRotationAnimated;
-        state.rotationAmount = preserveRotationAmount;
-        state.rotationSpeed = preserveRotationSpeed;
+        stateRef.current.rotationEnabled = preserveRotationEnabled;
+        stateRef.current.rotationAnimated = preserveRotationAnimated;
+        stateRef.current.rotationAmount = preserveRotationAmount;
+        stateRef.current.rotationSpeed = preserveRotationSpeed;
       }
       
+      state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
     randomizeBlendMode: () => {
-      if (state.blendModeAuto) {
+      if (stateRef.current.blendModeAuto) {
         reassignAutoBlendModes();
         notifyState();
         return;
       }
       const nextBlend = randomBlendMode();
-      state.blendMode = nextBlend;
-      state.previousBlendMode = nextBlend;
-      notifyState();
+      stateRef.current.blendMode = nextBlend;
+      stateRef.current.previousBlendMode = nextBlend;
+      stateRef.current.blendModeAuto = false;
+      state = stateRef.current; // Keep local variable in sync
+      updateSprite();
     },
     setScalePercent: (value: number) => {
       applyState({ scalePercent: clamp(value, 0, MAX_DENSITY_PERCENT_UI) });
@@ -1539,20 +1590,22 @@ export const createSpriteController = (
       }, { recompute: false });
     },
     setBlendModeAuto: (value: boolean) => {
-      if (value === state.blendModeAuto) {
+      if (value === stateRef.current.blendModeAuto) {
         return;
       }
 
       if (value) {
-        state.blendModeAuto = true;
+        stateRef.current.blendModeAuto = true;
+        state = stateRef.current; // Keep local variable in sync
         notifyState();
         return;
       }
 
-      const fallback = state.previousBlendMode ?? state.blendMode ?? "NONE";
-      state.previousBlendMode = fallback;
-      state.blendModeAuto = false;
-      state.blendMode = fallback;
+      const fallback = stateRef.current.previousBlendMode ?? stateRef.current.blendMode ?? "NONE";
+      stateRef.current.previousBlendMode = fallback;
+      stateRef.current.blendModeAuto = false;
+      stateRef.current.blendMode = fallback;
+      state = stateRef.current; // Keep local variable in sync
       notifyState();
     },
     setLayerOpacity: (value: number) => {
@@ -1572,7 +1625,8 @@ export const createSpriteController = (
     setRotationEnabled: (value: boolean) => {
       // Don't recompute sprites - rotation offsets are already calculated
       // Just update state so rendering can toggle them on/off
-      state.rotationEnabled = value;
+      stateRef.current.rotationEnabled = value;
+      state = stateRef.current; // Keep local variable in sync
       notifyState();
     },
     setRotationAmount: (value: number) => {
@@ -1585,7 +1639,8 @@ export const createSpriteController = (
       applyState({ rotationSpeed: clamp(value, 0, 100) });
     },
     setRotationAnimated: (value: boolean) => {
-      state.rotationAnimated = value;
+      stateRef.current.rotationAnimated = value;
+      state = stateRef.current; // Keep local variable in sync
       notifyState();
     },
     usePalette: (paletteId: PaletteId) => {
@@ -1703,11 +1758,12 @@ export const createSpriteController = (
       });
     },
     reset: () => {
-      state = {
+      stateRef.current = {
         ...DEFAULT_STATE,
         seed: generateSeedString(),
         previousBlendMode: DEFAULT_STATE.blendMode,
       };
+      state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
     destroy: () => {
@@ -1716,8 +1772,29 @@ export const createSpriteController = (
         (container as any)._resizeObserver.disconnect();
         delete (container as any)._resizeObserver;
       }
-      p5Instance?.remove();
-      p5Instance = null;
+      // Stop the draw loop before removing to prevent any race conditions
+      if (p5Instance) {
+        try {
+          p5Instance.noLoop();
+          // Small delay to ensure loop stops before removal
+          setTimeout(() => {
+            if (p5Instance) {
+              p5Instance.remove();
+              p5Instance = null;
+            }
+          }, 10);
+        } catch (e) {
+          // If removal fails, try direct removal
+          try {
+            p5Instance.remove();
+          } catch (e2) {
+            // Ignore errors during cleanup
+          }
+          p5Instance = null;
+        }
+      } else {
+        p5Instance = null;
+      }
     },
     getP5Instance: () => p5Instance,
     pauseAnimation: () => {

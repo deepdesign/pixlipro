@@ -10,13 +10,13 @@
  * ## Layout States
  * 
  * ### Merged Layout (Narrow Viewport)
- * - Single left column containing all 4 tabs (Sprites, Layers, Motion, FX)
+ * - Single left column containing all 3 tabs (Sprites, Colours, Motion)
  * - Column width: CONTROL_COLUMN_WIDTH_MERGED (420px)
  * - Canvas scales smoothly between min (720px) and max (960px)
  * 
  * ### Split Layout (Wide Viewport)
- * - Left column: Sprites + Layers tabs (CONTROL_COLUMN_WIDTH_SPLIT = 348px)
- * - Right column: Motion + FX tabs (MOTION_COLUMN_WIDTH = 348px)
+ * - Left column: Sprites + Colours tabs (CONTROL_COLUMN_WIDTH_SPLIT = 348px)
+ * - Right column: Motion tab (MOTION_COLUMN_WIDTH = 348px)
  * - Both columns use the same narrower width when split
  * - Canvas stays at maximum size (960px) when columns split
  * 
@@ -60,7 +60,7 @@
 
 /**
  * Column width when all tabs are merged into a single column (narrow viewport)
- * This width accommodates all 4 tabs (Sprites, Layers, Motion, FX) in one row
+ * This width accommodates all 3 tabs (Sprites, Colours, Motion) in one row
  */
 export const CONTROL_COLUMN_WIDTH_MERGED = 344;
 

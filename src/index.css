@@ -891,19 +891,7 @@ html[data-theme="dark"][data-theme-color="rose"] body {
   margin-top: 64px; /* 64px space between footer and content */
 }
 
-/* Debug outlines for header and card containers */
-/* Debug outlines for header and card containers */
-/* .app-frame--header,
-.app-header,
-.app-header > * {
-  border: 1px solid rgba(255, 0, 0, 0.5);
-}
 
-.app-frame--main,
-.app-layout,
-.app-layout > * {
-  border: 1px solid rgba(255, 0, 0, 0.5);
-} */
 .app-header {
   @apply grid items-end text-[var(--text-primary)];
   gap: theme("spacing.5");
@@ -1183,7 +1171,8 @@ body:has(.app-layout--wide) .app-header {
 .app-layout--small-canvas .canvas-card {
   margin: 0 !important;
   width: 100%;
-  min-width: 320px; /* Cards can scale down to 320px but not below */
+  min-width: 0 !important; /* Allow cards to shrink below 320px when constrained by container */
+  max-width: 100% !important; /* Prevent cards from exceeding container width */
 }
 
 /* Mobile Layout */
@@ -1353,6 +1342,37 @@ body:has(.app-layout--wide) .app-header {
   .app-main {
     padding-inline: theme("spacing.4");
   }
+  
+  /* CRITICAL: Override reduced padding when cards are stacked - maintain 24px padding */
+  body:has(.app-frame--stacked) .app-main {
+    padding-left: theme("spacing.6") !important; /* Lock left padding at 24px - NEVER COLLAPSE */
+    padding-right: theme("spacing.6") !important; /* Lock right padding at 24px - NEVER COLLAPSE */
+    padding-inline: theme("spacing.6") !important; /* Also lock padding-inline to prevent any override */
+  }
+}
+
+@media (max-width: 740px) {
+  /* Force footer to stack (logo and text) and align text left under logo */
+  .app-footer:not(.app-footer--mobile) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    justify-items: start !important;
+  }
+  
+  .app-footer:not(.app-footer--mobile) .footer-text {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+    width: 100%;
+    text-align: left !important;
+    flex-basis: 100%;
+    display: block;
+  }
+  
+  .app-footer:not(.app-footer--mobile) .footer-brand {
+    width: 100%;
+    flex-basis: 100%;
+  }
 }
 
 @media (max-width: 800px) {
@@ -1409,6 +1429,261 @@ body:has(.app-layout--wide) .app-header {
   }
 }
 
+@media (max-width: 420px) {
+  /* Scale down logo to prevent overlap with overflow button at very small viewports */
+  .app-logo-button {
+    max-width: calc(100% - 60px) !important; /* Leave room for overflow button (36px) + gap + padding */
+    width: auto !important;
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+  }
+  
+  .app-logo-svg {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Ensure header has enough gap between logo and overflow button */
+  .app-header {
+    gap: theme("spacing.2") !important;
+  }
+
+  /* Ensure small-canvas gap is locked at spacing.5 */
+  .app-layout--small-canvas {
+    gap: theme("spacing.5") !important;
+  }
+  
+  /* CRITICAL: Lock .app-main padding at 420px and below - DO NOT ALLOW TO COLLAPSE */
+  body:has(.app-frame--stacked) .app-main {
+    padding-left: theme("spacing.6") !important; /* Lock left padding at 24px - NEVER COLLAPSE */
+    padding-right: theme("spacing.6") !important; /* Lock right padding at 24px - NEVER COLLAPSE */
+    padding-inline: theme("spacing.6") !important; /* Also lock padding-inline to prevent any override */
+  }
+  
+  /* CRITICAL: Lock card padding at 420px and below - DO NOT ALLOW TO COLLAPSE */
+  body:has(.app-frame--stacked) .control-card,
+  body:has(.app-frame--stacked) .motion-card,
+  body:has(.app-frame--stacked) .utility-card,
+  body:has(.app-frame--stacked) .canvas-card {
+    padding-left: theme("spacing.5") !important; /* Lock left padding at 20px - NEVER COLLAPSE */
+    padding-right: theme("spacing.5") !important; /* Lock right padding at 20px - NEVER COLLAPSE */
+    padding-inline: theme("spacing.5") !important; /* Also lock padding-inline to prevent any override */
+  }
+  
+  /* CRITICAL: Lock header padding at 420px and below - DO NOT ALLOW TO COLLAPSE */
+  body:has(.app-frame--stacked) .app-header {
+    padding-left: theme("spacing.6") !important; /* Lock left padding at 24px - same as non-stacked layout - NEVER COLLAPSE */
+    padding-right: theme("spacing.6") !important; /* Lock right padding at 24px - same as non-stacked layout - NEVER COLLAPSE */
+    padding-inline: theme("spacing.6") !important; /* Lock padding-inline at 24px - same as non-stacked layout - NEVER COLLAPSE */
+    margin-left: 0 !important; /* No margin - use padding instead */
+    margin-right: 0 !important; /* No margin - use padding instead */
+    width: 100% !important; /* Fill the frame width - padding is included in box-sizing */
+  }
+}
+
+/* When cards are stacked (app-frame--stacked), ensure header matches main frame width EXACTLY */
+/* This ensures the overflow button stays aligned to the right edge of the cards */
+/* The header frame must use the EXACT same width calculation as .app-frame--stacked */
+body:has(.app-frame--stacked) .app-frame--header,
+body:has(.app-frame--stacked) .app-frame--footer {
+  /* Use the EXACT same calculation as .app-frame--stacked - no max() wrapper */
+  width: clamp(
+    var(--layout-min-width-stacked),
+    100%,
+    calc(960px + var(--control-column-width) + theme("spacing.6") * 2)
+  ) !important; /* Match stacked frame width EXACTLY */
+  min-width: var(--layout-min-width-stacked) !important; /* Lock to 320px minimum */
+  max-width: clamp(
+    var(--layout-min-width-stacked),
+    100%,
+    calc(960px + var(--control-column-width) + theme("spacing.6") * 2)
+  ) !important; /* Prevent growing beyond stacked frame width */
+  flex-shrink: 0 !important; /* Prevent frame from shrinking */
+  /* Ensure margin matches main frame for perfect alignment */
+  margin-inline: auto !important; /* Same as .app-frame base class */
+}
+
+/* When cards are stacked, ensure header matches main frame width */
+/* This is also defined in the 900px media query, but defined here for specificity */
+body:has(.app-frame--stacked) .app-header {
+  /* Match non-stacked layout approach: use padding-inline instead of margins */
+  /* Non-stacked layout uses padding-inline: theme("spacing.6") = 24px on both sides */
+  /* This ensures perfect alignment with the non-stacked layout */
+  padding-left: theme("spacing.6") !important; /* 24px padding - same as non-stacked layout */
+  padding-right: theme("spacing.6") !important; /* 24px padding - same as non-stacked layout */
+  padding-inline: theme("spacing.6") !important; /* 24px padding on both sides - same as non-stacked layout */
+  margin-left: 0 !important; /* No margin - use padding instead like non-stacked layout */
+  margin-right: 0 !important; /* No margin - use padding instead like non-stacked layout */
+  width: 100% !important; /* Fill the frame width - padding is included in box-sizing */
+  box-sizing: border-box !important;
+  gap: 44px !important; /* Maintain 44px gap between logo and overflow button - minimum */
+  min-width: 0 !important; /* Allow content to shrink within fixed frame */
+  grid-template-columns: minmax(0, auto) minmax(44px, 1fr) !important; /* Ensure gap is maintained */
+  justify-items: stretch !important; /* Ensure grid items stretch to fill their tracks */
+  align-items: end !important; /* Keep vertical alignment at bottom */
+  overflow: visible !important; /* Allow negative margins to work */
+}
+
+/* Allow logo to shrink when needed to maintain gap with overflow button */
+body:has(.app-frame--stacked) .app-logo-button {
+  min-width: 0 !important; /* Allow shrinking */
+  max-width: var(--control-column-width) !important; /* Don't exceed control column width */
+  width: auto !important; /* Allow natural sizing */
+  flex-shrink: 1 !important; /* Can shrink to make room */
+  margin-left: 0 !important; /* Ensure flush with left edge of grid track */
+  padding-left: 0 !important; /* Ensure flush with left edge of grid track */
+}
+
+body:has(.app-frame--stacked) .app-logo-svg {
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* Ensure both theme tools and overflow button align with card right edge */
+/* Header has 20px margin-right, so header right edge is at: frame - 20px */
+/* Card edge is at: frame - 24px (appMain) - 20px (card) = frame - 44px */
+/* Button at header right edge (frame - 20px) needs to move left by 24px to reach card edge */
+/* But we want it inside the header, so we need to account for the header's margin */
+/* Actually, the button should be at the header's right edge, which is frame - 20px */
+/* To align with card edge (frame - 44px), we need -24px, but that pushes it outside */
+/* Solution: Keep button at header right edge, no negative margin needed since header already accounts for alignment */
+body:has(.app-frame--stacked) .header-actions,
+body:has(.app-frame--stacked) .header-actions--overflow {
+  margin-left: auto !important;
+  justify-content: flex-end !important;
+  flex-shrink: 0 !important; /* Don't shrink */
+  width: auto !important;
+  margin-right: 0 !important; /* No negative margin - stay inside blue container */
+  padding-right: 0 !important; /* No right padding - content flush against blue container */
+  gap: theme("spacing.2") !important; /* Restore spacing between controls (8px) - same as non-stacked layout */
+}
+
+/* Overflow button specific sizing */
+body:has(.app-frame--stacked) .header-actions--overflow {
+  min-width: 36px !important; /* Icon button size (h-9) */
+}
+
+/* Ensure the button itself has no right margin/padding */
+body:has(.app-frame--stacked) .header-overflow-trigger {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Ensure header toolbar aligns content to right edge (for both theme tools and overflow button) */
+/* Content should be flush against blue container - no padding on toolbar */
+/* The toolbar should contain the actions, and both should stay inside the header */
+body:has(.app-frame--stacked) .header-toolbar {
+  flex-shrink: 0 !important;
+  min-width: 0 !important;
+  justify-content: flex-end !important; /* Align content to right edge */
+  width: 100% !important; /* Fill blue container */
+  margin-right: 0 !important; /* No margin */
+  padding-right: 0 !important; /* No padding - content flush against blue container */
+  gap: theme("spacing.3") !important; /* Restore spacing between toolbar items (12px) - same as non-stacked layout */
+  overflow: visible !important; /* Allow content to be visible */
+}
+
+/* When cards reach their minimum size (320px), ensure header frame matches main frame exactly */
+/* This ensures the overflow button stays aligned with the card edge */
+/* Note: Don't override width here - let it use the same clamp() as main frame for perfect alignment */
+@media (max-width: 360px) {
+  /* Ensure header frame uses the same calculation as main frame - don't force fixed width */
+  /* The clamp() will naturally result in 320px when viewport is narrow enough */
+  body:has(.app-frame--stacked) .app-frame--header,
+  body:has(.app-frame--stacked) .app-frame--footer {
+    /* Don't override width - keep using the same clamp() as main frame */
+    min-width: var(--layout-min-width-stacked) !important;
+    max-width: clamp(
+      var(--layout-min-width-stacked),
+      100%,
+      calc(960px + var(--control-column-width) + theme("spacing.6") * 2)
+    ) !important;
+    flex-shrink: 0 !important; /* Prevent any shrinking */
+  }
+  
+  /* CRITICAL: Lock .app-main padding at small viewports - DO NOT ALLOW TO COLLAPSE */
+  body:has(.app-frame--stacked) .app-main {
+    padding-left: theme("spacing.6") !important; /* Lock left padding at 24px - NEVER COLLAPSE */
+    padding-right: theme("spacing.6") !important; /* Lock right padding at 24px - NEVER COLLAPSE */
+    padding-inline: theme("spacing.6") !important; /* Also lock padding-inline to prevent any override */
+  }
+  
+  /* CRITICAL: Lock card padding at small viewports - DO NOT ALLOW TO COLLAPSE */
+  body:has(.app-frame--stacked) .control-card,
+  body:has(.app-frame--stacked) .motion-card,
+  body:has(.app-frame--stacked) .utility-card,
+  body:has(.app-frame--stacked) .canvas-card {
+    padding-left: theme("spacing.5") !important; /* Lock left padding at 20px - NEVER COLLAPSE */
+    padding-right: theme("spacing.5") !important; /* Lock right padding at 20px - NEVER COLLAPSE */
+    padding-inline: theme("spacing.5") !important; /* Also lock padding-inline to prevent any override */
+  }
+  
+  /* CRITICAL: Lock header padding at small viewports - DO NOT ALLOW TO COLLAPSE */
+  body:has(.app-frame--stacked) .app-header {
+    padding-left: theme("spacing.6") !important; /* Lock left padding at 24px - same as non-stacked layout - NEVER COLLAPSE */
+    padding-right: theme("spacing.6") !important; /* Lock right padding at 24px - same as non-stacked layout - NEVER COLLAPSE */
+    padding-inline: theme("spacing.6") !important; /* Lock padding-inline at 24px - same as non-stacked layout - NEVER COLLAPSE */
+    margin-left: 0 !important; /* No margin - use padding instead */
+    margin-right: 0 !important; /* No margin - use padding instead */
+    width: 100% !important; /* Fill the frame width - padding is included in box-sizing */
+  }
+  
+  /* When cards are at minimum, calculate max logo width to maintain 44px gap */
+  /* Header content width = frame width (320px) - left padding (24px) - right padding (24px) = 272px */
+  /* Logo max = header content width (272px) - gap (44px) - button (36px) = 192px max for logo */
+  body:has(.app-frame--stacked) .app-logo-button {
+    max-width: calc(var(--layout-min-width-stacked) - theme("spacing.6") * 2 - 44px - 36px) !important;
+    min-width: 0 !important; /* Allow shrinking but constrained by max-width */
+    flex-shrink: 1 !important;
+    width: auto !important;
+    margin-left: 0 !important; /* Ensure flush with left edge of grid track */
+    padding-left: 0 !important; /* Ensure flush with left edge of grid track */
+  }
+  
+  body:has(.app-frame--stacked) .app-logo-svg {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  
+  /* Ensure gap is maintained and header uses same padding as non-stacked layout */
+  body:has(.app-frame--stacked) .app-header {
+    gap: 44px !important; /* Maintain 44px gap between logo and overflow button - no less */
+    padding-left: theme("spacing.6") !important; /* 24px padding - same as non-stacked layout */
+    padding-right: theme("spacing.6") !important; /* 24px padding - same as non-stacked layout */
+    padding-inline: theme("spacing.6") !important; /* 24px padding on both sides - same as non-stacked layout */
+    margin-left: 0 !important; /* No margin - use padding instead */
+    margin-right: 0 !important; /* No margin - use padding instead */
+    width: 100% !important; /* Fill the frame width - padding is included in box-sizing */
+    box-sizing: border-box !important;
+    grid-template-columns: minmax(0, auto) minmax(44px, 1fr) !important; /* Ensure gap is maintained */
+  }
+  
+  /* Ensure both theme tools and overflow button stay at right edge - inside blue container */
+  /* No negative margin - button should be at header right edge, inside the blue container */
+  body:has(.app-frame--stacked) .header-actions,
+  body:has(.app-frame--stacked) .header-actions--overflow {
+    margin-right: 0 !important; /* No negative margin - stay inside blue container */
+    padding-right: 0 !important; /* No right padding - content flush against blue container */
+    gap: theme("spacing.2") !important; /* Restore spacing between controls (8px) - same as non-stacked layout */
+  }
+  
+  /* Ensure the button itself has no right margin/padding */
+  body:has(.app-frame--stacked) .header-overflow-trigger {
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  /* Ensure header toolbar aligns with card edge */
+  body:has(.app-frame--stacked) .header-toolbar {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important; /* Fill blue container */
+    justify-content: flex-end !important; /* Align content to right edge */
+    gap: theme("spacing.3") !important; /* Restore spacing between toolbar items (12px) - same as non-stacked layout */
+  }
+}
+
 
 @keyframes logoGradientShift {
   0% {
@@ -1435,6 +1710,13 @@ body:has(.app-layout--wide) .app-header {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+}
+
+/* CRITICAL: Lock .app-main padding when cards are stacked - DO NOT ALLOW TO COLLAPSE */
+body:has(.app-frame--stacked) .app-main {
+  padding-left: theme("spacing.6") !important; /* Lock left padding at 24px - NEVER COLLAPSE */
+  padding-right: theme("spacing.6") !important; /* Lock right padding at 24px - NEVER COLLAPSE */
+  padding-inline: theme("spacing.6") !important; /* Also lock padding-inline to prevent any override */
 }
 
 /* Layout Container
@@ -1561,6 +1843,32 @@ body:has(.app-layout--wide) .app-header {
   min-width: 0; /* Allow cards to shrink - containers enforce min-width */
   box-sizing: border-box;
   overflow: visible;
+}
+
+/* Prevent card padding from collapsing when stacked - LOCK PADDING VALUES */
+/* This rule applies at ALL viewport sizes when cards are stacked */
+body:has(.app-frame--stacked) .control-card,
+body:has(.app-frame--stacked) .motion-card,
+body:has(.app-frame--stacked) .utility-card,
+body:has(.app-frame--stacked) .canvas-card {
+  padding-left: theme("spacing.5") !important; /* Lock left padding at 20px - DO NOT COLLAPSE */
+  padding-right: theme("spacing.5") !important; /* Lock right padding at 20px - DO NOT COLLAPSE */
+  padding-inline: theme("spacing.5") !important; /* Also lock padding-inline to prevent any override */
+  min-width: 0 !important; /* Allow cards to shrink below 320px when constrained by container */
+  max-width: 100% !important; /* Prevent cards from exceeding container width */
+  box-sizing: border-box !important; /* Ensure padding is included in width calculation */
+}
+
+/* Allow control-column and canvas-card-shell to shrink when stacked */
+body:has(.app-frame--stacked) .control-column {
+  min-width: 0 !important; /* Allow control column to shrink below 320px when stacked */
+  max-width: 100% !important; /* Prevent exceeding container width */
+  width: 100% !important; /* Fill available space */
+}
+
+body:has(.app-frame--stacked) .canvas-card-shell {
+  min-width: 0 !important; /* Allow canvas card shell to shrink below 320px when stacked */
+  max-width: 100% !important; /* Prevent exceeding container width */
 }
 
 .panel-heading {
@@ -2615,6 +2923,7 @@ body:has(.app-layout--wide) .app-header {
   margin-left: auto;
 }
 
+
 /* When columns are split, constrain footer to align with right column edge
  * The footer should not extend beyond the layout width
  * Content width: control (348) + gap (24) + display (960) + gap (24) + motion (348) = 1704px
@@ -3424,6 +3733,24 @@ body:has(.app-layout--wide) .app-footer {
     /* Don't override width - let them use the same width as .app-frame--compact */
     max-width: 100% !important; /* Ensure they don't exceed viewport */
   }
+  
+  /* When main frame is stacked, header and footer should match its width EXACTLY */
+  body:has(.app-frame--stacked) .app-frame--header,
+  body:has(.app-frame--stacked) .app-frame--footer {
+    /* Use the EXACT same calculation as .app-frame--stacked - no max() wrapper */
+    width: clamp(
+      var(--layout-min-width-stacked),
+      100%,
+      calc(960px + var(--control-column-width) + theme("spacing.6") * 2)
+    ) !important; /* Match stacked frame width EXACTLY */
+    min-width: var(--layout-min-width-stacked) !important; /* Lock to 320px minimum */
+    max-width: clamp(
+      var(--layout-min-width-stacked),
+      100%,
+      calc(960px + var(--control-column-width) + theme("spacing.6") * 2)
+    ) !important; /* Prevent growing beyond stacked frame width */
+    flex-shrink: 0 !important; /* Prevent frame from shrinking */
+  }
 
   /* Header styling - align with main content */
   .app-header {
@@ -3433,6 +3760,19 @@ body:has(.app-layout--wide) .app-footer {
     padding-inline: theme("spacing.6"); /* Match main content padding for alignment */
     min-width: 0; /* Allow header to shrink below content size */
     overflow: visible; /* Prevent content from being cut off */
+  }
+  
+  /* When stacked, use same padding as non-stacked layout for perfect alignment */
+  body:has(.app-frame--stacked) .app-header {
+    padding-left: theme("spacing.6") !important; /* 24px padding - same as non-stacked layout */
+    padding-right: theme("spacing.6") !important; /* 24px padding - same as non-stacked layout */
+    padding-inline: theme("spacing.6") !important; /* 24px padding on both sides - same as non-stacked layout */
+    margin-left: 0 !important; /* No margin - use padding instead */
+    margin-right: 0 !important; /* No margin - use padding instead */
+    width: 100% !important; /* Fill the frame width - padding is included in box-sizing */
+    gap: 44px !important; /* Maintain 44px gap between logo and overflow button - minimum */
+    box-sizing: border-box !important;
+    grid-template-columns: minmax(0, auto) minmax(44px, 1fr) !important; /* Ensure gap is maintained */
   }
 
   .app-logo-button {
@@ -3459,6 +3799,9 @@ body:has(.app-layout--wide) .app-footer {
     min-width: 0; /* Allow footer to shrink below content size */
     flex-wrap: wrap; /* Allow footer content to wrap and shrink */
   }
+  
+  /* At 900px and below, if footer hasn't stacked yet, ensure it can wrap */
+  /* But the 740px breakpoint will force it to stack */
 }
 
 .control-stack {
@@ -3467,11 +3810,6 @@ body:has(.app-layout--wide) .app-footer {
 
 .display-column {
   grid-column: 2;
-}
-
-.fx-stack {
-  grid-column: 3;
-  grid-row: 1;
 }
 
 .layout-stack {
