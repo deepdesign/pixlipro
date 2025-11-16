@@ -1824,6 +1824,8 @@ body:has(.app-layout--wide) .app-header {
   /* Reduce logo margin on mobile to prevent extra space at top */
   .app-layout--mobile .app-logo-button {
     margin-top: 0; /* Remove 64px margin - header padding provides spacing */
+    justify-self: start !important; /* Ensure logo is left-aligned */
+    margin-left: 0 !important;
   }
 
   /* Make logo 20% bigger on mobile when cards stack */
@@ -2057,6 +2059,13 @@ body:has(.app-layout--wide) .app-header {
     min-width: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+  }
+  
+  /* Ensure logo is left-aligned on very small devices */
+  .app-logo-button {
+    justify-self: start !important;
+    margin-left: 0 !important;
+    align-self: start !important;
   }
   
   /* CRITICAL: Lock .app-main padding at 420px and below - DO NOT ALLOW TO COLLAPSE */
@@ -3278,6 +3287,87 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   max-height: 300px;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* Mobile modal styling for select dropdowns (palette, motion, canvas, blend) */
+@media (max-width: 768px) {
+  /* Create overlay backdrop when modal is open */
+  body:has(.select-mobile-modal[data-radix-select-content])::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9998;
+    pointer-events: none;
+  }
+  
+  /* The SelectContent wrapper - make it full screen overlay */
+  .select-mobile-modal[data-radix-select-content] {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 9999 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Modal content container - the inner div with class control-dropdown-menu */
+  .select-mobile-modal[data-radix-select-content] .control-dropdown-menu {
+    width: 90% !important;
+    max-width: 500px !important;
+    max-height: 85vh !important;
+    background: var(--panel-bg) !important;
+    border: 2px solid var(--panel-border) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+    padding: theme("spacing.5") !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    min-width: auto !important;
+  }
+  
+  /* Viewport inside modal */
+  .select-mobile-modal .control-select-viewport {
+    max-height: calc(85vh - 80px) !important;
+    padding: theme("spacing.2") 0 !important;
+  }
+  
+  /* Larger items in mobile modal */
+  .select-mobile-modal .control-dropdown-item {
+    padding: theme("spacing.4") theme("spacing.3") !important;
+    font-size: 1rem !important;
+    min-height: 48px !important;
+  }
+  
+  /* Larger category labels */
+  .select-mobile-modal .control-select-category-label {
+    padding: theme("spacing.3") theme("spacing.3") !important;
+    font-size: 0.7rem !important;
+  }
+  
+  /* Larger color preview squares */
+  .select-mobile-modal .control-select-color-square {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  
+  /* Hide scroll buttons in modal */
+  .select-mobile-modal .control-select-scroll {
+    display: none !important;
+  }
 }
 
 /* Scrollbar styling for select dropdowns */
@@ -4878,6 +4968,12 @@ body:has(.app-layout--wide) .app-footer {
     padding-top: calc(theme("spacing.5") * 1.5); /* 50% bigger: spacing.5 (20px) * 1.5 = 30px */
     padding-bottom: calc(theme("spacing.5") * 1.5); /* 50% bigger: spacing.5 (20px) * 1.5 = 30px */
     min-height: 120px; /* 50% bigger: 80px * 1.5 = 120px */
+  }
+  
+  /* Ensure logo is left-aligned on mobile */
+  .app-logo-button {
+    justify-self: start !important;
+    margin-left: 0 !important;
   }
   
   /* When stacked, use same padding as non-stacked layout for perfect alignment */

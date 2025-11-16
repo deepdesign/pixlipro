@@ -10,6 +10,7 @@ import {
 } from "@/components/retroui/Select";
 import { Lock, Unlock } from "lucide-react";
 import { TooltipIcon } from "./TooltipIcon";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface ControlSelectOption {
   value: string;
@@ -57,6 +58,14 @@ export function ControlSelect({
   onLockToggle,
   prefixButton,
 }: ControlSelectProps) {
+  const isMobile = useIsMobile();
+  // Apply modal behavior to these dropdowns on mobile
+  const isModalSelect = 
+    id === "palette-presets" || 
+    id === "movement-mode" || 
+    id === "canvas-gradient" || 
+    id === "background-mode" || 
+    id === "blend-mode";
   const tooltipId = tooltip ? `${id}-tip` : undefined;
   const resolvedLabel =
     currentLabel ??
@@ -134,7 +143,10 @@ export function ControlSelect({
               {resolvedLabel}
             </SelectValue>
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent
+            modal={isMobile && isModalSelect}
+            className={isMobile && isModalSelect ? "select-mobile-modal" : undefined}
+          >
             <SelectGroup>
               {/* Render options without categories first (e.g., "auto" option) */}
               {optionsWithoutCategories.map((option) => (
