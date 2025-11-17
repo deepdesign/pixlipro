@@ -29,13 +29,13 @@ const MOVEMENT_SPEED_MULTIPLIERS: Record<MovementMode, number> = {
   comet: 3.0,
   perspective: 4.5,
   ripple: 3.25,
-  linear: 6.0,
+  linear: 8.0,
   isometric: 6.5,
   spiral: 7.3,
 };
 ```
 
-**Note:** `linear` and `isometric` multipliers were significantly increased from 2.0 and 2.5 respectively to reduce their max motion speeds. They are now closer to `spiral` (7.3) to ensure they move at a comparable, controlled speed.
+**Note:** `linear` and `isometric` multipliers were significantly increased from 2.0 and 2.5 respectively to reduce their max motion speeds. `linear` is now 8.0 (slower than `spiral` at 7.3) to ensure it moves at a controlled, comfortable speed.
 
 Higher values indicate modes that were previously too fast (e.g. `wavefront`, `spiral`). Lower values belong to modes that needed a boost (e.g. `drift`, `orbit`).
 
