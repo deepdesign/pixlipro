@@ -4915,13 +4915,13 @@ body:has(.app-layout--wide) .app-footer {
 }
 
 .app-footer a {
-  color: var(--link-color);
+  color: var(--accent-primary);
   text-decoration: none;
 }
 
 .app-footer a:hover,
 .app-footer a:focus-visible {
-  color: var(--link-hover);
+  color: color-mix(in srgb, var(--accent-primary) 80%, white);
   outline: none;
 }
 
