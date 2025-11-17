@@ -96,10 +96,6 @@ export function SpriteControls({
                   ? "control-lock-button control-lock-button-locked"
                   : "control-lock-button"
               }
-              aria-label={
-                lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"
-              }
-              title={lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"}
             >
               {lockedSpriteMode ? (
                 <Lock className="h-4 w-4" />
