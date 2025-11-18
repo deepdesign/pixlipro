@@ -119,13 +119,12 @@ export function Header({
     <header className={`app-header${isMobile ? " app-header--mobile" : ""}`}>
       {isMobile ? (
         <div className="app-header-mobile-row">
-          <button
-            type="button"
+          <div
             className="app-logo-button app-logo-button--mobile"
             aria-label="Pixli"
           >
             <PixliLogo className="app-logo-svg" />
-          </button>
+          </div>
           <MobileMenu
             themeColor={themeColor}
             themeShape={themeShape}
@@ -140,9 +139,9 @@ export function Header({
         </div>
       ) : (
         <>
-          <button type="button" className="app-logo-button" aria-label="Pixli">
+          <div className="app-logo-button" aria-label="Pixli">
             <PixliLogo className="app-logo-svg" />
-          </button>
+          </div>
           <div className="header-toolbar" ref={headerToolbarRef}>
             <div className="header-spacer"></div>
             {showHeaderOverflow ? (
