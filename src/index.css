@@ -1625,6 +1625,8 @@ body:has(.app-layout--wide) .app-header {
   width: 160px; /* Fixed width to prevent resizing when theme changes */
   min-width: 160px;
   max-width: 160px;
+  border-color: var(--icon-border) !important; /* Match header button borders */
+  box-shadow: 4px 4px 0 var(--panel-shadow) !important; /* Match header button shadows */
 }
 
 .header-spacer {
@@ -1925,7 +1927,7 @@ body:has(.app-layout--wide) .app-header {
   }
 
   .app-layout--mobile .tab-top {
-    height: calc(2.25rem + 0.25rem + 0.25rem); /* h-9 + 1 spacing unit (4px) + 1 more for increased padding */
+    height: 44px; /* 36px (h-9) + 4px + 4px = 44px - integer pixel value */
     padding-inline: theme("spacing.1.5"); /* section.tabs.tab.padding.inline.mobile */
     padding-block: theme("spacing.4"); /* section.tabs.tab.padding.block.mobile */
     font-size: 0.6rem;
@@ -3171,13 +3173,13 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: calc(2.25rem + 0.25rem + 0.25rem); /* h-9 + 1 spacing unit (4px) + 1 more for increased padding */
+  height: 44px; /* 36px (h-9) + 4px + 4px = 44px - integer pixel value */
   padding-inline: theme("spacing.4"); /* section.tabs.tab.padding.inline.desktop */
   padding-block: theme("spacing.4"); /* section.tabs.tab.padding.block.desktop */
   font-size: 0.68rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)), var(--panel-bg);
+  background: var(--bg-base);
   color: var(--text-muted);
   border: 2px solid var(--panel-border);
   border-top: none; /* No top border for traditional tabs */
@@ -3220,11 +3222,11 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 .tab-top:focus-visible:not(:active):not(.tab-top-active) {
   color: var(--accent-primary);
   outline: none;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05)), var(--panel-bg);
+  background: var(--bg-base);
 }
 
 .tab-top:active:not(.tab-top-active) {
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15)), var(--panel-bg);
+  background: var(--bg-base);
 }
 
 .tab-top-active {
@@ -3241,7 +3243,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 .tab-top-active:not(:last-child)::after {
   content: "";
   position: absolute;
-  right: -6px; /* Offset 1px further right to not obscure border */
+  right: -6px; /* Position shadow to not obscure the 2px border */
   top: 0;
   bottom: 2px; /* Stop 2px before bottom to avoid overlapping next tab's bottom border */
   width: 4px;
@@ -3252,15 +3254,6 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .tab-top-active:first-child {
   border-left: none;
-}
-
-/* Ensure first tab shadow matches middle tab exactly */
-.tab-top-active:first-child::after {
-  right: -6px;
-  top: 0;
-  bottom: 2px;
-  width: 4px;
-  background: var(--panel-shadow);
 }
 
 .tab-top-active:last-child {
@@ -3910,13 +3903,13 @@ button.bg-primary.button-selected:active {
   gap: theme("spacing.2");
   padding-inline: theme("spacing.3");
   min-width: 9rem;
-  border: 2px solid var(--panel-border);
-  background: var(--panel-bg);
+  border: 2px solid var(--select-border);
+  background: var(--select-bg);
   color: var(--text-primary);
   font-size: 0.65rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  box-shadow: 4px 4px 0 var(--panel-shadow);
+  box-shadow: 4px 4px 0 var(--select-shadow);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: border-radius 0.18s ease;
@@ -4022,7 +4015,7 @@ button.bg-primary.button-selected:active {
   display: inline-block;
   width: 8px;
   height: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--select-border);
   flex-shrink: 0;
 }
 
@@ -4114,10 +4107,10 @@ button.bg-primary.button-selected:active {
     width: 90% !important;
     max-width: 500px !important;
     max-height: 85vh !important;
-    background: var(--panel-bg) !important;
-    border: 2px solid var(--panel-border) !important;
+    background: var(--select-bg) !important;
+    border: 2px solid var(--select-border) !important;
     border-radius: var(--radius-md) !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 20px 60px var(--select-shadow) !important;
     padding: theme("spacing.5") !important;
     overflow: hidden !important;
     display: flex !important;
@@ -4429,10 +4422,10 @@ button.bg-primary.button-selected:active {
   margin-left: 0 !important;
   margin-right: 0 !important;
   padding: 12px !important;
-  background: rgba(19, 20, 45, 0.95) !important;
+  background: var(--panel-bg) !important;
   backdrop-filter: blur(8px) !important;
-  border: 2px solid rgba(255, 212, 71, 0.5) !important;
-  box-shadow: 6px 6px 0 rgba(26, 13, 44, 0.85) !important;
+  border: 2px solid var(--panel-border) !important;
+  box-shadow: 6px 6px 0 var(--panel-shadow) !important;
   border-radius: 8px !important;
   opacity: 1 !important;
   visibility: visible !important;
@@ -4499,10 +4492,10 @@ button.bg-primary.button-selected:active {
   flex-direction: column;
   gap: theme("spacing.2");
   padding: theme("spacing.3");
-  background: rgba(15, 16, 32, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 12px 32px rgba(10, 12, 28, 0.4);
+  box-shadow: 0 12px 32px var(--panel-shadow);
   z-index: 2000;
   min-width: 180px;
   transform: none;
@@ -4533,11 +4526,11 @@ button.bg-primary.button-selected:active {
   flex-direction: column;
   gap: theme("spacing.2");
   padding: theme("spacing.3");
-  background: rgba(15, 16, 32, 0.95);
+  background: var(--panel-bg);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 12px 32px rgba(10, 12, 28, 0.4);
+  box-shadow: 0 12px 32px var(--panel-shadow);
   z-index: 2000;
   min-width: 200px;
   transform: none;
