@@ -24,16 +24,12 @@ const getStoredThemeColor = (): ThemeColor => {
   const stored = window.localStorage.getItem(THEME_COLOR_STORAGE_KEY);
   const validColors: ThemeColor[] = [
     "amber",
-    "mint",
     "violet",
     "ember",
     "lagoon",
     "rose",
     "battleship",
     "cyan",
-    "midnight",
-    "indigo",
-    "gold",
   ];
   return validColors.includes(stored as ThemeColor)
     ? (stored as ThemeColor)

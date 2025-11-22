@@ -90,16 +90,12 @@ export function Header({
     (value: string) => {
       const validColors = [
         "amber",
-        "mint",
         "violet",
         "ember",
         "lagoon",
         "rose",
         "battleship",
         "cyan",
-        "midnight",
-        "indigo",
-        "gold",
       ];
       if (validColors.includes(value)) {
         onThemeColorChange(value as ThemeColor);
