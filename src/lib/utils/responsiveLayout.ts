@@ -62,20 +62,20 @@
  * Column width when all tabs are merged into a single column (narrow viewport)
  * This width accommodates all 3 tabs (Sprites, Colours, Motion) in one row
  */
-export const CONTROL_COLUMN_WIDTH_MERGED = 344;
+export const CONTROL_COLUMN_WIDTH_MERGED = 374;
 
 /**
  * Column width when columns are split (wide viewport)
  * Both control and motion columns use this narrower width when split
  * This allows more space for the canvas while keeping columns compact
  */
-export const CONTROL_COLUMN_WIDTH_SPLIT = 280;
+export const CONTROL_COLUMN_WIDTH_SPLIT = 310;
 
 /**
  * Motion column width (same as split width when columns are split)
  * Kept as separate constant for clarity and potential future customization
  */
-export const MOTION_COLUMN_WIDTH = 280;
+export const MOTION_COLUMN_WIDTH = 310;
 
 /**
  * Canvas/canvas-card sizing constraints

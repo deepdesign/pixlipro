@@ -232,8 +232,8 @@ html {
    *   CONTROL_COLUMN_WIDTH_MERGED = 420
    *   CONTROL_COLUMN_WIDTH_SPLIT = 348
    */
-  --control-column-width: 344px;
-  --control-column-width-narrow: 280px;
+  --control-column-width: 374px;
+  --control-column-width-narrow: 310px;
   --layout-max-width-split: calc(var(--control-column-width-narrow) + 24px + 960px + 24px + var(--control-column-width-narrow));
   --layout-max-width-split-with-padding: calc(var(--layout-max-width-split) + 48px);
   --layout-min-width-compact: calc(var(--control-column-width) + 20px + 480px + 48px);
@@ -4737,7 +4737,16 @@ body:has(.app-layout--wide) .app-footer {
 
 .preset-manager-content {
   @apply flex flex-col;
-  gap: theme("spacing.4"); /* modal.content.gap - follows modal spacing rules */
+  gap: theme("spacing.5"); /* Increased spacing between sections */
+}
+
+/* Reduce gap between section title and content in preset manager */
+.preset-manager-content .section {
+  gap: theme("spacing.2"); /* Tighter spacing between title and controls */
+}
+
+.preset-manager-content .section-title {
+  margin-bottom: theme("spacing.2"); /* Closer spacing below title */
 }
 
 .preset-save-form {

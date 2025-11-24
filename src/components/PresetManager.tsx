@@ -1,16 +1,8 @@
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { Download, Upload, Trash2 } from "lucide-react";
 import { animateSuccess, animateShake } from "@/lib/utils/animations";
-import { ButtonGroup } from "@/components/retroui/ButtonGroup";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectValue,
-} from "@/components/retroui/Select";
 import {
   getAllPresets,
   savePreset,
@@ -35,9 +27,7 @@ export const PresetManager = ({
   onClose,
 }: PresetManagerProps) => {
   const [presets, setPresets] = useState<Preset[]>(getAllPresets());
-  const [view, setView] = useState<"save" | "load">("load");
   const [saveName, setSaveName] = useState("");
-  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
@@ -71,20 +61,16 @@ export const PresetManager = ({
     }
   }, [currentState, saveName, refreshPresets]);
 
-  const handleLoad = useCallback(() => {
-    if (!selectedPresetId) {
-      return;
-    }
-    const preset = presets.find((p) => p.id === selectedPresetId);
-    if (!preset) {
-      return;
-    }
-    const state = loadPresetState(preset);
-    if (state) {
-      onLoadPreset(state);
-      onClose();
-    }
-  }, [selectedPresetId, presets, onLoadPreset, onClose]);
+  const handleLoad = useCallback(
+    (preset: Preset) => {
+      const state = loadPresetState(preset);
+      if (state) {
+        onLoadPreset(state);
+        onClose();
+      }
+    },
+    [onLoadPreset, onClose],
+  );
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -92,9 +78,6 @@ export const PresetManager = ({
         try {
           deletePreset(id);
           refreshPresets();
-          if (selectedPresetId === id) {
-            setSelectedPresetId(null);
-          }
           // Animate success on delete button
           const deleteButton = deleteButtonRefs.current.get(id);
           if (deleteButton) {
@@ -109,7 +92,7 @@ export const PresetManager = ({
         }
       }
     },
-    [selectedPresetId, refreshPresets],
+    [refreshPresets],
   );
 
   const handleExportAll = useCallback(() => {
@@ -125,14 +108,7 @@ export const PresetManager = ({
     URL.revokeObjectURL(url);
   }, []);
 
-  const handleExportSelected = useCallback(() => {
-    if (!selectedPresetId) {
-      return;
-    }
-    const preset = presets.find((p) => p.id === selectedPresetId);
-    if (!preset) {
-      return;
-    }
+  const handleExportPreset = useCallback((preset: Preset) => {
     const json = exportPresetAsJSON(preset);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -143,7 +119,7 @@ export const PresetManager = ({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [selectedPresetId, presets]);
+  }, []);
 
   const handleImport = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,14 +167,6 @@ export const PresetManager = ({
 
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      // Don't close if clicking on the dropdown (which is rendered in a Portal)
-      const target = e.target as HTMLElement;
-      if (
-        target.closest(".preset-select-dropdown") ||
-        target.closest("[data-radix-portal]")
-      ) {
-        return;
-      }
       onClose();
     },
     [onClose],
@@ -223,20 +191,11 @@ export const PresetManager = ({
         </div>
 
         <div className="preset-manager-content">
-          <div className="mb-[theme(spacing.4)]">
-            <ButtonGroup
-              value={view}
-              onChange={(value) => setView(value as "save" | "load")}
-              options={[
-                { value: "save", label: "Save" },
-                { value: "load", label: "Load" },
-              ]}
-            />
-          </div>
-
-          {/* Save View */}
-          {view === "save" && (
+          {/* Save Section */}
           <div className="section">
+            <h3 className="section-title">
+              Save preset
+            </h3>
             <div className="preset-save-form">
               <input
                 type="text"
@@ -255,115 +214,125 @@ export const PresetManager = ({
                 ref={saveButtonRef}
                 type="button"
                 size="md"
-                  variant="outline"
+                variant="outline"
                 onClick={handleSave}
                 disabled={!currentState || !saveName.trim()}
-                  className="flex-1"
               >
                 Save
               </Button>
-                {presets.length > 0 && (
-                  <Button
-                    type="button"
-                    size="md"
-                    variant="link"
-                    onClick={handleExportAll}
-                    className="text-[var(--text-muted)] hover:text-[var(--text-color)]"
-                  >
-                    Export all
-                  </Button>
-                )}
             </div>
             {saveError && (
-              <div className="preset-error" role="alert">
+              <div className="preset-error mt-[theme(spacing.2)]" role="alert">
                 {saveError}
               </div>
             )}
           </div>
-          )}
 
-          {/* Load View */}
-          {view === "load" && (
+          {/* Import Section */}
           <div className="section">
-            {presets.length === 0 ? (
-              <p className="preset-empty">No saved presets</p>
-            ) : (
-                <div className="preset-actions">
-                <Select
-                  value={selectedPresetId ?? undefined}
-                  onValueChange={setSelectedPresetId}
-                >
-                    <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select a preset..." />
-                  </SelectTrigger>
-                  <SelectContent className="preset-select-dropdown">
-                    <SelectGroup>
-                      {presets.map((preset) => (
-                        <SelectItem key={preset.id} value={preset.id}>
-                          {preset.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={handleImport}
-                    className="preset-import-input"
-                  />
-                  <Button
-                    type="button"
-                    size="md"
-                    variant="outline"
-                    onClick={handleLoad}
-                    disabled={!selectedPresetId}
-                  >
-                    Load
-                  </Button>
-                  <Button
-                    type="button"
-                    size="md"
-                    variant="link"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-[var(--text-muted)] hover:text-[var(--text-color)]"
-                  >
-                    Import
-                  </Button>
-                  {selectedPresetId && (
-                    <Button
-                      ref={(el) => {
-                        if (el && selectedPresetId) {
-                          deleteButtonRefs.current.set(selectedPresetId, el);
-                        } else if (selectedPresetId) {
-                          deleteButtonRefs.current.delete(selectedPresetId);
-                        }
-                      }}
-                      type="button"
-                      size="md"
-                      variant="outline"
-                      onClick={() => handleDelete(selectedPresetId)}
-                      className="text-[var(--destructive)] border-[var(--destructive)] hover:bg-[color-mix(in_srgb,var(--destructive)_15%,transparent)]"
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </div>
-            )}
+            <h3 className="section-title">
+              Import preset
+            </h3>
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                className="preset-import-input"
+              />
+              <Button
+                type="button"
+                size="md"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Import preset
+              </Button>
+            </div>
             {importSuccess && (
-                <div className="preset-success mt-[theme(spacing.2)]" role="alert">
+              <div className="preset-success mt-[theme(spacing.2)]" role="alert">
                 {importSuccess}
               </div>
             )}
             {importError && (
-                <div className="preset-error mt-[theme(spacing.2)]" role="alert">
+              <div className="preset-error mt-[theme(spacing.2)]" role="alert">
                 {importError}
               </div>
             )}
           </div>
-          )}
 
+          {/* Presets List */}
+          <div className="section">
+            <div className="flex items-center justify-between">
+              <h3 className="section-title">
+                Your presets ({presets.length})
+              </h3>
+              {presets.length > 0 && (
+                <Button
+                  type="button"
+                  size="md"
+                  variant="link"
+                  onClick={handleExportAll}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-color)] text-xs"
+                >
+                  Export all
+                </Button>
+              )}
+            </div>
+            {presets.length === 0 ? (
+              <p className="preset-empty">No saved presets</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {presets.map((preset) => (
+                  <div
+                    key={preset.id}
+                    className="flex items-center gap-3"
+                  >
+                    <span style={{ flex: 1, fontSize: "0.875rem", textTransform: "uppercase", fontWeight: 500 }}>
+                      {preset.name}
+                    </span>
+                    <Button
+                      type="button"
+                      size="md"
+                      variant="outline"
+                      onClick={() => handleLoad(preset)}
+                    >
+                      Load
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => handleExportPreset(preset)}
+                      title="Export preset as JSON"
+                      aria-label="Export preset"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      ref={(el) => {
+                        if (el) {
+                          deleteButtonRefs.current.set(preset.id, el);
+                        }
+                      }}
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => handleDelete(preset.id)}
+                      title="Delete preset"
+                      aria-label="Delete preset"
+                      className="text-[var(--destructive)] border-[var(--destructive)] hover:bg-[color-mix(in_srgb,var(--destructive)_15%,transparent)]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </Card>
     </div>
