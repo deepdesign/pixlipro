@@ -59,6 +59,12 @@ Pixli is a vibrant generative art toy built with React, p5.js, Tailwind and Retr
 - **Expanded Sprite Modes** – Tiles, circles, hexagons, rings, diamonds, stars, long neon scanlines, pixels (3x3 grid), and more—each selectable via icon buttons for instant previews.
 - **Random Sprites** – Toggle to randomize sprite shapes across the canvas, with a refresh button to re-roll the selection instantly.
 - **Motion Lab** – Density-driven layering paired with ten motion envelopes (drift, pulse, ripple, zigzag, cascade, spiral, comet, linear, isometric, triangular) and a master speed dial, now normalised so every mode feels balanced at the same slider value. Animation speeds have been fine-tuned for optimal control and visual comfort.
+- **Animation System** – Three independent animation features with smooth, looping transitions:
+  - **Sprite Hue Rotation** – Continuously rotate sprite colors through the full color wheel (360°) with adjustable speed (1-100%)
+  - **Palette Cycling** – Smoothly cycle through all available palettes (built-in and custom) with seamless color interpolation
+  - **Canvas Hue Rotation** – Animate canvas background colors through the color wheel for dynamic backdrop effects
+  - All animations operate on independent timelines to create dynamic, non-repetitive visual effects
+  - Minimum speed floor ensures subtle movement even at lowest settings
 - **Rotation System** – Independent rotation offsets (Sprites tab) and spin animation (Motion tab) with per-sprite direction, speed and angle variance.
 - **Blend Architectures** – Layer-specific blend modes (multiply, screen, hard light, overlay) with optional per-sprite randomisation.
 - **Custom palette management** – Create custom colour palettes from images (upload or URL), extract dominant colours using k-means clustering, and manage up to 10 custom palettes. Custom palettes automatically generate gradients and work with canvas backgrounds (solid and gradient modes), just like built‑in palettes. Export/import palettes as JSON for easy sharing.
