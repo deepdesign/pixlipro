@@ -236,32 +236,32 @@ export const PresetManager = ({
 
           {/* Save View */}
           {view === "save" && (
-            <div className="section">
-              <div className="preset-save-form">
-                <input
-                  type="text"
-                  className="preset-name-input"
-                  placeholder="Preset name..."
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && saveName.trim() && currentState) {
-                      handleSave();
-                    }
-                  }}
-                  disabled={!currentState}
-                />
-                <Button
-                  ref={saveButtonRef}
-                  type="button"
-                  size="md"
+          <div className="section">
+            <div className="preset-save-form">
+              <input
+                type="text"
+                className="preset-name-input"
+                placeholder="Preset name..."
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && saveName.trim() && currentState) {
+                    handleSave();
+                  }
+                }}
+                disabled={!currentState}
+              />
+              <Button
+                ref={saveButtonRef}
+                type="button"
+                size="md"
                   variant="outline"
-                  onClick={handleSave}
-                  disabled={!currentState || !saveName.trim()}
+                onClick={handleSave}
+                disabled={!currentState || !saveName.trim()}
                   className="flex-1"
-                >
-                  Save
-                </Button>
+              >
+                Save
+              </Button>
                 {presets.length > 0 && (
                   <Button
                     type="button"
@@ -273,39 +273,39 @@ export const PresetManager = ({
                     Export all
                   </Button>
                 )}
-              </div>
-              {saveError && (
-                <div className="preset-error" role="alert">
-                  {saveError}
-                </div>
-              )}
             </div>
+            {saveError && (
+              <div className="preset-error" role="alert">
+                {saveError}
+              </div>
+            )}
+          </div>
           )}
 
           {/* Load View */}
           {view === "load" && (
-            <div className="section">
-              {presets.length === 0 ? (
-                <p className="preset-empty">No saved presets</p>
-              ) : (
+          <div className="section">
+            {presets.length === 0 ? (
+              <p className="preset-empty">No saved presets</p>
+            ) : (
                 <div className="preset-actions">
-                  <Select
-                    value={selectedPresetId ?? undefined}
-                    onValueChange={setSelectedPresetId}
-                  >
+                <Select
+                  value={selectedPresetId ?? undefined}
+                  onValueChange={setSelectedPresetId}
+                >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select a preset..." />
-                    </SelectTrigger>
-                    <SelectContent className="preset-select-dropdown">
-                      <SelectGroup>
-                        {presets.map((preset) => (
-                          <SelectItem key={preset.id} value={preset.id}>
-                            {preset.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
+                    <SelectValue placeholder="Select a preset..." />
+                  </SelectTrigger>
+                  <SelectContent className="preset-select-dropdown">
+                    <SelectGroup>
+                      {presets.map((preset) => (
+                        <SelectItem key={preset.id} value={preset.id}>
+                          {preset.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -350,18 +350,18 @@ export const PresetManager = ({
                     </Button>
                   )}
                 </div>
-              )}
-              {importSuccess && (
+            )}
+            {importSuccess && (
                 <div className="preset-success mt-[theme(spacing.2)]" role="alert">
-                  {importSuccess}
-                </div>
-              )}
-              {importError && (
+                {importSuccess}
+              </div>
+            )}
+            {importError && (
                 <div className="preset-error mt-[theme(spacing.2)]" role="alert">
-                  {importError}
-                </div>
-              )}
-            </div>
+                {importError}
+              </div>
+            )}
+          </div>
           )}
 
         </div>

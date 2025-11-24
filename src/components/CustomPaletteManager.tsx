@@ -300,79 +300,79 @@ export const CustomPaletteManager = ({
             />
             <div className="mt-4">
               {buttonGroupValue === "upload" && (
-                <div className="preset-import-section">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="preset-import-input"
-                    disabled={isMaxReached}
-                  />
-                  <Button
-                    type="button"
-                    size="md"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isMaxReached}
-                  >
-                    Upload Image
-                  </Button>
-                </div>
+                  <div className="preset-import-section">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="preset-import-input"
+                      disabled={isMaxReached}
+                    />
+                    <Button
+                      type="button"
+                      size="md"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isMaxReached}
+                    >
+                      Upload Image
+                    </Button>
+                  </div>
               )}
               {buttonGroupValue === "url" && (
-                <div className="preset-import-section">
-                  <div className="grid w-full items-center gap-1.5">
-                    <Label htmlFor="image-url">IMAGE URL</Label>
-                    <Input
-                      id="image-url"
-                      type="text"
-                      placeholder="Enter image URL..."
-                      value={imageUrl}
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && imageUrl.trim()) {
-                          handleUrlExtract();
-                        }
-                      }}
-                      disabled={isMaxReached || isExtracting}
-                    />
+                  <div className="preset-import-section">
+                    <div className="grid w-full items-center gap-1.5">
+                      <Label htmlFor="image-url">IMAGE URL</Label>
+                      <Input
+                        id="image-url"
+                        type="text"
+                        placeholder="Enter image URL..."
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && imageUrl.trim()) {
+                            handleUrlExtract();
+                          }
+                        }}
+                        disabled={isMaxReached || isExtracting}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="md"
+                      variant="outline"
+                      className="w-full mt-2"
+                      onClick={handleUrlExtract}
+                      disabled={isMaxReached || isExtracting || !imageUrl.trim()}
+                    >
+                      {isExtracting ? "Extracting..." : "Extract Colors"}
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    size="md"
-                    variant="outline"
-                    className="w-full mt-2"
-                    onClick={handleUrlExtract}
-                    disabled={isMaxReached || isExtracting || !imageUrl.trim()}
-                  >
-                    {isExtracting ? "Extracting..." : "Extract Colors"}
-                  </Button>
-                </div>
               )}
               {buttonGroupValue === "import" && (
-                <div className="preset-import-section">
-                  <input
-                    ref={jsonImportInputRef}
-                    type="file"
-                    accept=".json,application/json"
-                    onChange={handleImportPalette}
-                    className="preset-import-input"
-                    disabled={isMaxReached}
-                  />
-                  <Button
-                    type="button"
-                    size="md"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => jsonImportInputRef.current?.click()}
-                    disabled={isMaxReached}
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Import Palette JSON
-                  </Button>
-                </div>
+                  <div className="preset-import-section">
+                    <input
+                      ref={jsonImportInputRef}
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleImportPalette}
+                      className="preset-import-input"
+                      disabled={isMaxReached}
+                    />
+                    <Button
+                      type="button"
+                      size="md"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => jsonImportInputRef.current?.click()}
+                      disabled={isMaxReached}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import Palette JSON
+                    </Button>
+                  </div>
               )}
             </div>
             <div className="grid w-full items-center gap-1.5">

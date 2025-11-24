@@ -33,9 +33,9 @@ export const TabsTriggerList = ({
   const variantClass = variant === "top" ? "tabs-top" : "retro-tabs";
   return (
     <TabList className={cn(variantClass, className)} {...props}>
-      {children}
-    </TabList>
-  );
+    {children}
+  </TabList>
+);
 };
 
 type PrimitiveTabProps = React.ComponentProps<typeof Tab>;
@@ -61,13 +61,13 @@ export const TabsTrigger = ({
   };
 
   return (
-    <Tab
-      {...props}
+  <Tab
+    {...props}
       className={({ selected }: { selected: boolean }) => getTabClass(selected)}
-    >
-      {children}
-    </Tab>
-  );
+  >
+    {children}
+  </Tab>
+);
 };
 
 type PrimitiveTabPanelsProps = TabPanelsProps<"div"> & {

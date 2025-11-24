@@ -527,7 +527,7 @@ export const ExportModal = ({
       if (controller && wasAnimatingRef.current) {
         controller.resumeAnimation();
         wasAnimatingRef.current = false;
-      }
+    }
     }
   }, [p5Instance, controller, width, height, currentCanvasSize]);
 
@@ -564,7 +564,7 @@ export const ExportModal = ({
       const scale = targetSize > currentSize * 2 
         ? Math.min(3, Math.ceil(targetSize / currentSize / 1.5))
         : 1;
-
+      
       // Export canvas at custom dimensions
       const paletteId = controller?.getState()?.paletteId;
       const dataUrl = await exportCanvas(p5Instance, {
@@ -593,7 +593,7 @@ export const ExportModal = ({
       if (controller && wasAnimatingRef.current) {
         controller.resumeAnimation();
         wasAnimatingRef.current = false;
-      }
+    }
     }
   }, [p5Instance, controller, width, height, currentCanvasSize]);
 
@@ -761,11 +761,11 @@ export const ExportModal = ({
                 <div className="section">
                   <div className="export-actions">
                     {typeof navigator.share !== "undefined" && (
-                      <Button
+                    <Button
                         ref={shareButtonRef}
-                        type="button"
+                      type="button"
                         size="md"
-                        variant="outline"
+                      variant="outline"
                         onClick={handleShare}
                         disabled={isSharing || !p5Instance}
                         className="export-action-button"
@@ -779,7 +779,7 @@ export const ExportModal = ({
                       <Button
                         ref={copyButtonRef}
                         type="button"
-                        size="md"
+                      size="md"
                         variant="outline"
                         onClick={handleCopyToClipboard}
                         disabled={!p5Instance}
@@ -796,7 +796,7 @@ export const ExportModal = ({
                             Copy image
                           </>
                         )}
-                      </Button>
+                    </Button>
                     )}
 
                     <Button

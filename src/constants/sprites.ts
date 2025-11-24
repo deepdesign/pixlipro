@@ -76,5 +76,35 @@ export const SPRITE_MODES: Array<{
     label: "Pixels",
     description: "3x3 grid of squares with spacing between",
   },
+  {
+    value: "heart",
+    label: "Heart",
+    description: "Romantic shapes that add warmth and emotion",
+  },
+  {
+    value: "snowflake",
+    label: "Snowflake",
+    description: "Intricate crystalline patterns with radial symmetry",
+  },
+  {
+    value: "smiley",
+    label: "Smiley",
+    description: "Friendly circular faces with expressive features",
+  },
+  {
+    value: "tree",
+    label: "Tree",
+    description: "Evergreen trees with triangular foliage and trunk",
+  },
+  {
+    value: "x",
+    label: "X",
+    description: "Bold X marks with diagonal crossing lines",
+  },
+  {
+    value: "arrow",
+    label: "Arrow",
+    description: "Directional arrows pointing upward and right",
+  },
 ];
 

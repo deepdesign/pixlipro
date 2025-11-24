@@ -5,7 +5,7 @@
  */
 
 const TILE_DENSITY_MIN = 50;
-const TILE_DENSITY_MAX = 1500; // Increased by 50% from 1000
+const TILE_DENSITY_MAX = 1800; // Increased by 20% from 1500
 
 const PALETTE_VARIANCE_MIN = 0;
 const PALETTE_VARIANCE_MAX = 150; // Increased from 100 to allow more variance

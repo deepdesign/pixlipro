@@ -55,7 +55,7 @@ Pixli is a vibrant generative art workbench built with React, p5.js, Tailwind an
 
 ## ✨ Highlights
 
-- **Generative sprite canvas** – Multi-layer p5.js engine with dialled‑in controls for density (UI 0–100 ≙ 50–1000%), scale base/spread, palette variance, opacity, and animation tempo.
+- **Generative sprite canvas** – Multi-layer p5.js engine with dialled‑in controls for density (UI 0–100 ≙ 50–1800%), scale base/spread, palette variance, opacity, and animation tempo.
 - **Expanded Sprite Modes** – Tiles, circles, hexagons, rings, diamonds, stars, long neon scanlines, pixels (3x3 grid), and more—each selectable via icon buttons for instant previews.
 - **Random Sprites** – Toggle to randomize sprite shapes across the canvas, with a refresh button to re-roll the selection instantly.
 - **Motion Lab** – Density-driven layering paired with ten motion envelopes (drift, pulse, ripple, zigzag, cascade, spiral, comet, linear, isometric, triangular) and a master speed dial, now normalised so every mode feels balanced at the same slider value. Animation speeds have been fine-tuned for optimal control and visual comfort.

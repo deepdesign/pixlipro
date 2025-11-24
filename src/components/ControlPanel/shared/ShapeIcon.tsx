@@ -214,64 +214,149 @@ export function ShapeIcon({ shape, size = 24, svgPath }: ShapeIconProps) {
         return <polygon points={points.join(" ")} fill="currentColor" />;
       }
 
-      case "asterisk":
+      case "asterisk": {
+        // Asterisk shape - viewBox 0 0 16 16, scaled down and centered
+        const baseScale = 24 / 16; // Scale from 16x16 to 24x24
+        const scale = baseScale * 0.8; // Make 20% smaller
+        const offsetX = (24 - 16 * scale) / 2; // Center horizontally
+        const offsetY = (24 - 16 * scale) / 2; // Center vertically
         return (
-          <g stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-            <line
-              x1={center}
-              y1={center - radius}
-              x2={center}
-              y2={center + radius}
-            />
-            <line
-              x1={center - radius}
-              y1={center}
-              x2={center + radius}
-              y2={center}
-            />
-            <line
-              x1={center - radius * 0.8}
-              y1={center - radius * 0.8}
-              x2={center + radius * 0.8}
-              y2={center + radius * 0.8}
-            />
-            <line
-              x1={center - radius * 0.8}
-              y1={center + radius * 0.8}
-              x2={center + radius * 0.8}
-              y2={center - radius * 0.8}
+          <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+            <path
+              d="M15.9 5.7l-2-3.4-3.9 2.2v-4.5h-4v4.5l-4-2.2-2 3.4 3.9 2.3-3.9 2.3 2 3.4 4-2.2v4.5h4v-4.5l3.9 2.2 2-3.4-4-2.3z"
+              fill="currentColor"
             />
           </g>
         );
+      }
 
-      case "cross":
+      case "cross": {
+        // Cross shape - viewBox 0 0 16 16, scaled down and centered
+        const baseScale = 24 / 16; // Scale from 16x16 to 24x24
+        const scale = baseScale * 0.8; // Make 20% smaller
+        const offsetX = (24 - 16 * scale) / 2; // Center horizontally
+        const offsetY = (24 - 16 * scale) / 2; // Center vertically
         return (
-          <g fill="currentColor">
-            <rect x={center - 3} y={center - 10} width={6} height={20} />
-            <rect x={center - 10} y={center - 3} width={20} height={6} />
+          <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+            <path
+              d="M10 1H6V6L1 6V10H6V15H10V10H15V6L10 6V1Z"
+              fill="currentColor"
+            />
           </g>
         );
+      }
 
       case "pixels": {
-        // 3x3 grid of squares with spacing
-        const gridSize = 3;
-        const squareSize = 4;
-        const gap = 1;
-        const totalSize = gridSize * squareSize + (gridSize - 1) * gap;
-        const startX = center - totalSize / 2;
-        const startY = center - totalSize / 2;
-
+        // 4x4 grid of squares - matches SVG pattern from viewBox 0 0 17 17
+        // Original: 16 squares, each 3x3 units, with 1 unit gaps
+        // Scale to fit 24x24 icon viewBox, then make 10% smaller
+        const baseScale = 24 / 17; // Scale factor from 17x17 to 24x24
+        const scale = baseScale * 0.9; // Make 10% smaller
+        const squareSize = 3 * scale;
+        const gap = 1 * scale;
+        const totalSize = 4 * squareSize + 3 * gap;
+        const startX = (24 - totalSize) / 2; // Center the grid
+        const startY = (24 - totalSize) / 2;
+        
         return (
           <g fill="currentColor">
-            {Array.from({ length: gridSize * gridSize }, (_, i) => {
-              const row = Math.floor(i / gridSize);
-              const col = i % gridSize;
+            {Array.from({ length: 16 }, (_, i) => {
+              const row = Math.floor(i / 4);
+              const col = i % 4;
               const x = startX + col * (squareSize + gap);
               const y = startY + row * (squareSize + gap);
               return (
                 <rect key={i} x={x} y={y} width={squareSize} height={squareSize} />
               );
             })}
+          </g>
+        );
+      }
+
+      case "heart": {
+        // Heart shape from Clarity Design System (MIT License)
+        // Original viewBox: 0 0 36 36, scaled to fit 24x24 icon viewBox
+        // Path needs to be scaled and centered
+        const scale = 24 / 36; // Scale from 36x36 to 24x24
+        const offsetX = (24 - 36 * scale) / 2; // Center horizontally
+        const offsetY = (24 - 36 * scale) / 2; // Center vertically
+        return (
+          <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+            <path
+              d="M33,7.64c-1.34-2.75-5.2-5-9.69-3.69A9.87,9.87,0,0,0,18,7.72a9.87,9.87,0,0,0-5.31-3.77C8.19,2.66,4.34,4.89,3,7.64c-1.88,3.85-1.1,8.18,2.32,12.87C8,24.18,11.83,27.9,17.39,32.22a1,1,0,0,0,1.23,0c5.55-4.31,9.39-8,12.07-11.71C34.1,15.82,34.88,11.49,33,7.64Z"
+              fill="currentColor"
+            />
+          </g>
+        );
+      }
+
+      case "snowflake": {
+        // Snowflake shape - viewBox 0 0 24 24
+        return (
+          <path
+            d="M21.16,16.13l-2-1.15.89-.24a1,1,0,1,0-.52-1.93l-2.82.76L14,12l2.71-1.57,2.82.76.26,0a1,1,0,0,0,.26-2L19.16,9l2-1.15a1,1,0,0,0-1-1.74L18,7.37l.3-1.11a1,1,0,1,0-1.93-.52l-.82,3L13,10.27V7.14l2.07-2.07a1,1,0,0,0,0-1.41,1,1,0,0,0-1.42,0L13,4.31V2a1,1,0,0,0-2,0V4.47l-.81-.81a1,1,0,0,0-1.42,0,1,1,0,0,0,0,1.41L11,7.3v3L8.43,8.78l-.82-3a1,1,0,1,0-1.93.52L6,7.37,3.84,6.13a1,1,0,0,0-1,1.74L4.84,9,4,9.26a1,1,0,0,0,.26,2l.26,0,2.82-.76L10,12,7.29,13.57l-2.82-.76A1,1,0,1,0,4,14.74l.89.24-2,1.15a1,1,0,0,0,1,1.74L6,16.63l-.3,1.11A1,1,0,0,0,6.39,19a1.15,1.15,0,0,0,.26,0,1,1,0,0,0,1-.74l.82-3L11,13.73v3.13L8.93,18.93a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.3,1,1,0,0,0,.71-.3l.65-.65V22a1,1,0,0,0,2,0V19.53l.81.81a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.41L13,16.7v-3l2.57,1.49.82,3a1,1,0,0,0,1,.74,1.15,1.15,0,0,0,.26,0,1,1,0,0,0,.71-1.23L18,16.63l2.14,1.24a1,1,0,1,0,1-1.74Z"
+            fill="currentColor"
+          />
+        );
+      }
+
+      case "smiley": {
+        // Smiley face - viewBox 0 0 256 256, scaled to fit 24x24 icon viewBox
+        const scale = 24 / 256; // Scale from 256x256 to 24x24
+        const offsetX = (24 - 256 * scale) / 2; // Center horizontally
+        const offsetY = (24 - 256 * scale) / 2; // Center vertically
+        return (
+          <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+            <path
+              d="M128,24A104,104,0,1,0,232,128,104.12041,104.12041,0,0,0,128,24Zm36,72a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,164,96ZM92,96a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,92,96Zm84.50488,60.00293a56.01609,56.01609,0,0,1-97.00976.00049,8.00016,8.00016,0,1,1,13.85058-8.01074,40.01628,40.01628,0,0,0,69.30957-.00049,7.99974,7.99974,0,1,1,13.84961,8.01074Z"
+              fill="currentColor"
+            />
+          </g>
+        );
+      }
+
+      case "tree": {
+        // Tree shape - viewBox 0 0 256 256, scaled to fit 24x24 icon viewBox
+        const scale = 24 / 256; // Scale from 256x256 to 24x24
+        const offsetX = (24 - 256 * scale) / 2; // Center horizontally
+        const offsetY = (24 - 256 * scale) / 2; // Center vertically
+        return (
+          <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+            <path
+              d="M231.18652,195.51465A7.9997,7.9997,0,0,1,224,200H136v40a8,8,0,0,1-16,0V200H32a7.99958,7.99958,0,0,1-6.31445-12.91113L71.64258,128H48a8.00019,8.00019,0,0,1-6.34082-12.87793l80-104a8,8,0,0,1,12.68164,0l80,104A8.00019,8.00019,0,0,1,208,128H184.35742l45.957,59.08887A7.99813,7.99813,0,0,1,231.18652,195.51465Z"
+              fill="currentColor"
+            />
+          </g>
+        );
+      }
+
+      case "x": {
+        // X shape - viewBox 0 0 1920 1920, scaled to fit 24x24 icon viewBox
+        const scale = 24 / 1920; // Scale from 1920x1920 to 24x24
+        const offsetX = (24 - 1920 * scale) / 2; // Center horizontally
+        const offsetY = (24 - 1920 * scale) / 2; // Center vertically
+        return (
+          <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+            <path
+              d="M797.32 985.882 344.772 1438.43l188.561 188.562 452.549-452.549 452.548 452.549 188.562-188.562-452.549-452.548 452.549-452.549-188.562-188.561L985.882 797.32 533.333 344.772 344.772 533.333z"
+              fill="currentColor"
+            />
+          </g>
+        );
+      }
+
+      case "arrow": {
+        // Arrow shape - viewBox 0 0 385.756 385.756, scaled smaller and centered
+        const baseScale = 24 / 385.756; // Scale from 385.756x385.756 to 24x24
+        const scale = baseScale * 0.75; // Make 25% smaller (10% more than previous 15%)
+        const offsetX = (24 - 385.756 * scale) / 2; // Center horizontally
+        const offsetY = (24 - 385.756 * scale) / 2; // Center vertically
+        return (
+          <g transform={`translate(${offsetX}, ${offsetY}) scale(${scale})`}>
+            <path
+              d="M377.816,7.492C372.504,2.148,366.088,0,358.608,0H98.544c-15.44,0-29.08,10.988-29.08,26.428v23.724c0,15.44,13.64,29.848,29.08,29.848h152.924L8.464,322.08c-5.268,5.272-8.172,11.84-8.176,19.34c0,7.5,2.908,14.296,8.176,19.568L25.24,377.64c5.264,5.272,12.296,8.116,19.796,8.116s13.768-2.928,19.036-8.2l241.392-242.172v151.124c0,15.444,14.084,29.492,29.52,29.492h23.732c15.432,0,26.752-14.048,26.752-29.492V26.52C385.464,19.048,383.144,12.788,377.816,7.492z"
+              fill="currentColor"
+            />
           </g>
         );
       }

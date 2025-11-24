@@ -16,7 +16,7 @@ import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache } from "./
 const MIN_TILE_SCALE = 0.12;
 const MAX_TILE_SCALE = 5.5; // Allow large sprites, but positioning will be adjusted
 const MAX_ROTATION_DEGREES = 180;
-const MAX_DENSITY_PERCENT_UI = 1500; // Increased by 50% from 1000
+const MAX_DENSITY_PERCENT_UI = 1800; // Increased by 20% from 1500
 const ROTATION_SPEED_MAX = (Math.PI / 2) * 0.05; // approx 4.5°/s at 100%
 
 const degToRad = (value: number) => (value * Math.PI) / 180;
@@ -105,7 +105,13 @@ export type SpriteMode =
   | "pentagon"
   | "asterisk"
   | "cross"
-  | "pixels";
+  | "pixels"
+  | "heart"
+  | "snowflake"
+  | "smiley"
+  | "tree"
+  | "x"
+  | "arrow";
 
 interface ShapeTile {
   kind: "shape";
@@ -221,6 +227,12 @@ const shapeModes = [
   "asterisk",
   "cross",
   "pixels",
+  "heart",
+  "snowflake",
+  "smiley",
+  "tree",
+  "x",
+  "arrow",
 ] as const;
 const spriteModePool: SpriteMode[] = [...shapeModes];
 
@@ -1573,6 +1585,8 @@ export const createSpriteController = (
               ctx.save();
               ctx.beginPath();
               
+              let path2DFilled = false; // Track if Path2D was filled directly
+              
               switch (tile.shape) {
                 case "rounded": {
                   const cornerRadius = shapeSize * 0.3;
@@ -1668,33 +1682,53 @@ export const createSpriteController = (
                   break;
                 }
                 case "asterisk": {
-                  const barThickness = Math.max(2, shapeSize * 0.18);
-                  const barLength = shapeSize;
+                  // Asterisk shape - use SVG path with Path2D
+                  // Original viewBox: 0 0 16 16
+                  const asteriskPath = "M15.9 5.7l-2-3.4-3.9 2.2v-4.5h-4v4.5l-4-2.2-2 3.4 3.9 2.3-3.9 2.3 2 3.4 4-2.2v4.5h4v-4.5l3.9 2.2 2-3.4-4-2.3z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 16;
+                  const vbHeight = 16;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
                   ctx.save();
-                  ctx.rect(-barThickness / 2, -barLength / 2, barThickness, barLength);
-                  ctx.rect(-barLength / 2, -barThickness / 2, barLength, barThickness);
-                  ctx.rotate(Math.PI / 4);
-                  ctx.rect(-barThickness / 2, -barLength / 2, barThickness, barLength);
-                  ctx.rect(-barLength / 2, -barThickness / 2, barLength, barThickness);
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(asteriskPath);
+                  ctx.fill(path);
                   ctx.restore();
+                  path2DFilled = true;
                   break;
                 }
                 case "cross": {
-                  const barThickness = Math.max(2, shapeSize * 0.35);
-                  const barLength = shapeSize;
-                  ctx.rect(-barThickness / 2, -barLength / 2, barThickness, barLength);
-                  ctx.rect(-barLength / 2, -barThickness / 2, barLength, barThickness);
+                  // Cross shape - use SVG path with Path2D
+                  // Original viewBox: 0 0 16 16
+                  const crossPath = "M10 1H6V6L1 6V10H6V15H10V10H15V6L10 6V1Z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 16;
+                  const vbHeight = 16;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
+                  ctx.save();
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(crossPath);
+                  ctx.fill(path);
+                  ctx.restore();
+                  path2DFilled = true;
                   break;
                 }
                 case "pixels": {
-                  // 3x3 grid of squares with spacing
-                  const gridSize = 3;
-                  const gapRatio = 0.15; // Gap is 15% of square size
-                  // Calculate: 3 squares + 2 gaps = shapeSize
-                  // squareSize * 3 + squareSize * gapRatio * 2 = shapeSize
-                  // squareSize * (3 + gapRatio * 2) = shapeSize
-                  const squareSize = shapeSize / (gridSize + gapRatio * (gridSize - 1));
-                  const gap = squareSize * gapRatio;
+                  // 4x4 grid of squares - matches SVG pattern (viewBox 0 0 17 17)
+                  // 16 squares, each 3 units, with 1 unit gaps
+                  const gridSize = 4;
+                  const squareSize = shapeSize / 17 * 3; // Scale from 17x17 viewBox
+                  const gap = shapeSize / 17 * 1; // 1 unit gap
                   const startOffset = -(gridSize * squareSize + (gridSize - 1) * gap) / 2;
                   
                   for (let row = 0; row < gridSize; row++) {
@@ -1706,14 +1740,151 @@ export const createSpriteController = (
                   }
                   break;
                 }
+                case "heart": {
+                  // Heart shape from Clarity Design System - use SVG path with Path2D
+                  // Original viewBox: 0 0 36 36
+                  const heartPath = "M33,7.64c-1.34-2.75-5.2-5-9.69-3.69A9.87,9.87,0,0,0,18,7.72a9.87,9.87,0,0,0-5.31-3.77C8.19,2.66,4.34,4.89,3,7.64c-1.88,3.85-1.1,8.18,2.32,12.87C8,24.18,11.83,27.9,17.39,32.22a1,1,0,0,0,1.23,0c5.55-4.31,9.39-8,12.07-11.71C34.1,15.82,34.88,11.49,33,7.64Z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 36;
+                  const vbHeight = 36;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
+                  ctx.save();
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(heartPath);
+                  ctx.fill(path);
+                  ctx.restore();
+                  path2DFilled = true;
+                  break;
+                }
+                case "snowflake": {
+                  // Snowflake shape - use SVG path with Path2D
+                  // Original viewBox: 0 0 24 24
+                  const snowflakePath = "M21.16,16.13l-2-1.15.89-.24a1,1,0,1,0-.52-1.93l-2.82.76L14,12l2.71-1.57,2.82.76.26,0a1,1,0,0,0,.26-2L19.16,9l2-1.15a1,1,0,0,0-1-1.74L18,7.37l.3-1.11a1,1,0,1,0-1.93-.52l-.82,3L13,10.27V7.14l2.07-2.07a1,1,0,0,0,0-1.41,1,1,0,0,0-1.42,0L13,4.31V2a1,1,0,0,0-2,0V4.47l-.81-.81a1,1,0,0,0-1.42,0,1,1,0,0,0,0,1.41L11,7.3v3L8.43,8.78l-.82-3a1,1,0,1,0-1.93.52L6,7.37,3.84,6.13a1,1,0,0,0-1,1.74L4.84,9,4,9.26a1,1,0,0,0,.26,2l.26,0,2.82-.76L10,12,7.29,13.57l-2.82-.76A1,1,0,1,0,4,14.74l.89.24-2,1.15a1,1,0,0,0,1,1.74L6,16.63l-.3,1.11A1,1,0,0,0,6.39,19a1.15,1.15,0,0,0,.26,0,1,1,0,0,0,1-.74l.82-3L11,13.73v3.13L8.93,18.93a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.3,1,1,0,0,0,.71-.3l.65-.65V22a1,1,0,0,0,2,0V19.53l.81.81a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.41L13,16.7v-3l2.57,1.49.82,3a1,1,0,0,0,1,.74,1.15,1.15,0,0,0,.26,0,1,1,0,0,0,.71-1.23L18,16.63l2.14,1.24a1,1,0,1,0,1-1.74Z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 24;
+                  const vbHeight = 24;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
+                  ctx.save();
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(snowflakePath);
+                  ctx.fill(path);
+                  ctx.restore();
+                  path2DFilled = true;
+                  break;
+                }
+                case "smiley": {
+                  // Smiley face - use SVG path with Path2D
+                  // Original viewBox: 0 0 256 256
+                  const smileyPath = "M128,24A104,104,0,1,0,232,128,104.12041,104.12041,0,0,0,128,24Zm36,72a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,164,96ZM92,96a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,92,96Zm84.50488,60.00293a56.01609,56.01609,0,0,1-97.00976.00049,8.00016,8.00016,0,1,1,13.85058-8.01074,40.01628,40.01628,0,0,0,69.30957-.00049,7.99974,7.99974,0,1,1,13.84961,8.01074Z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 256;
+                  const vbHeight = 256;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
+                  ctx.save();
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(smileyPath);
+                  ctx.fill(path);
+                  ctx.restore();
+                  path2DFilled = true;
+                  break;
+                }
+                case "tree": {
+                  // Tree shape - use SVG path with Path2D
+                  // Original viewBox: 0 0 256 256
+                  const treePath = "M231.18652,195.51465A7.9997,7.9997,0,0,1,224,200H136v40a8,8,0,0,1-16,0V200H32a7.99958,7.99958,0,0,1-6.31445-12.91113L71.64258,128H48a8.00019,8.00019,0,0,1-6.34082-12.87793l80-104a8,8,0,0,1,12.68164,0l80,104A8.00019,8.00019,0,0,1,208,128H184.35742l45.957,59.08887A7.99813,7.99813,0,0,1,231.18652,195.51465Z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 256;
+                  const vbHeight = 256;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
+                  ctx.save();
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(treePath);
+                  ctx.fill(path);
+                  ctx.restore();
+                  path2DFilled = true;
+                  break;
+                }
+                case "x": {
+                  // X shape - use SVG path with Path2D
+                  // Original viewBox: 0 0 1920 1920
+                  const xPath = "M797.32 985.882 344.772 1438.43l188.561 188.562 452.549-452.549 452.548 452.549 188.562-188.562-452.549-452.548 452.549-452.549-188.562-188.561L985.882 797.32 533.333 344.772 344.772 533.333z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 1920;
+                  const vbHeight = 1920;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
+                  ctx.save();
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(xPath);
+                  ctx.fill(path);
+                  ctx.restore();
+                  path2DFilled = true;
+                  break;
+                }
+                case "arrow": {
+                  // Arrow shape - use SVG path with Path2D
+                  // Original viewBox: 0 0 385.756 385.756
+                  const arrowPath = "M377.816,7.492C372.504,2.148,366.088,0,358.608,0H98.544c-15.44,0-29.08,10.988-29.08,26.428v23.724c0,15.44,13.64,29.848,29.08,29.848h152.924L8.464,322.08c-5.268,5.272-8.172,11.84-8.176,19.34c0,7.5,2.908,14.296,8.176,19.568L25.24,377.64c5.264,5.272,12.296,8.116,19.796,8.116s13.768-2.928,19.036-8.2l241.392-242.172v151.124c0,15.444,14.084,29.492,29.52,29.492h23.732c15.432,0,26.752-14.048,26.752-29.492V26.52C385.464,19.048,383.144,12.788,377.816,7.492z";
+                  const vbX = 0;
+                  const vbY = 0;
+                  const vbWidth = 385.756;
+                  const vbHeight = 385.756;
+                  const scaleX = shapeSize / vbWidth;
+                  const scaleY = shapeSize / vbHeight;
+                  
+                  ctx.save();
+                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                  ctx.scale(scaleX, scaleY);
+                  ctx.translate(-vbX, -vbY);
+                  const path = new Path2D(arrowPath);
+                  ctx.fill(path);
+                  ctx.restore();
+                  path2DFilled = true;
+                  break;
+                }
                 default:
                   ctx.arc(0, 0, shapeSize / 2, 0, Math.PI * 2);
               }
               
-              ctx.fill();
+              // Only fill if we didn't fill Path2D directly
+              if (!path2DFilled) {
+                ctx.fill();
+              }
               ctx.restore();
             } else {
-              // Use p5.js for solid colors
+              // Use p5.js for solid colors - but we can still use Path2D via canvas context
+              // Access canvas context from p5.js
+              const p5Ctx = p.drawingContext as CanvasRenderingContext2D;
+              // Set fill style for Path2D shapes
+              const fillColor = p.color(tile.tint);
+              fillColor.setAlpha(opacityAlpha);
+              p5Ctx.fillStyle = fillColor.toString();
+              let path2DFilled = false;
+              
               switch (tile.shape) {
               case "rounded": {
                 const cornerRadius = shapeSize * 0.3;
@@ -1805,35 +1976,51 @@ export const createSpriteController = (
                 break;
               }
               case "asterisk": {
-                const barThickness = Math.max(2, shapeSize * 0.18);
-                const barLength = shapeSize;
-                p.push();
-                p.rectMode(p.CENTER);
-                p.rect(0, 0, barThickness, barLength);
-                p.rect(0, 0, barLength, barThickness);
-                p.rotate(p.PI / 4);
-                p.rect(0, 0, barThickness, barLength);
-                p.rect(0, 0, barLength, barThickness);
-                p.pop();
+                // Asterisk shape - use SVG path with Path2D (same as Canvas 2D)
+                const asteriskPath = "M15.9 5.7l-2-3.4-3.9 2.2v-4.5h-4v4.5l-4-2.2-2 3.4 3.9 2.3-3.9 2.3 2 3.4 4-2.2v4.5h4v-4.5l3.9 2.2 2-3.4-4-2.3z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 16;
+                const vbHeight = 16;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(asteriskPath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
                 break;
               }
               case "cross": {
-                const barThickness = Math.max(2, shapeSize * 0.35);
-                const barLength = shapeSize;
-                p.rectMode(p.CENTER);
-                p.rect(0, 0, barThickness, barLength);
-                p.rect(0, 0, barLength, barThickness);
+                // Cross shape - use SVG path with Path2D (same as Canvas 2D)
+                const crossPath = "M10 1H6V6L1 6V10H6V15H10V10H15V6L10 6V1Z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 16;
+                const vbHeight = 16;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(crossPath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
                 break;
               }
               case "pixels": {
-                // 3x3 grid of squares with spacing
-                const gridSize = 3;
-                const gapRatio = 0.15; // Gap is 15% of square size
-                // Calculate: 3 squares + 2 gaps = shapeSize
-                // squareSize * 3 + squareSize * gapRatio * 2 = shapeSize
-                // squareSize * (3 + gapRatio * 2) = shapeSize
-                const squareSize = shapeSize / (gridSize + gapRatio * (gridSize - 1));
-                const gap = squareSize * gapRatio;
+                // 4x4 grid of squares - matches SVG pattern (viewBox 0 0 17 17)
+                // 16 squares, each 3 units, with 1 unit gaps
+                const gridSize = 4;
+                const squareSize = shapeSize / 17 * 3; // Scale from 17x17 viewBox
+                const gap = shapeSize / 17 * 1; // 1 unit gap
                 const startOffset = -(gridSize * squareSize + (gridSize - 1) * gap) / 2;
                 
                 p.rectMode(p.CORNER);
@@ -1845,6 +2032,126 @@ export const createSpriteController = (
                   }
                 }
                 p.rectMode(p.CENTER);
+                break;
+              }
+              case "heart": {
+                // Heart shape - use SVG path with Path2D (same as Canvas 2D)
+                const heartPath = "M33,7.64c-1.34-2.75-5.2-5-9.69-3.69A9.87,9.87,0,0,0,18,7.72a9.87,9.87,0,0,0-5.31-3.77C8.19,2.66,4.34,4.89,3,7.64c-1.88,3.85-1.1,8.18,2.32,12.87C8,24.18,11.83,27.9,17.39,32.22a1,1,0,0,0,1.23,0c5.55-4.31,9.39-8,12.07-11.71C34.1,15.82,34.88,11.49,33,7.64Z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 36;
+                const vbHeight = 36;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(heartPath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
+                break;
+              }
+              case "snowflake": {
+                // Snowflake shape - use SVG path with Path2D (same as Canvas 2D)
+                const snowflakePath = "M21.16,16.13l-2-1.15.89-.24a1,1,0,1,0-.52-1.93l-2.82.76L14,12l2.71-1.57,2.82.76.26,0a1,1,0,0,0,.26-2L19.16,9l2-1.15a1,1,0,0,0-1-1.74L18,7.37l.3-1.11a1,1,0,1,0-1.93-.52l-.82,3L13,10.27V7.14l2.07-2.07a1,1,0,0,0,0-1.41,1,1,0,0,0-1.42,0L13,4.31V2a1,1,0,0,0-2,0V4.47l-.81-.81a1,1,0,0,0-1.42,0,1,1,0,0,0,0,1.41L11,7.3v3L8.43,8.78l-.82-3a1,1,0,1,0-1.93.52L6,7.37,3.84,6.13a1,1,0,0,0-1,1.74L4.84,9,4,9.26a1,1,0,0,0,.26,2l.26,0,2.82-.76L10,12,7.29,13.57l-2.82-.76A1,1,0,1,0,4,14.74l.89.24-2,1.15a1,1,0,0,0,1,1.74L6,16.63l-.3,1.11A1,1,0,0,0,6.39,19a1.15,1.15,0,0,0,.26,0,1,1,0,0,0,1-.74l.82-3L11,13.73v3.13L8.93,18.93a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.3,1,1,0,0,0,.71-.3l.65-.65V22a1,1,0,0,0,2,0V19.53l.81.81a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.41L13,16.7v-3l2.57,1.49.82,3a1,1,0,0,0,1,.74,1.15,1.15,0,0,0,.26,0,1,1,0,0,0,.71-1.23L18,16.63l2.14,1.24a1,1,0,1,0,1-1.74Z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 24;
+                const vbHeight = 24;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(snowflakePath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
+                break;
+              }
+              case "smiley": {
+                // Smiley face - use SVG path with Path2D (same as Canvas 2D)
+                const smileyPath = "M128,24A104,104,0,1,0,232,128,104.12041,104.12041,0,0,0,128,24Zm36,72a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,164,96ZM92,96a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,92,96Zm84.50488,60.00293a56.01609,56.01609,0,0,1-97.00976.00049,8.00016,8.00016,0,1,1,13.85058-8.01074,40.01628,40.01628,0,0,0,69.30957-.00049,7.99974,7.99974,0,1,1,13.84961,8.01074Z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 256;
+                const vbHeight = 256;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(smileyPath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
+                break;
+              }
+              case "tree": {
+                // Tree shape - use SVG path with Path2D (same as Canvas 2D)
+                const treePath = "M231.18652,195.51465A7.9997,7.9997,0,0,1,224,200H136v40a8,8,0,0,1-16,0V200H32a7.99958,7.99958,0,0,1-6.31445-12.91113L71.64258,128H48a8.00019,8.00019,0,0,1-6.34082-12.87793l80-104a8,8,0,0,1,12.68164,0l80,104A8.00019,8.00019,0,0,1,208,128H184.35742l45.957,59.08887A7.99813,7.99813,0,0,1,231.18652,195.51465Z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 256;
+                const vbHeight = 256;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(treePath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
+                break;
+              }
+              case "x": {
+                // X shape - use SVG path with Path2D (same as Canvas 2D)
+                const xPath = "M797.32 985.882 344.772 1438.43l188.561 188.562 452.549-452.549 452.548 452.549 188.562-188.562-452.549-452.548 452.549-452.549-188.562-188.561L985.882 797.32 533.333 344.772 344.772 533.333z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 1920;
+                const vbHeight = 1920;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(xPath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
+                break;
+              }
+              case "arrow": {
+                // Arrow shape - use SVG path with Path2D (same as Canvas 2D)
+                const arrowPath = "M377.816,7.492C372.504,2.148,366.088,0,358.608,0H98.544c-15.44,0-29.08,10.988-29.08,26.428v23.724c0,15.44,13.64,29.848,29.08,29.848h152.924L8.464,322.08c-5.268,5.272-8.172,11.84-8.176,19.34c0,7.5,2.908,14.296,8.176,19.568L25.24,377.64c5.264,5.272,12.296,8.116,19.796,8.116s13.768-2.928,19.036-8.2l241.392-242.172v151.124c0,15.444,14.084,29.492,29.52,29.492h23.732c15.432,0,26.752-14.048,26.752-29.492V26.52C385.464,19.048,383.144,12.788,377.816,7.492z";
+                const vbX = 0;
+                const vbY = 0;
+                const vbWidth = 385.756;
+                const vbHeight = 385.756;
+                const scaleX = shapeSize / vbWidth;
+                const scaleY = shapeSize / vbHeight;
+                
+                p5Ctx.save();
+                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
+                p5Ctx.scale(scaleX, scaleY);
+                p5Ctx.translate(-vbX, -vbY);
+                const path = new Path2D(arrowPath);
+                p5Ctx.fill(path);
+                p5Ctx.restore();
+                path2DFilled = true;
                 break;
               }
               default:
