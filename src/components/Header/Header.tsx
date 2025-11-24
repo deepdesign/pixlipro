@@ -121,17 +121,32 @@ export function Header({
           >
             <PixliLogo className="app-logo-svg" />
           </div>
-          <MobileMenu
-            themeColor={themeColor}
-            themeShape={themeShape}
-            themeModeText={themeModeText}
-            ThemeModeIcon={ThemeModeIconComponent}
-            onThemeColorChange={handleThemeSelect}
-            onThemeShapeChange={handleShapeSelect}
-            onThemeModeCycle={cycleThemeMode}
-            themeColorOptions={THEME_COLOR_OPTIONS}
-            themeColorPreview={THEME_COLOR_PREVIEW}
-          />
+          <div className="flex items-center gap-2">
+            {onOpenOnboarding && (
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="icon-button header-icon-button"
+                onClick={onOpenOnboarding}
+                aria-label="Open help and onboarding"
+                title="Help & Getting Started"
+              >
+                <HelpCircle className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
+            <MobileMenu
+              themeColor={themeColor}
+              themeShape={themeShape}
+              themeModeText={themeModeText}
+              ThemeModeIcon={ThemeModeIconComponent}
+              onThemeColorChange={handleThemeSelect}
+              onThemeShapeChange={handleShapeSelect}
+              onThemeModeCycle={cycleThemeMode}
+              themeColorOptions={THEME_COLOR_OPTIONS}
+              themeColorPreview={THEME_COLOR_PREVIEW}
+            />
+          </div>
         </div>
       ) : (
         <>
@@ -175,19 +190,19 @@ export function Header({
                   >
                     <div className="header-overflow-content">
                       {onOpenOnboarding && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="md"
-                          onClick={() => {
-                            setIsHeaderOverflowOpen(false);
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="md"
+                        onClick={() => {
+                          setIsHeaderOverflowOpen(false);
                             onOpenOnboarding();
-                          }}
-                          className="w-full justify-start gap-2"
-                        >
-                          <HelpCircle className="h-4 w-4" />
-                          Help
-                        </Button>
+                        }}
+                        className="w-full justify-start gap-2"
+                      >
+                        <HelpCircle className="h-4 w-4" />
+                        Help
+                      </Button>
                       )}
                       <div className="header-overflow-divider"></div>
                       <div className="header-overflow-theme-section">
