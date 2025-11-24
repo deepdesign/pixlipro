@@ -1,13 +1,13 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="public/logo/SVG/pixli-logo-white.svg"><source media="(prefers-color-scheme: light)" srcset="public/logo/SVG/pixli-logo-black.svg"><img alt="Pixli" src="public/logo/SVG/pixli-logo-black.svg"></picture>
+# <picture><source media="(prefers-color-scheme: dark)" srcset="public/logo/SVG/pixli-logo-white.svg"><source media="(prefers-color-scheme: light)" srcset="public/logo/SVG/pixli-logo-black.svg"><img alt="Pixli: generative art toy" src="public/logo/SVG/pixli-logo-black.svg"></picture>
 
 <br />
 
 <p align="center">
 </p>
 
-## 🎨 Generative sprite workbench
+## 🎨 generative art toy
 
-Pixli is a vibrant generative art workbench built with React, p5.js, Tailwind and RetroUI. Combine sprite iconography, colour palettes, blend modes and motion envelopes to compose shimmering, real‑time canvases.
+Pixli is a vibrant generative art toy built with React, p5.js, Tailwind and RetroUI. Combine sprite iconography, colour palettes, blend modes and motion envelopes to compose shimmering, real‑time canvases.
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=20232A" alt="React" />

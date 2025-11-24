@@ -117,7 +117,7 @@ export function Header({
         <div className="app-header-mobile-row">
           <div
             className="app-logo-button app-logo-button--mobile"
-            aria-label="Pixli"
+            aria-label="Pixli: generative art toy"
           >
             <PixliLogo className="app-logo-svg" />
           </div>

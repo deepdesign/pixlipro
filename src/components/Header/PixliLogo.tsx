@@ -22,7 +22,7 @@ export const PixliLogo = ({ className = "" }: { className?: string }) => (
     }}
     aria-hidden="true"
     role="img"
-    aria-label="Pixli"
+    aria-label="Pixli: generative art toy"
   />
 );
 

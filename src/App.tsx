@@ -799,7 +799,7 @@ const App = () => {
             {!isMobile && <PixliLogo className="footer-logo" />}
           </div>
           <span className="footer-text">
-            © {new Date().getFullYear()} Pixli · Generative Playground · v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'} ·{" "}
+            © {new Date().getFullYear()} Pixli · generative art toy · v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'} ·{" "}
             <a href="https://jamescutts.me/" target="_blank" rel="noreferrer">
               jamescutts.me
             </a>
