@@ -50,6 +50,12 @@ export const palettes: Palette[] = [
     colors: ["#ff0000", "#ff4500", "#ff8c00", "#ffd700", "#ffff00"],
     category: "Warm/Fire",
   },
+  {
+    id: "sweetheart",
+    name: "Sweetheart",
+    colors: ["#dc143c", "#ff1493", "#ff69b4", "#ffb6c1", "#ffc0cb"],
+    category: "Warm/Fire",
+  },
   // Cool/Ocean
   {
     id: "oceanic",
@@ -67,6 +73,12 @@ export const palettes: Palette[] = [
     id: "synth",
     name: "Synthwave",
     colors: ["#ff4ecd", "#ff9f1c", "#2ec4b6", "#cbf3f0", "#011627"],
+    category: "Cool/Ocean",
+  },
+  {
+    id: "winter-frost",
+    name: "Winter Frost",
+    colors: ["#ffffff", "#e6f3ff", "#b0d4e6", "#87ceeb", "#c0d5e0"],
     category: "Cool/Ocean",
   },
   // Nature
