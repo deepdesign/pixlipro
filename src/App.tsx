@@ -7,14 +7,7 @@ import {
   lazy,
   Suspense,
 } from "react";
-import { Card } from "@/components/Card";
-import {
-  Tabs,
-  TabsTriggerList,
-  TabsTrigger,
-  TabsPanels,
-  TabsContent,
-} from "@/components/retroui/Tab";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 import type {
   BlendModeOption,
@@ -92,9 +85,11 @@ const App = () => {
   
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showHelpPage, setShowHelpPage] = useState(false);
+  const [showSettingsPage, setShowSettingsPage] = useState(false);
   
   // Use extracted hooks
-  const { themeMode, setThemeMode, themeColor, setThemeColor, themeShape, setThemeShape } = useTheme();
+  const { themeMode, setThemeMode } = useTheme();
   const {
     isFullscreen,
     hudVisible,
@@ -111,7 +106,7 @@ const App = () => {
     controllerRef.current = controller;
   }, [controller]);
   
-  const [controlTabIndex, setControlTabIndex] = useState(0);
+  const [activePanel, setActivePanel] = useState<"sprites" | "colours" | "motion">("sprites");
   const [showPresetManager, setShowPresetManager] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showCustomPaletteManager, setShowCustomPaletteManager] = useState(false);
@@ -531,6 +526,48 @@ const App = () => {
     controllerRef.current?.setRotationSpeed(value);
   }, []);
 
+  const handleHueRotationEnabledToggle = useCallback(
+    (enabled: boolean) => {
+      controllerRef.current?.setHueRotationEnabled(enabled);
+    },
+    [],
+  );
+
+  const handleHueRotationSpeedChange = useCallback(
+    (speed: number) => {
+      controllerRef.current?.setHueRotationSpeed(speed);
+    },
+    [],
+  );
+
+  const handlePaletteCycleEnabledToggle = useCallback(
+    (enabled: boolean) => {
+      controllerRef.current?.setPaletteCycleEnabled(enabled);
+    },
+    [],
+  );
+
+  const handlePaletteCycleSpeedChange = useCallback(
+    (speed: number) => {
+      controllerRef.current?.setPaletteCycleSpeed(speed);
+    },
+    [],
+  );
+
+  const handleCanvasHueRotationEnabledToggle = useCallback(
+    (enabled: boolean) => {
+      controllerRef.current?.setCanvasHueRotationEnabled(enabled);
+    },
+    [],
+  );
+
+  const handleCanvasHueRotationSpeedChange = useCallback(
+    (speed: number) => {
+      controllerRef.current?.setCanvasHueRotationSpeed(speed);
+    },
+    [],
+  );
+
   const handleRotationAnimatedToggle = useCallback(
     (checked: boolean) => {
       controllerRef.current?.setRotationAnimated(checked);
@@ -581,63 +618,36 @@ const App = () => {
 
   const renderDisplayContent = () => (
     <div className="canvas-card-shell" ref={canvasCardShellRef}>
-      <Card
-        className={`canvas-card ${isFullscreen ? "canvas-card--fullscreen" : ""}`}
-      >
-        <Card.Content className="canvas-card__content">
-          <div className="canvas-wrapper" ref={canvasWrapperRef}>
-            <div
-              className="sketch-container"
-              ref={sketchContainerRef}
-              aria-live="polite"
-            />
-            {/* Fullscreen HUD - MUST be inside canvas-wrapper (the actual fullscreen element) */}
-            {isFullscreen && (
-              <div
-                id="fullscreen-hud"
-                style={{
-                  position: "fixed",
-                  bottom: "24px",
-                  left: "50%",
-                  transform: hudVisible
-                    ? "translateX(-50%)"
-                    : "translateX(-50%) translateY(20px)",
-                  pointerEvents: hudVisible ? "auto" : "none",
-                  opacity: hudVisible ? 1 : 0,
-                  visibility: hudVisible ? "visible" : "hidden",
-                  display: "flex",
-                  zIndex: 2147483648,
-                  transition:
-                    "opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease",
-                  width: "800px",
-                  minWidth: "800px",
-                  gap: "16px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <StatusBar
-                  spriteState={spriteState}
-                  frameRate={frameRate}
-                  ready={ready}
-                  isFullscreen={isFullscreen}
-                  hudVisible={hudVisible}
-                  onMouseEnter={handleHUDMouseEnter}
-                  onMouseLeave={handleHUDMouseLeave}
-                  onRandomiseAll={handleRandomiseAll}
-                  onShowPresets={() => setShowPresetManager(true)}
-                  onShowExport={() => setShowExportModal(true)}
-                  onFullscreenToggle={handleFullscreenToggle}
-                  onFullscreenClose={handleFullscreenClose}
-                  formatBlendMode={formatBlendMode}
-                  formatMovementMode={formatMovementMode}
-                  currentModeLabel={currentModeLabel}
-                  currentPaletteName={currentPalette.name}
-                  statusBarRef={statusBarRef}
-                />
-              </div>
-            )}
-          </div>
-          {!isFullscreen && (
+      <div className={`canvas-wrapper ${isFullscreen ? "canvas-card--fullscreen" : ""}`} ref={canvasWrapperRef}>
+        <div
+          className="sketch-container"
+          ref={sketchContainerRef}
+          aria-live="polite"
+        />
+        {/* Fullscreen HUD - MUST be inside canvas-wrapper (the actual fullscreen element) */}
+        {isFullscreen && (
+          <div
+            id="fullscreen-hud"
+            style={{
+              position: "fixed",
+              bottom: "24px",
+              left: "50%",
+              transform: hudVisible
+                ? "translateX(-50%)"
+                : "translateX(-50%) translateY(20px)",
+              pointerEvents: hudVisible ? "auto" : "none",
+              opacity: hudVisible ? 1 : 0,
+              visibility: hudVisible ? "visible" : "hidden",
+              display: "flex",
+              zIndex: 2147483648,
+              transition:
+                "opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease",
+              width: "800px",
+              minWidth: "800px",
+              gap: "16px",
+              whiteSpace: "nowrap",
+            }}
+          >
             <StatusBar
               spriteState={spriteState}
               frameRate={frameRate}
@@ -648,8 +658,8 @@ const App = () => {
               onMouseLeave={handleHUDMouseLeave}
               onRandomiseAll={handleRandomiseAll}
               onShowPresets={() => setShowPresetManager(true)}
-                  onShowExport={() => setShowExportModal(true)}
-                  onFullscreenToggle={handleFullscreenToggle}
+              onShowExport={() => setShowExportModal(true)}
+              onFullscreenToggle={handleFullscreenToggle}
               onFullscreenClose={handleFullscreenClose}
               formatBlendMode={formatBlendMode}
               formatMovementMode={formatMovementMode}
@@ -657,143 +667,135 @@ const App = () => {
               currentPaletteName={currentPalette.name}
               statusBarRef={statusBarRef}
             />
-          )}
-        </Card.Content>
-      </Card>
+          </div>
+        )}
+      </div>
+      {!isFullscreen && (
+        <StatusBar
+          spriteState={spriteState}
+          frameRate={frameRate}
+          ready={ready}
+          isFullscreen={isFullscreen}
+          hudVisible={hudVisible}
+          onMouseEnter={handleHUDMouseEnter}
+          onMouseLeave={handleHUDMouseLeave}
+          onRandomiseAll={handleRandomiseAll}
+          onShowPresets={() => setShowPresetManager(true)}
+          onShowExport={() => setShowExportModal(true)}
+          onFullscreenToggle={handleFullscreenToggle}
+          onFullscreenClose={handleFullscreenClose}
+          formatBlendMode={formatBlendMode}
+          formatMovementMode={formatMovementMode}
+          currentModeLabel={currentModeLabel}
+          currentPaletteName={currentPalette.name}
+          statusBarRef={statusBarRef}
+        />
+      )}
     </div>
   );
 
+  // Prepare sidebar props
+  const sidebarProps = {
+    activePanel,
+    onPanelChange: setActivePanel,
+    spriteState,
+    controller,
+    ready,
+    currentModeLabel,
+    lockedSpriteMode,
+    lockedSpritePalette,
+    lockedCanvasPalette,
+    lockedBlendMode,
+    lockedMovementMode,
+    onLockSpriteMode: setLockedSpriteMode,
+    onLockSpritePalette: setLockedSpritePalette,
+    onLockCanvasPalette: setLockedCanvasPalette,
+    onLockBlendMode: setLockedBlendMode,
+    onModeChange: handleModeChange,
+    onRotationToggle: handleRotationToggle,
+    onRotationAmountChange: handleRotationAmountChange,
+    currentPaletteId: currentPalette.id,
+    currentPaletteName: currentPalette.name,
+    paletteOptions: PALETTE_OPTIONS,
+    canvasPaletteOptions: CANVAS_PALETTE_OPTIONS,
+    onPaletteSelection: handlePaletteSelection,
+    onPaletteOptionSelect: handlePaletteOptionSelect,
+    onBlendSelect: handleBlendSelect,
+    onBlendAutoToggle: handleBlendAutoToggle,
+    onLockMovementMode: setLockedMovementMode,
+    onMovementSelect: handleMovementSelect,
+    onRotationAnimatedToggle: handleRotationAnimatedToggle,
+    onRotationSpeedChange: handleRotationSpeedChange,
+    onHueRotationEnabledToggle: handleHueRotationEnabledToggle,
+    onHueRotationSpeedChange: handleHueRotationSpeedChange,
+    onPaletteCycleEnabledToggle: handlePaletteCycleEnabledToggle,
+    onPaletteCycleSpeedChange: handlePaletteCycleSpeedChange,
+    onCanvasHueRotationEnabledToggle: handleCanvasHueRotationEnabledToggle,
+    onCanvasHueRotationSpeedChange: handleCanvasHueRotationSpeedChange,
+    onShowCustomPaletteManager: () => setShowCustomPaletteManager(true),
+    isWideLayout,
+  };
+
+  // Calculate header height and set CSS variable
+  const headerRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        const height = headerRef.current.offsetHeight;
+        document.documentElement.style.setProperty('--header-height', `${height}px`);
+      }
+    };
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+    return () => window.removeEventListener('resize', updateHeaderHeight);
+  }, []);
+
+  useEffect(() => {
+    const updateFooterHeight = () => {
+      if (footerRef.current) {
+        const height = footerRef.current.offsetHeight;
+        document.documentElement.style.setProperty('--footer-height', `${height}px`);
+      }
+    };
+    updateFooterHeight();
+    window.addEventListener('resize', updateFooterHeight);
+    return () => window.removeEventListener('resize', updateFooterHeight);
+  }, []);
+
   return (
     <>
-    <div className="app-shell">
-      <div className="app-frame app-frame--compact app-frame--header">
-        <Header
-          themeMode={themeMode}
-              themeColor={themeColor}
-              themeShape={themeShape}
-          onThemeModeChange={setThemeMode}
-          onThemeColorChange={setThemeColor}
-          onThemeShapeChange={setThemeShape}
-          onOpenOnboarding={() => {
-            setShowOnboarding(true);
-          }}
-        />
-      </div>
+    {/* Header - Full width, outside AppLayout */}
+    <div ref={headerRef} className="app-frame app-frame--compact app-frame--header w-full">
+      <Header
+        themeMode={themeMode}
+        onThemeModeChange={setThemeMode}
+        onOpenOnboarding={() => {
+          setShowOnboarding(true);
+        }}
+        onOpenSettings={() => {
+          setShowOnboarding(true);
+        }}
+      />
+    </div>
 
-      <div className={`app-frame app-frame--compact app-frame--main${isSmallCanvas ? " app-frame--stacked" : ""}`}>
-        <main className="app-main">
-          <div
-            ref={layoutRef}
-            className={`app-layout${isStudioLayout ? " app-layout--studio" : ""}${isWideLayout ? " app-layout--wide" : ""}${isMobile ? " app-layout--mobile" : ""}${isSmallCanvas ? " app-layout--small-canvas" : ""}`}
-          >
-          <aside className="control-column">
-            <Card className="panel">
-              <Tabs
-                selectedIndex={controlTabIndex}
-                onChange={setControlTabIndex}
-              >
-                <TabsTriggerList variant="top">
-                  <TabsTrigger variant="top">Sprites</TabsTrigger>
-                  <TabsTrigger variant="top">Colours</TabsTrigger>
-                  {!isWideLayout && (
-                    <>
-                      <TabsTrigger variant="top">Motion</TabsTrigger>
-                    </>
-                  )}
-                </TabsTriggerList>
-                <TabsPanels>
-                  <TabsContent>
-                    {spriteState && (
-                      <SpriteControls
-                        spriteState={spriteState}
-                        controller={controller}
-                        ready={ready}
-                        currentModeLabel={currentModeLabel}
-                        lockedSpriteMode={lockedSpriteMode}
-                        onLockSpriteMode={setLockedSpriteMode}
-                        onModeChange={handleModeChange}
-                        onRotationToggle={handleRotationToggle}
-                        onRotationAmountChange={handleRotationAmountChange}
-                      />
-                    )}
-                  </TabsContent>
-                  <TabsContent>
-                    {spriteState && (
-                      <FxControls
-                        spriteState={spriteState}
-                        controller={controller}
-                        ready={ready}
-                        currentPaletteId={currentPalette.id}
-                        currentPaletteName={currentPalette.name}
-                        paletteOptions={PALETTE_OPTIONS}
-                        canvasPaletteOptions={CANVAS_PALETTE_OPTIONS}
-                        lockedSpritePalette={lockedSpritePalette}
-                        lockedCanvasPalette={lockedCanvasPalette}
-                        lockedBlendMode={lockedBlendMode}
-                        onLockSpritePalette={setLockedSpritePalette}
-                        onLockCanvasPalette={setLockedCanvasPalette}
-                        onLockBlendMode={setLockedBlendMode}
-                        onPaletteSelection={handlePaletteSelection}
-                        onPaletteOptionSelect={handlePaletteOptionSelect}
-                        onBlendSelect={handleBlendSelect}
-                        onBlendAutoToggle={handleBlendAutoToggle}
-                        onShowCustomPaletteManager={() =>
-                          setShowCustomPaletteManager(true)
-                        }
-                      />
-                    )}
-                  </TabsContent>
-                  {!isWideLayout && (
-                    <>
-                      <TabsContent>
-                        {spriteState && (
-                          <MotionControls
-                            spriteState={spriteState}
-                            controller={controller}
-                            ready={ready}
-                            showHeading={true}
-                            lockedMovementMode={lockedMovementMode}
-                            onLockMovementMode={setLockedMovementMode}
-                            onMovementSelect={handleMovementSelect}
-                            onRotationAnimatedToggle={handleRotationAnimatedToggle}
-                            onRotationSpeedChange={handleRotationSpeedChange}
-                          />
-                        )}
-                      </TabsContent>
-                    </>
-                  )}
-                </TabsPanels>
-              </Tabs>
-            </Card>
-          </aside>
+    <AppLayout sidebarProps={sidebarProps}>
+      <div className="app-shell">
 
-          <div className="display-column">
-            {renderDisplayContent()}
-          </div>
-
-          {isWideLayout && (
-            <aside className="motion-column">
-              <Card className="panel">
-                {spriteState && (
-                  <MotionControls
-                    spriteState={spriteState}
-                    controller={controller}
-                    ready={ready}
-                    showHeading={true}
-                    lockedMovementMode={lockedMovementMode}
-                    onLockMovementMode={setLockedMovementMode}
-                    onMovementSelect={handleMovementSelect}
-                    onRotationAnimatedToggle={handleRotationAnimatedToggle}
-                    onRotationSpeedChange={handleRotationSpeedChange}
-                  />
-                )}
-              </Card>
-            </aside>
-          )}
-          </div>
-        </main>
-      </div>
-      <div className="app-frame app-frame--compact app-frame--footer">
+        <div className={`app-frame app-frame--compact app-frame--main${isSmallCanvas ? " app-frame--stacked" : ""}`}>
+          <main className="app-main">
+            <div
+              ref={layoutRef}
+              className={`app-layout${isStudioLayout ? " app-layout--studio" : ""}${isWideLayout ? " app-layout--wide" : ""}${isMobile ? " app-layout--mobile" : ""}${isSmallCanvas ? " app-layout--small-canvas" : ""}`}
+            >
+              <div className="display-column">
+                {renderDisplayContent()}
+              </div>
+            </div>
+          </main>
+        </div>
+      <div ref={footerRef} className="app-frame app-frame--compact app-frame--footer">
         <footer className={`app-footer${isMobile ? " app-footer--mobile" : ""}`}>
           <div className="footer-brand">
             {!isMobile && <PixliLogo className="footer-logo" />}
@@ -806,6 +808,8 @@ const App = () => {
           </span>
         </footer>
       </div>
+      </div>
+    </AppLayout>
 
       {showPresetManager && (
         <ErrorBoundary>
@@ -847,8 +851,6 @@ const App = () => {
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
       />
-
-    </div>
     </>
   );
 };

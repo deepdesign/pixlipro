@@ -450,34 +450,34 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
               </p>
               <div className="space-y-2">
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Pulse:</strong> Sprites pulse in and out from their centre, creating a breathing effect.
+                  <strong className="text-[var(--text-primary)]">Pulse:</strong> Sprites pulse in and out from their centre, creating a breathing effect.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Drift:</strong> Gentle floating motion with smooth, organic movement.
+                  <strong className="text-[var(--text-primary)]">Drift:</strong> Gentle floating motion with smooth, organic movement.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Ripple:</strong> Wave-like motion that creates cascading effects across layers.
+                  <strong className="text-[var(--text-primary)]">Ripple:</strong> Wave-like motion that creates cascading effects across layers.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Zigzag:</strong> Angular back-and-forth motion with sharp directional changes.
+                  <strong className="text-[var(--text-primary)]">Zigzag:</strong> Angular back-and-forth motion with sharp directional changes.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Cascade:</strong> Flowing downward motion, like water or particles falling.
+                  <strong className="text-[var(--text-primary)]">Cascade:</strong> Flowing downward motion, like water or particles falling.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Spiral orbit:</strong> Circular spiral motion creating orbital patterns.
+                  <strong className="text-[var(--text-primary)]">Spiral orbit:</strong> Circular spiral motion creating orbital patterns.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Comet trail:</strong> Trailing motion effect with directional movement.
+                  <strong className="text-[var(--text-primary)]">Comet trail:</strong> Trailing motion effect with directional movement.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Linear:</strong> Straight-line motion in consistent directions.
+                  <strong className="text-[var(--text-primary)]">Linear:</strong> Straight-line motion in consistent directions.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Isometric:</strong> Hexagonal grid-based motion with geometric precision.
+                  <strong className="text-[var(--text-primary)]">Isometric:</strong> Hexagonal grid-based motion with geometric precision.
                 </p>
                 <p className="text-xs leading-relaxed text-[var(--text-muted)]">
-                  <strong className="text-white">Perspective:</strong> Tiles emit from centre and grow as they move outward, simulating a 3D zoom effect.
+                  <strong className="text-[var(--text-primary)]">Perspective:</strong> Tiles emit from centre and grow as they move outward, simulating a 3D zoom effect.
                 </p>
               </div>
             </div>
@@ -1095,7 +1095,7 @@ export function OnboardingPanel({ isOpen, onClose }: OnboardingPanelProps) {
             >
               <button
                 type="button"
-                className="preset-manager-close absolute -top-10 right-0 text-white hover:text-white/80"
+                className="preset-manager-close absolute -top-10 right-0 text-[var(--text-primary)] hover:opacity-80"
                 onClick={() => setFullSizeImage(null)}
                 aria-label="Close image"
               >

@@ -33,6 +33,7 @@ export default defineConfig(({ mode }) => ({
     __APP_VERSION__: JSON.stringify(version),
   },
   server: {
+    port: 5174,
     // Reverted HMR and server config to defaults - the connection loss might have been caused by our changes
   },
   build: {

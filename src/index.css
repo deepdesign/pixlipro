@@ -1,8 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
 /* ============================================================================
  * MOBILE-FIRST RESPONSIVE FOUNDATION
@@ -37,7 +35,7 @@ html {
   height: 100svh;
   height: 100vh; /* Fallback for browsers that don't support svh */
   overflow-x: hidden;
-  overflow-y: visible; /* Allow drop shadows to show */
+  overflow-y: hidden; /* Prevent scrollbar when footer is fixed */
   width: 100%;
   max-width: 100%;
 }
@@ -102,157 +100,87 @@ html {
 }
 
 @theme {
-  --font-head: "Archivo Black", sans-serif;
-  --font-sans: "Space Grotesk", sans-serif;
-  --radius: var(--radius);
-
-  --shadow-xs: 1px 1px 0 0 var(--border);
-  --shadow-sm: 2px 2px 0 0 var(--border);
-  --shadow: 3px 3px 0 0 var(--border);
-  --shadow-md: 4px 4px 0 0 var(--border);
-  --shadow-lg: 6px 6px 0 0 var(--border);
-  --shadow-xl: 10px 10px 0 1px var(--border);
-  --shadow-2xl: 16px 16px 0 1px var(--border);
-  --shadow-none: 0px 0px 0 0 transparent;
-
+  --font-sans: Inter, sans-serif;
+  --font-sans--font-feature-settings: 'cv11';
+  --font-head: "Archivo Black", "Space Grotesk", system-ui, sans-serif;
+  
+  /* Catalyst spacing - preserve custom spacing.4.5 */
+  --spacing-4\.5: 1.125rem;
+  
+  /* Catalyst radius */
+  --radius-lg: 0.5rem;
+  
+  /* Catalyst colors - basic light/dark mode */
+  --color-zinc-50: #fafafa;
+  --color-zinc-100: #f4f4f5;
+  --color-zinc-200: #e4e4e7;
+  --color-zinc-300: #d4d4d8;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #52525b;
+  --color-zinc-700: #3f3f46;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  --color-zinc-950: #09090b;
+  
+  --color-white: #ffffff;
+  --color-black: #000000;
+  
+  /* Custom colors for RetroUI compatibility */
+  --color-border: var(--border);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-primary-hover: var(--primary-hover);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: dark light; /* Support both modes */
   font-family: "Space Grotesk", system-ui, sans-serif;
 
-  --radius: 0px;
-  --background: #050509;
-  --foreground: #f4f4f8;
-  --border: var(--icon-border);
-  --input: rgba(255, 212, 71, 0.35);
-  --primary: var(--btn-primary-bg);
-  --primary-hover: var(--accent-primary);
-  --primary-foreground: var(--btn-primary-text);
-  --secondary: var(--accent-secondary-bg);
-  --secondary-hover: color-mix(in srgb, var(--accent-secondary-bg) 80%, #fff);
-  --secondary-foreground: var(--accent-secondary-text);
-  --card: var(--card-bg);
-  --card-foreground: var(--text-primary);
-  --muted: var(--accent-muted-bg);
-  --muted-foreground: var(--accent-muted-text);
-  --shadow-primary: 6px 6px 0 var(--accent-primary-shadow);
-  --shadow-default: 6px 6px 0 var(--panel-shadow);
-  --shadow-md: 4px 4px 0 var(--panel-shadow);
-  --shadow: 5px 5px 0 var(--panel-shadow);
-  --shadow-sm: 2px 2px 0 var(--panel-shadow);
-  --shadow-none: 0px 0px 0 0 transparent;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  /* Basic dark mode colors (default) */
+  --bg-base: #09090b;
+  --bg-top: #18181b;
+  --text-primary: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  --heading-color: #e4e4e7;
+  --hint-color: #a1a1aa;
+  --panel-bg: rgba(39, 39, 42, 0.8);
+  --panel-border: rgba(113, 113, 122, 0.2);
+  --panel-shadow: rgba(0, 0, 0, 0.3);
+  --card-bg: rgba(24, 24, 27, 0.9);
+  --card-border: rgba(113, 113, 122, 0.2);
+  --card-shadow: rgba(0, 0, 0, 0.3);
+  --status-bg: rgba(39, 39, 42, 0.9);
+  --status-border: rgba(113, 113, 122, 0.3);
+  --status-shadow: rgba(0, 0, 0, 0.2);
+  --icon-bg: rgba(39, 39, 42, 0.8);
+  --icon-border: rgba(113, 113, 122, 0.3);
+  --select-bg: rgba(24, 24, 27, 0.95);
+  --select-border: rgba(113, 113, 122, 0.2);
+  --select-hover: rgba(113, 113, 122, 0.1);
+  --select-active: rgba(113, 113, 122, 0.15);
+  --select-shadow: rgba(0, 0, 0, 0.3);
+  --checkbox-bg: rgba(39, 39, 42, 0.9);
+  --checkbox-border: rgba(113, 113, 122, 0.4);
+  --notes-text: #d4d4d8;
+  --link-color: #60a5fa;
+  --link-hover: #93c5fd;
 
-  --bg-base: #050509;
-  --bg-top: #0b0b1d;
-  --text-primary: #f4f4f8;
-  --text-muted: rgba(198, 201, 255, 0.7);
-  --text-subtle: rgba(198, 201, 255, 0.45);
-  --heading-color: rgba(255, 212, 71, 0.8);
-  --hint-color: rgba(198, 201, 255, 0.55);
-  --panel-bg: rgba(19, 20, 45, 0.6);
-  --panel-border: rgba(255, 212, 71, 0.25);
-  --panel-shadow: rgba(5, 4, 8, 0.95);
-  --card-bg: rgba(15, 17, 42, 0.85);
-  --card-border: rgba(255, 212, 71, 0.35);
-  --card-shadow: rgba(3, 3, 6, 0.95);
-  --status-bg: rgba(25, 26, 61, 0.85);
-  --status-border: rgba(255, 212, 71, 0.6);
-  --status-shadow: rgba(8, 6, 4, 0.7);
-  --icon-bg: rgba(19, 20, 45, 0.68);
-  --icon-border: rgba(255, 212, 71, 0.35);
-  --select-bg: rgba(10, 11, 30, 0.95);
-  --select-border: rgba(255, 212, 71, 0.25);
-  --select-hover: rgba(255, 212, 71, 0.18);
-  --select-active: rgba(255, 212, 71, 0.28);
-  --select-shadow: rgba(4, 3, 6, 0.95);
-  --checkbox-bg: rgba(19, 20, 45, 0.85);
-  --checkbox-border: rgba(255, 212, 71, 0.6);
-  --notes-text: #d5d7ff;
-  --link-color: #ffd447;
-  --link-hover: #ffe078;
+  --slider-track-strong: rgba(113, 113, 122, 0.4);
+  --slider-track-muted: rgba(39, 39, 42, 0.6);
+  --slider-thumb-bg: #18181b;
+  --slider-thumb-border: #71717a;
+  --slider-thumb-shadow: rgba(0, 0, 0, 0.3);
 
-  --slider-track-strong: rgba(255, 212, 71, 0.45);
-  --slider-track-muted: rgba(37, 40, 82, 0.55);
-  --slider-thumb-bg: #070612;
-  --slider-thumb-border: #ffd447;
-  --slider-thumb-shadow: rgba(8, 6, 4, 0.8);
-
-  --accent-primary: #ffd447;
-  --accent-primary-shadow: #6b3b16;
-  --accent-primary-contrast: #1b1024;
-  /* Secondary hue: Blue-Purple (complementary to amber/yellow) */
-  --accent-secondary-bg: rgba(31, 33, 67, 0.75);
-  --accent-secondary-text: #efdff3;
-  --accent-secondary-shadow: #43336d;
-  --accent-secondary-border: #7c47ff;
-  --accent-muted-bg: rgba(19, 20, 45, 0.8);
-  --accent-muted-text: #7e83c5;
-  --accent-muted-shadow: #2c214f;
-  --accent-muted-border: #5c3c9a;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  
-  /* Responsive Layout Column Widths
-   * 
-   * --control-column-width: Width when all tabs are merged in one column (420px)
-   *   Used in merged/narrow layout state. Accommodates all 4 tabs (Sprites, Layers, Motion, FX)
-   *   in a single row.
-   * 
-   * --control-column-width-narrow: Width when columns are split (348px)
-   *   Used in split/wide layout state. Both control and motion columns use this narrower width
-   *   to allow more space for the canvas while keeping columns compact.
-   * 
-   * --layout-max-width-split: Maximum content width when columns are split
-   *   Calculated as: control (348) + gap (24) + display (960) + gap (24) + motion (348) = 1704px
-   *   This is used to constrain header and footer to align with the right column edge.
-   * 
-   * These values must match the constants in src/lib/responsiveLayout.ts:
-   *   CONTROL_COLUMN_WIDTH_MERGED = 420
-   *   CONTROL_COLUMN_WIDTH_SPLIT = 348
-   */
+  /* Responsive Layout Column Widths */
   --control-column-width: 374px;
   --control-column-width-narrow: 310px;
   --layout-max-width-split: calc(var(--control-column-width-narrow) + 24px + 960px + 24px + var(--control-column-width-narrow));
   --layout-max-width-split-with-padding: calc(var(--layout-max-width-split) + 48px);
   --layout-min-width-compact: calc(var(--control-column-width) + 20px + 480px + 48px);
-  --layout-min-width-stacked: 320px; /* Allow cards to scale down to 320px when stacked */
-
-  --btn-primary-bg: var(--accent-primary);
-  --btn-primary-text: var(--accent-primary-contrast);
-  --btn-primary-shadow: var(--accent-primary-shadow);
-  --btn-primary-border: var(--accent-primary);
-
-  --btn-secondary-bg: var(--accent-secondary-bg);
-  --btn-secondary-text: var(--accent-secondary-text);
-  --btn-secondary-shadow: var(--accent-secondary-shadow);
-  --btn-secondary-border: var(--accent-secondary-border);
-
-  --btn-muted-bg: var(--accent-muted-bg);
-  --btn-muted-text: var(--accent-muted-text);
-  --btn-muted-shadow: var(--accent-muted-shadow);
-  --btn-muted-border: var(--accent-muted-border);
+  --layout-min-width-stacked: 320px;
 }
 
 :root,
@@ -266,42 +194,44 @@ html {
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg-base: #f8f7ff;
+  --bg-base: #fafafa;
   --bg-top: #ffffff;
-  --text-primary: #1b1024;
-  --text-muted: rgba(42, 35, 68, 0.65);
-  --text-subtle: rgba(42, 35, 68, 0.45);
-  --heading-color: rgba(27, 16, 36, 0.75);
-  --hint-color: rgba(53, 43, 82, 0.6);
-  --panel-bg: rgba(255, 255, 255, 0.88);
-  --panel-border: rgba(55, 45, 100, 0.2);
-  --panel-shadow: rgba(160, 146, 210, 0.35);
-  --card-bg: rgba(255, 255, 255, 0.92);
-  --card-border: rgba(55, 45, 100, 0.25);
-  --card-shadow: rgba(160, 146, 210, 0.4);
-  --status-bg: rgba(233, 229, 255, 0.85);
-  --status-border: rgba(90, 75, 160, 0.4);
-  --status-shadow: rgba(180, 170, 240, 0.5);
-  --icon-bg: rgba(233, 229, 255, 0.9);
-  --icon-border: rgba(90, 75, 160, 0.35);
+  --text-primary: #09090b;
+  --text-muted: #52525b;
+  --text-subtle: #71717a;
+  --heading-color: #18181b;
+  --hint-color: #52525b;
+  --panel-bg: rgba(255, 255, 255, 0.9);
+  --panel-border: rgba(161, 161, 170, 0.2);
+  --panel-shadow: rgba(0, 0, 0, 0.1);
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(161, 161, 170, 0.2);
+  --card-shadow: rgba(0, 0, 0, 0.1);
+  --status-bg: rgba(244, 244, 245, 0.9);
+  --status-border: rgba(161, 161, 170, 0.3);
+  --status-shadow: rgba(0, 0, 0, 0.05);
+  --icon-bg: rgba(244, 244, 245, 0.9);
+  --icon-border: rgba(161, 161, 170, 0.3);
   --select-bg: rgba(255, 255, 255, 0.98);
-  --select-border: rgba(90, 75, 160, 0.25);
-  --select-hover: rgba(90, 75, 160, 0.12);
-  --select-active: rgba(90, 75, 160, 0.2);
-  --select-shadow: rgba(160, 146, 210, 0.4);
-  --checkbox-bg: rgba(235, 232, 255, 0.95);
-  --checkbox-border: rgba(90, 75, 160, 0.6);
-  --notes-text: #352d64;
-  --link-color: #5c4cff;
-  --link-hover: #857bff;
-  --slider-track-strong: rgba(90, 75, 160, 0.35);
-  --slider-track-muted: rgba(210, 205, 255, 0.65);
+  --select-border: rgba(161, 161, 170, 0.2);
+  --select-hover: rgba(161, 161, 170, 0.1);
+  --select-active: rgba(161, 161, 170, 0.15);
+  --select-shadow: rgba(0, 0, 0, 0.1);
+  --checkbox-bg: rgba(255, 255, 255, 0.95);
+  --checkbox-border: rgba(161, 161, 170, 0.4);
+  --notes-text: #3f3f46;
+  --link-color: #3b82f6;
+  --link-hover: #2563eb;
+  --slider-track-strong: rgba(161, 161, 170, 0.4);
+  --slider-track-muted: rgba(244, 244, 245, 0.8);
   --slider-thumb-bg: #ffffff;
-  --slider-thumb-border: rgba(90, 75, 160, 0.7);
-  --slider-thumb-shadow: rgba(160, 146, 210, 0.6);
+  --slider-thumb-border: #71717a;
+  --slider-thumb-shadow: rgba(0, 0, 0, 0.1);
 }
 
-[data-theme-color="mint"] {
+/* Removed RetroUI theme color CSS - using basic light/dark mode only */
+
+body {
   --accent-primary: #58f5c2;
   --accent-primary-shadow: #1c7d5b;
   --accent-primary-contrast: #04261a;
@@ -1171,24 +1101,7 @@ html {
   --slider-thumb-shadow: rgba(255, 240, 153, 0.48);
 }
 
-[data-theme-shape="box"] {
-  --radius: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-}
-
-[data-theme-shape="rounded"] {
-  --radius: 0.5rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-}
-
-/* Animate border-radius changes when theme shape changes */
-* {
-  transition: border-radius 0.18s ease;
-}
+/* Removed RetroUI theme shape CSS - using default rounded corners */
 
 body {
   margin: 0;
@@ -1208,47 +1121,7 @@ html[data-theme="light"] body {
   background: var(--bg-base);
 }
 
-html[data-theme="dark"][data-theme-color="amber"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="mint"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="violet"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="ember"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="lagoon"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="rose"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="battleship"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="cyan"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="midnight"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="indigo"] body {
-  background: var(--bg-top);
-}
-
-html[data-theme="dark"][data-theme-color="gold"] body {
+html[data-theme="dark"] body {
   background: var(--bg-top);
 }
 
@@ -1435,13 +1308,15 @@ html[data-theme="dark"][data-theme-color="gold"] body {
 }
 
 .app-shell {
-  @apply min-h-screen flex flex-col;
+  @apply flex flex-col;
+  min-height: calc(100vh - var(--header-height) - var(--footer-height));
+  max-height: calc(100vh - var(--header-height) - var(--footer-height));
   padding-bottom: 0; /* Footer uses internal padding only */
   gap: 0;
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
-  overflow-y: visible; /* Allow drop shadows to show */
+  overflow-y: auto; /* Allow scrolling within content area */
   box-sizing: border-box;
 }
 
@@ -1468,6 +1343,8 @@ html[data-theme="dark"][data-theme-color="gold"] body {
 
 .app-frame--header {
   flex-shrink: 0;
+  width: 100% !important;
+  position: relative;
 }
 
 .app-frame--compact {
@@ -1496,7 +1373,19 @@ html[data-theme="dark"][data-theme-color="gold"] body {
 
 .app-frame--footer {
   flex-shrink: 0;
-  margin-top: theme("spacing.16"); /* footer.frame.margin.top.desktop */
+  margin-top: 0; /* No margin when fixed */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100% !important; /* Force full width */
+  max-width: 100% !important; /* Force full width */
+  z-index: 60; /* Higher than sidebar (z-50) to ensure border is visible */
+  background-color: var(--bg-top);
+  border-top: 1px solid var(--panel-border);
+  margin-bottom: 0;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* Remove footer frame margin on mobile */
@@ -1507,16 +1396,27 @@ html[data-theme="dark"][data-theme-color="gold"] body {
 }
 
 
+:root {
+  --header-height: 80px; /* Default header height, will be calculated dynamically */
+  --footer-height: 60px; /* Default footer height, will be calculated dynamically */
+}
+
 .app-header {
-  @apply grid items-end text-[var(--text-primary)];
+  @apply flex items-center text-[var(--text-primary)];
   gap: theme("spacing.5"); /* header.gap.desktop */
   padding-inline: theme("spacing.6"); /* header.padding.inline.desktop */
   padding-top: theme("spacing.7"); /* header.padding.top.desktop */
   padding-bottom: theme("spacing.5"); /* header.padding.bottom.desktop */
-  grid-template-columns: minmax(0, min(100%, var(--control-column-width))) 1fr;
+  width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   min-height: theme("spacing.20"); /* header.min-height.desktop */
+  height: var(--header-height);
+  justify-content: space-between; /* Space between sidebar toggle and action buttons */
+  position: sticky;
+  top: 0;
+  z-index: 100; /* Higher than sidebar */
+  background-color: var(--bg-top);
 }
 
 /* Mobile header - override base rule with explicit values - MUST be after base rule */
@@ -1572,6 +1472,7 @@ body:has(.app-layout--wide) .app-header {
   flex: 1 1 auto;
   margin-bottom: 0;
   align-self: end;
+  margin-left: auto; /* Push toolbar to the right */
 }
 
 .app-logo-button {
@@ -1589,16 +1490,28 @@ body:has(.app-layout--wide) .app-header {
   align-self: end;
 }
 
+/* Smaller logo button in header */
+.app-header .app-logo-button {
+  max-width: 80px;
+  height: clamp(16px, 2.4vw, 20px);
+}
+
 .app-logo-svg {
   width: 100%;
-  max-width: 160px;
+  max-width: 120px; /* 75% of 160px */
   height: auto;
-  min-height: 33px;
+  min-height: 25px; /* 75% of 33px */
   display: block;
   opacity: 0.9;
   transition: opacity 0.2s ease;
   /* Logo color is applied via CSS mask in the component */
   aspect-ratio: 202.39 / 126.66; /* Maintain logo aspect ratio */
+}
+
+/* Smaller logo in header to prevent cutoff */
+.app-header .app-logo-svg {
+  max-width: 80px; /* Smaller in header */
+  min-height: 16px; /* Smaller in header */
 }
 
 .app-logo-svg:hover {
@@ -1615,6 +1528,7 @@ body:has(.app-layout--wide) .app-header {
   @apply flex items-center justify-end;
   gap: theme("spacing.2");
   flex-wrap: nowrap;
+  margin-left: auto; /* Right align actions */
 }
 
 .header-actions > * {
@@ -1906,7 +1820,7 @@ body:has(.app-layout--wide) .app-header {
 
   /* Reduce tab padding on mobile */
   .app-layout--mobile .retro-tabs {
-    gap: theme("spacing.1.5");
+    gap: 0.375rem; /* spacing.1.5 = 6px */
     margin-bottom: theme("spacing.6");
   }
 
@@ -1928,7 +1842,7 @@ body:has(.app-layout--wide) .app-header {
 
   .app-layout--mobile .tab-top {
     height: 44px; /* 36px (h-9) + 4px + 4px = 44px - integer pixel value */
-    padding-inline: theme("spacing.1.5"); /* section.tabs.tab.padding.inline.mobile */
+    padding-inline: 0.375rem; /* spacing.1.5 = 6px - section.tabs.tab.padding.inline.mobile */
     padding-block: theme("spacing.4"); /* section.tabs.tab.padding.block.mobile */
     font-size: 0.6rem;
   }
@@ -2271,7 +2185,7 @@ body:has(.app-layout--wide) .app-header {
 
   .app-layout--mobile .rotation-slider-wrapper {
     margin-top: theme("spacing.0"); /* section.control.rotation.margin.top.mobile */
-    margin-bottom: theme("spacing.6"); /* section.control.rotation.margin.bottom.mobile */
+    margin-bottom: theme("spacing.2"); /* section.control.rotation.margin.bottom.mobile - reduced for tighter spacing */
   }
 
   /* Increase spacing for control-field--spaced-top on mobile */
@@ -2306,7 +2220,7 @@ body:has(.app-layout--wide) .app-header {
   /* Section divider spacing for mobile */
   .app-layout--mobile .section-divider {
     margin-top: theme("spacing.3") !important; /* spacing.3 (12px) - space at bottom of section above */
-    margin-bottom: theme("spacing.3") !important; /* spacing.3 (12px) - space at top of section below */
+    margin-bottom: theme("spacing.0") !important; /* spacing.0 (0px) - reduced for tighter spacing */
     margin-left: calc(-1 * theme("spacing.3")) !important; /* Match mobile card padding (spacing.3) */
     margin-right: calc(-1 * theme("spacing.3")) !important; /* Match mobile card padding (spacing.3) */
     width: calc(100% + 2 * theme("spacing.3")) !important; /* Match mobile card padding (spacing.3) */
@@ -2332,12 +2246,14 @@ body:has(.app-layout--wide) .app-header {
   /* Main padding adjustment for mobile - reduced horizontal padding */
   .app-main {
     padding-inline: theme("spacing.3") !important; /* Reduced from spacing.4 (16px) to spacing.3 (12px) for smaller margins */
+    padding-left: 0 !important; /* No left padding - canvas butts up left */
+    padding-right: 0 !important; /* No right padding - canvas butts up right */
   }
   
   /* CRITICAL: Override reduced padding when cards are stacked - maintain reduced padding on mobile */
   body:has(.app-frame--stacked) .app-main {
-    padding-left: theme("spacing.3") !important; /* Reduced padding on mobile stacked view */
-    padding-right: theme("spacing.3") !important; /* Reduced padding on mobile stacked view */
+    padding-left: 0 !important; /* No left padding - canvas butts up left */
+    padding-right: 0 !important; /* No right padding - canvas butts up right */
     padding-inline: theme("spacing.3") !important; /* Reduced padding on mobile stacked view */
   }
 
@@ -2505,8 +2421,8 @@ body:has(.app-layout--wide) .app-header {
   
   /* CRITICAL: Lock .app-main padding at 420px and below - reduced padding on mobile */
   body:has(.app-frame--stacked) .app-main {
-    padding-left: theme("spacing.3") !important; /* Reduced padding on mobile */
-    padding-right: theme("spacing.3") !important; /* Reduced padding on mobile */
+    padding-left: 0 !important; /* No left padding - canvas butts up left */
+    padding-right: 0 !important; /* No right padding - canvas butts up right */
     padding-inline: theme("spacing.3") !important; /* Reduced padding on mobile */
   }
   
@@ -2675,8 +2591,8 @@ body:has(.app-frame--stacked) .header-toolbar {
   
   /* CRITICAL: Lock .app-main padding at small viewports - reduced padding on mobile */
   body:has(.app-frame--stacked) .app-main {
-    padding-left: theme("spacing.3") !important; /* Reduced padding on mobile */
-    padding-right: theme("spacing.3") !important; /* Reduced padding on mobile */
+    padding-left: 0 !important; /* No left padding - canvas butts up left */
+    padding-right: 0 !important; /* No right padding - canvas butts up right */
     padding-inline: theme("spacing.3") !important; /* Reduced padding on mobile */
   }
   
@@ -2788,6 +2704,8 @@ body:has(.app-frame--stacked) .header-toolbar {
  */
 .app-main {
   padding-inline: theme("spacing.6"); /* main.padding.inline.desktop */
+  padding-left: 0 !important; /* No left padding - canvas butts up left */
+  padding-right: 0 !important; /* No right padding - canvas butts up right */
   box-sizing: border-box;
   overflow: visible;
   /* Removed overflow-x: hidden - handled at body level for better mobile behavior */
@@ -2800,8 +2718,8 @@ body:has(.app-frame--stacked) .header-toolbar {
 /* Desktop only - mobile rules override this */
 @media (min-width: 769px) {
   body:has(.app-frame--stacked) .app-main {
-    padding-left: theme("spacing.6") !important; /* main.padding.inline.stacked */
-    padding-right: theme("spacing.6") !important; /* main.padding.inline.stacked */
+    padding-left: 0 !important; /* No left padding - canvas butts up left */
+    padding-right: 0 !important; /* No right padding - canvas butts up right */
     padding-inline: theme("spacing.6") !important; /* main.padding.inline.stacked */
     margin-top: 0; /* Spacing handled by header padding-bottom in stacked layout */
   }
@@ -2817,10 +2735,11 @@ body:has(.app-frame--stacked) .header-toolbar {
   gap: theme("spacing.5"); /* layout.gap.small-canvas */
   flex-wrap: nowrap;
   align-items: flex-start;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow: visible;
-  flex: 1 1 auto;
+}
+
+/* Canvas butts up left - remove gap before display-column */
+.app-layout > .display-column {
+  margin-left: 0 !important;
 }
 
 /* Ensure small-canvas gap always wins - place after base app-layout rule */
@@ -2915,9 +2834,14 @@ body:has(.app-frame--stacked) .header-toolbar {
   @apply flex flex-1 flex-col items-start;
   gap: theme("spacing.6"); /* layout.display-column.gap.desktop */
   min-width: 0; /* Allow column to shrink freely, canvas card has its own min-width (320px) */
-  max-width: 960px; /* Maximum width prevents column from growing beyond canvas max */
+  max-width: none !important; /* No max width - use full available area */
   flex-basis: 0; /* Start from zero for smooth flex growth */
   overflow: visible;
+  padding: 0 !important; /* No padding - canvas butts up left */
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
   /* Canvas-card inside handles its own sizing with clamp() for smooth scaling */
 }
 
@@ -3012,7 +2936,7 @@ body:has(.app-frame--stacked) .control-field--rotation {
 
 body:has(.app-frame--stacked) .rotation-slider-wrapper {
       margin-top: theme("spacing.0"); /* section.control.rotation.margin.top.mobile */
-      margin-bottom: theme("spacing.6"); /* section.control.rotation.margin.bottom.mobile */
+      margin-bottom: theme("spacing.2"); /* section.control.rotation.margin.bottom.mobile - reduced for tighter spacing */
 }
 
 body:has(.app-frame--stacked) .section-hint {
@@ -3047,7 +2971,7 @@ body:has(.app-frame--stacked) .field-heading-left .retro-tooltip {
 /* Section divider spacing for stacked layout */
 body:has(.app-frame--stacked) .section-divider {
   margin-top: theme("spacing.4"); /* section.margin.bottom.mobile (space at bottom of section above) */
-  margin-bottom: theme("spacing.4"); /* section.margin.top.mobile (space at top of section below) */
+  margin-bottom: theme("spacing.0"); /* section.margin.top.mobile (space at top of section below) - reduced for tighter spacing */
 }
 
 /* Allow control-column and canvas-card-shell to shrink when stacked */
@@ -3118,7 +3042,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  box-shadow: 4px 4px 0 var(--panel-shadow);
+  box-shadow: none;
 }
 
 /* Hover state for inactive tabs */
@@ -3131,7 +3055,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 /* Click/Active state for inactive tabs */
 .retro-tab:active:not(.retro-tab-active) {
   transform: translateY(1px) translateX(1px);
-  box-shadow: 2px 2px 0 var(--panel-shadow);
+  box-shadow: none;
 }
 
 /* Selected/Active tab state */
@@ -3139,7 +3063,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   color: var(--accent-primary-contrast);
   background: var(--accent-primary);
   border-color: var(--accent-primary);
-  box-shadow: 4px 4px 0 var(--accent-primary-shadow);
+  box-shadow: none;
   transform: translateY(-2px);
 }
 
@@ -3151,7 +3075,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .retro-tab-active:active {
   transform: translateY(1px) translateX(1px);
-  box-shadow: 2px 2px 0 var(--accent-primary-shadow);
+  box-shadow: none;
 }
 
 /* Tabs Top - for top of card placement (same as retro-tabs but with explicit naming) */
@@ -3183,9 +3107,9 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   color: var(--text-muted);
   border: 2px solid var(--panel-border);
   border-top: none; /* No top border for traditional tabs */
-  border-bottom: none; /* Bottom border handled by inset shadow */
+  border-bottom: 2px solid var(--panel-border); /* Bottom border for unselected tabs */
   border-radius: 0; /* No border radius by default */
-  box-shadow: inset 0 -2px 0 0 var(--panel-border); /* Inside bottom border for unselected tabs */
+  box-shadow: none;
   cursor: pointer;
   transition:
     color 0.18s ease,
@@ -3241,15 +3165,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 }
 
 .tab-top-active:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  right: -6px; /* Position shadow to not obscure the 2px border */
-  top: 0;
-  bottom: 2px; /* Stop 2px before bottom to avoid overlapping next tab's bottom border */
-  width: 4px;
-  background: var(--panel-shadow);
-  pointer-events: none;
-  z-index: -1; /* Behind the border */
+  content: none; /* Removed shadow pseudo-element */
 }
 
 .tab-top-active:first-child {
@@ -3294,20 +3210,19 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   justify-content: center;
   padding-inline: theme("spacing.4");
   padding-block: theme("spacing.2");
-  font-size: 0.68rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   background: var(--panel-bg);
   color: var(--text-muted);
   border: none;
-  border-right: 2px solid var(--panel-border);
+  border-right: 1px solid var(--panel-border);
   cursor: pointer;
   transition:
-    color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease,
-    background 0.18s ease,
-    border-radius 0.18s ease;
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.18s ease;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3320,13 +3235,15 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .retro-button-group-item:hover:not(:disabled),
 .retro-button-group-item:focus-visible:not(:disabled) {
-  color: var(--accent-primary);
+  color: var(--text-primary);
+  background: var(--bg-base);
   outline: none;
 }
 
 .retro-button-group-item-active {
   color: var(--accent-primary-contrast);
   background: var(--accent-primary);
+  font-weight: 600;
   box-shadow: none;
   transform: none;
 }
@@ -3334,6 +3251,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 .retro-button-group-item-active:hover:not(:disabled),
 .retro-button-group-item-active:focus-visible:not(:disabled) {
   color: var(--accent-primary-contrast);
+  background: var(--accent-primary);
 }
 
 .retro-button-group-item:disabled {
@@ -3356,14 +3274,23 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .section-divider {
   margin: 0;
-  margin-left: calc(-1 * theme("spacing.5")); /* Extends to card edges */
-  margin-right: calc(-1 * theme("spacing.5")); /* Extends to card edges */
   margin-top: theme("spacing.4"); /* section.margin.bottom.desktop (space at bottom of section above) */
-  margin-bottom: theme("spacing.1"); /* section.margin.top.desktop (space at top of section below) */
+  margin-bottom: theme("spacing.0"); /* section.margin.top.desktop (space at top of section below) - reduced for tighter spacing */
   border: none;
   border-top: 2px solid var(--panel-border);
   opacity: 0.5;
-  width: calc(100% + 2 * theme("spacing.5")); /* Extends to card edges */
+  width: calc(100% + 2 * theme("spacing.5")) !important; /* Extends to sidebar edges - full width */
+  margin-left: calc(-1 * theme("spacing.5")) !important; /* Extends to sidebar left edge */
+  margin-right: calc(-1 * theme("spacing.5")) !important; /* Extends to sidebar right edge */
+  position: relative; /* Allow positioning */
+  left: calc(-1 * theme("spacing.5")) !important; /* Shift left to account for sidebar padding */
+  box-sizing: content-box; /* Ensure padding/margin is included in width calculation */
+}
+
+/* Ensure sections allow dividers to extend beyond their bounds */
+.section {
+  overflow-x: visible !important;
+  position: relative;
 }
 
 .section-title {
@@ -3405,7 +3332,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .rotation-slider-wrapper {
   margin-top: theme("spacing.0"); /* section.control.rotation.margin.top.desktop */
-  margin-bottom: theme("spacing.6"); /* section.control.rotation.margin.bottom.desktop */
+  margin-bottom: theme("spacing.2"); /* section.control.rotation.margin.bottom.desktop - reduced for tighter spacing */
 }
 
 .sprite-icon-buttons {
@@ -3415,6 +3342,24 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .sprite-icon-buttons > div {
   gap: theme("spacing.2"); /* section.control.sprite.buttons.gap.desktop */
+}
+
+/* Ensure icons are centered in sprite icon buttons */
+.sprite-icon-buttons button,
+.sprite-icon-buttons .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure icons are centered in regenerate/refresh buttons */
+button[aria-label*="Regenerate"],
+button[aria-label*="regenerate"],
+button[aria-label*="Refresh"],
+button[aria-label*="refresh"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .section--spaced {
@@ -3445,8 +3390,48 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 }
 
 .icon-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   box-shadow: 4px 4px 0 0 var(--panel-shadow) !important;
   transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+  color: var(--text-primary) !important;
+}
+
+/* Ensure SVG icons inside icon buttons use currentColor */
+.icon-button svg {
+  color: currentColor !important;
+}
+
+/* Default all icon-button SVGs to stroke-based (outline) rendering */
+/* This ensures Lucide React icons and other outline icons render correctly */
+.icon-button svg path,
+.icon-button svg circle,
+.icon-button svg line,
+.icon-button svg polyline,
+.icon-button svg polygon,
+.icon-button svg rect,
+.icon-button svg ellipse {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: inherit;
+}
+
+/* For SVG elements that explicitly have stroke attribute, ensure stroke is used */
+.icon-button svg[stroke] *,
+.icon-button svg[stroke-width] * {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Only apply fill for elements that explicitly have fill and no stroke */
+/* This is for solid icons that are intentionally fill-based */
+.icon-button svg path[fill]:not([stroke]):not([stroke-width]),
+.icon-button svg circle[fill]:not([stroke]):not([stroke-width]),
+.icon-button svg polygon[fill]:not([stroke]):not([stroke-width]),
+.icon-button svg rect[fill]:not([stroke]):not([stroke-width]) {
+  fill: currentColor !important;
+  stroke: none !important;
 }
 
 .icon-button:hover:not(:disabled) {
@@ -3508,6 +3493,8 @@ button.bg-primary.button-selected:active {
 
 .icon-button:active:not(:disabled) {
   box-shadow: 0px 0px 0 0 transparent !important;
+  background-color: var(--accent-primary) !important;
+  color: var(--accent-primary-contrast) !important;
 }
 
 .control-lock-button-locked {
@@ -3571,6 +3558,12 @@ button.bg-primary.button-selected:active {
   border-color: var(--panel-border);
   border-radius: var(--radius-sm);
   transition: border-radius 0.18s ease;
+}
+
+/* Slider range - filled portion to the left of thumb using primary color */
+.slider-range-filled {
+  background: var(--accent-primary);
+  border-radius: var(--radius-sm);
 }
 
 .control-slider[data-disabled="true"] {
@@ -4076,7 +4069,7 @@ button.bg-primary.button-selected:active {
     content: "";
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--bg-base) 60%, transparent);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 9998;
@@ -4302,10 +4295,14 @@ button.bg-primary.button-selected:active {
 .canvas-card-shell {
   width: 100%;
   min-width: 320px; /* Allow scaling down to 320px */
-  max-width: min(100%, 960px); /* Ensure it never exceeds container or 960px */
+  max-width: none !important; /* No max width - use full available area */
   box-sizing: border-box;
   position: relative;
   overflow: visible;
+  padding: 0 !important; /* No padding - canvas butts up left */
+  padding-left: 0 !important; /* Explicitly remove left padding */
+  margin: 0 !important; /* No margin */
+  margin-left: 0 !important;
 }
 
 /* Canvas card display properties - does not affect padding */
@@ -4371,15 +4368,17 @@ button.bg-primary.button-selected:active {
   position: relative;
   width: 100%;
   max-width: 100%;
-  padding-top: 100%;
+  padding-top: 56.25%; /* 16:9 aspect ratio for projectors */
+  padding: 0 !important; /* No padding - canvas butts up left */
+  padding-left: 0 !important; /* Explicitly remove left padding */
+  padding-top: 56.25% !important; /* Keep 16:9 aspect ratio padding */
   background: transparent;
   box-shadow: none;
-  border-radius: calc(var(--radius-md) - 4px);
+  border-radius: 0; /* Remove border radius */
   overflow: visible;
   box-sizing: border-box;
-  /* Remove min-width/max-width constraints - wrapper should fit within card's content area */
-  /* Card has padding-inline: theme("spacing.5") = 20px each side = 40px total */
-  /* Wrapper width: 100% respects the card's content area automatically */
+  margin: 0 !important; /* No margin */
+  margin-left: 0 !important;
 }
 
 .sketch-container {
@@ -4407,7 +4406,17 @@ button.bg-primary.button-selected:active {
   max-width: 100%;
   box-sizing: border-box;
   overflow: visible; /* Allow button hover/active animations to extend beyond container */
-  padding: 0; /* Flush with canvas edges */
+  padding-left: theme("spacing.5"); /* Left padding using Tailwind spacing token */
+  padding-right: theme("spacing.5"); /* Right padding using Tailwind spacing token */
+}
+
+/* Desktop status bar styling */
+@media (min-width: 769px) {
+  .status-bar {
+    padding-top: theme("spacing.4"); /* Top spacing on desktop */
+    border-bottom: 1px solid var(--panel-border); /* Bottom border on desktop */
+    padding-bottom: theme("spacing.4"); /* Padding below border */
+  }
 }
 
 .status-bar--fullscreen-hud {
@@ -4673,7 +4682,7 @@ body:has(.app-layout--wide) .app-footer {
   height: auto;
   min-height: 17px; /* 20% bigger: 14px * 1.2 ≈ 17px */
   transition: opacity 0.2s ease;
-  transform: translateY(-8px);
+  transform: translateY(0); /* Remove negative transform that might hide logo */
   display: block;
   opacity: 0.9;
   /* Logo color is applied via CSS mask in the component */
@@ -4691,7 +4700,7 @@ body:has(.app-layout--wide) .app-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--bg-base) 60%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -4703,6 +4712,10 @@ body:has(.app-layout--wide) .app-footer {
   overflow-x: visible;
   padding: theme("spacing.6");
   position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
 }
 
 .preset-manager-header {
@@ -4799,7 +4812,7 @@ body:has(.app-layout--wide) .app-footer {
   display: flex;
   align-items: center; /* Re-center modal vertically */
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--bg-base) 60%, transparent);
   backdrop-filter: blur(4px);
   padding: theme("spacing.4");
   /* remove extra top offset now that tabs are gone */
@@ -4813,6 +4826,10 @@ body:has(.app-layout--wide) .app-footer {
   overflow-x: visible;
   padding: theme("spacing.5"); /* Modal container inside padding per modal spacing rules */
   position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
 }
 
 .settings-modal-header {
@@ -5052,7 +5069,7 @@ body:has(.app-layout--wide) .app-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--bg-base) 60%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -5064,6 +5081,10 @@ body:has(.app-layout--wide) .app-footer {
   overflow-x: visible;
   padding: theme("spacing.6");
   position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
 }
 
 .export-modal--compact {
@@ -5426,7 +5447,7 @@ body:has(.app-layout--wide) .app-footer {
   white-space: nowrap;
   flex-shrink: 0;
   font-size: 0.7rem !important;
-  padding: theme("spacing.1.5") theme("spacing.2.5") !important;
+  padding: 0.375rem 0.625rem !important; /* spacing.1.5 (6px) spacing.2.5 (10px) */
 }
 
 /* Compact Format Buttons */
@@ -6118,7 +6139,7 @@ body:has(.app-layout--wide) .app-footer {
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
   body {
     @apply bg-background text-foreground;
@@ -6184,6 +6205,100 @@ body:has(.app-frame--stacked) .app-frame--header {
   max-width: 100px !important;
   min-height: 20px !important;
   width: 100px !important;
+}
+
+/* Sidebar Layout Styles - TailAdmin-inspired */
+.sidebar-layout-container {
+  min-height: 100vh;
+}
+
+/* Sidebar base styles */
+aside[class*="sidebar"] {
+  transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+/* Ensure sidebar doesn't interfere with main content on mobile when closed */
+@media (max-width: 1023px) {
+  aside[class*="sidebar"] {
+    transform: translateX(-100%);
+  }
+  
+  aside[class*="sidebar"][style*="translate-x-0"] {
+    transform: translateX(0);
+  }
+}
+
+/* Header positioning with sidebar */
+@media (min-width: 1024px) {
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  
+  /* Adjust header when sidebar is present */
+  body:has(.app-layout) .app-header {
+    margin-left: 0;
+  }
+}
+
+/* Main content area adjustment for sidebar */
+.main-content-with-sidebar {
+  transition: margin-left 0.3s ease-in-out;
+}
+
+/* Button Group enhancements for TailAdmin look */
+.retro-button-group {
+  display: flex;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.retro-button-group-item {
+  flex: 1;
+  padding: theme("spacing.2") theme("spacing.3");
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  border: none;
+  border-right: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+.retro-button-group-item:last-child {
+  border-right: none;
+}
+
+.retro-button-group-item:hover:not(:disabled) {
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.retro-button-group-item-active {
+  background: var(--accent-primary);
+  color: var(--accent-primary-contrast);
+  font-weight: 600;
+}
+
+.retro-button-group-item-active:hover:not(:disabled) {
+  background: var(--accent-primary);
+  color: var(--accent-primary-contrast);
+}
+
+/* Scrollbar styling for sidebar */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* End DEBUG */

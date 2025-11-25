@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Button } from "@/components/Button";
-import { Switch } from "@/components/retroui/Switch";
+import { Switch } from "@/components/catalyst/switch-adapter";
 import { RefreshCw, ImagePlus } from "lucide-react";
 import { BLEND_MODES } from "@/constants/blend";
 import { ControlSlider, ControlSelect, TooltipIcon } from "./shared";

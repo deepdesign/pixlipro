@@ -1,8 +1,10 @@
-import { Switch } from "@/components/retroui/Switch";
+import { Switch } from "@/components/catalyst/switch-adapter";
 import { MOVEMENT_MODES, formatMovementMode } from "@/constants/movement";
 import { ControlSlider, ControlSelect, TooltipIcon } from "./shared";
 import { speedToUi, uiToSpeed } from "@/lib/utils";
 import type { GeneratorState, SpriteController, MovementMode } from "@/types/generator";
+import { getAllPalettes, getPalette } from "@/data/palettes";
+import { useMemo, useRef, useEffect, useState } from "react";
 
 interface MotionControlsProps {
   spriteState: GeneratorState;
@@ -14,6 +16,12 @@ interface MotionControlsProps {
   onMovementSelect: (mode: MovementMode) => void;
   onRotationAnimatedToggle: (checked: boolean) => void;
   onRotationSpeedChange: (value: number) => void;
+  onHueRotationEnabledToggle: (enabled: boolean) => void;
+  onHueRotationSpeedChange: (speed: number) => void;
+  onPaletteCycleEnabledToggle: (enabled: boolean) => void;
+  onPaletteCycleSpeedChange: (speed: number) => void;
+  onCanvasHueRotationEnabledToggle: (enabled: boolean) => void;
+  onCanvasHueRotationSpeedChange: (speed: number) => void;
 }
 
 /**
@@ -32,7 +40,54 @@ export function MotionControls({
   onMovementSelect,
   onRotationAnimatedToggle,
   onRotationSpeedChange,
+  onHueRotationEnabledToggle,
+  onHueRotationSpeedChange,
+  onPaletteCycleEnabledToggle,
+  onPaletteCycleSpeedChange,
+  onCanvasHueRotationEnabledToggle,
+  onCanvasHueRotationSpeedChange,
 }: MotionControlsProps) {
+  // Track palette cycle time for displaying current palette name
+  const [paletteCycleTime, setPaletteCycleTime] = useState(0);
+  const lastUpdateRef = useRef(Date.now());
+  
+  useEffect(() => {
+    if (!spriteState.paletteCycleEnabled) {
+      setPaletteCycleTime(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const deltaMs = now - lastUpdateRef.current;
+      lastUpdateRef.current = now;
+      const deltaTime = deltaMs / 16.666;
+      const minSpeed = 0.05; // 5% minimum
+      const speedFactor = Math.max(minSpeed, spriteState.paletteCycleSpeed / 100);
+      setPaletteCycleTime((prev) => {
+        const newTime = (prev + deltaTime * speedFactor * (1 / 30)) % 30;
+        return newTime;
+      });
+    }, 16); // Update roughly every frame
+    
+    return () => clearInterval(interval);
+  }, [spriteState.paletteCycleEnabled, spriteState.paletteCycleSpeed]);
+  
+  // Compute current palette name when cycling
+  const currentPaletteName = useMemo(() => {
+    if (!spriteState.paletteCycleEnabled) {
+      return getPalette(spriteState.paletteId).name;
+    }
+    
+    const allPalettes = getAllPalettes();
+    if (allPalettes.length === 0) {
+      return getPalette(spriteState.paletteId).name;
+    }
+    
+    const cycleProgress = (paletteCycleTime / 30) * allPalettes.length;
+    const currentIndex = Math.floor(cycleProgress) % allPalettes.length;
+    return allPalettes[currentIndex].name;
+  }, [spriteState.paletteCycleEnabled, spriteState.paletteId, paletteCycleTime]);
   return (
     <>
       <div className="section">
@@ -107,13 +162,145 @@ export function MotionControls({
             <ControlSlider
               id="rotation-speed"
               label="Rotation speed"
-              min={0}
+              min={1}
               max={100}
               value={Math.round(spriteState.rotationSpeed)}
               displayValue={`${Math.round(spriteState.rotationSpeed)}%`}
               onChange={onRotationSpeedChange}
               disabled={!ready}
               tooltip="Control how quickly sprites spin when rotation is enabled."
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="section section--spaced">
+        <hr className="section-divider" />
+        <h3 className="section-title">Sprite Hue Rotation</h3>
+        <div className="control-field control-field--rotation">
+          <div className="field-heading">
+            <div className="field-heading-left">
+              <span className="field-label" id="hue-rotation-animate-label">
+                Animate hue rotation
+              </span>
+              <TooltipIcon
+                id="hue-rotation-animate-tip"
+                text="Continuously rotate sprite colors through the color wheel."
+                label="Animate hue rotation"
+              />
+            </div>
+          </div>
+          <div className="switch-row">
+            <Switch
+              id="hue-rotation-animate"
+              checked={spriteState.hueRotationEnabled}
+              onCheckedChange={onHueRotationEnabledToggle}
+              disabled={!ready}
+              aria-labelledby="hue-rotation-animate-label"
+            />
+          </div>
+        </div>
+        {spriteState.hueRotationEnabled && (
+          <div className="rotation-slider-wrapper">
+            <ControlSlider
+              id="hue-rotation-speed"
+              label="Rotation speed"
+              min={1}
+              max={100}
+              value={Math.round(spriteState.hueRotationSpeed)}
+              displayValue={`${Math.round(spriteState.hueRotationSpeed)}%`}
+              onChange={onHueRotationSpeedChange}
+              disabled={!ready}
+              tooltip="Control how quickly sprite colors rotate through the color wheel."
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="section section--spaced">
+        <hr className="section-divider" />
+        <h3 className="section-title">Palette Cycling</h3>
+        <div className="control-field control-field--rotation">
+          <div className="field-heading">
+            <div className="field-heading-left">
+              <span className="field-label" id="palette-cycle-animate-label">
+                Cycle palettes
+              </span>
+              <TooltipIcon
+                id="palette-cycle-animate-tip"
+                text="Smoothly cycle through all available palettes."
+                label="Cycle palettes"
+              />
+            </div>
+          </div>
+          <div className="switch-row">
+            <Switch
+              id="palette-cycle-animate"
+              checked={spriteState.paletteCycleEnabled}
+              onCheckedChange={onPaletteCycleEnabledToggle}
+              disabled={!ready}
+              aria-labelledby="palette-cycle-animate-label"
+            />
+          </div>
+        </div>
+        {spriteState.paletteCycleEnabled && (
+          <div className="rotation-slider-wrapper">
+            <ControlSlider
+              id="palette-cycle-speed"
+              label="Cycle speed"
+              min={1}
+              max={100}
+              value={Math.round(spriteState.paletteCycleSpeed)}
+              displayValue={`${Math.round(spriteState.paletteCycleSpeed)}%`}
+              onChange={onPaletteCycleSpeedChange}
+              disabled={!ready}
+              tooltip="Control how quickly palettes cycle."
+            />
+            <div className="text-xs text-[var(--text-muted)] mt-1 text-right">
+              {currentPaletteName}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="section section--spaced">
+        <hr className="section-divider" />
+        <h3 className="section-title">Canvas Hue Rotation</h3>
+        <div className="control-field control-field--rotation">
+          <div className="field-heading">
+            <div className="field-heading-left">
+              <span className="field-label" id="canvas-hue-rotation-animate-label">
+                Animate canvas hue
+              </span>
+              <TooltipIcon
+                id="canvas-hue-rotation-animate-tip"
+                text="Continuously rotate canvas background colors through the color wheel."
+                label="Animate canvas hue"
+              />
+            </div>
+          </div>
+          <div className="switch-row">
+            <Switch
+              id="canvas-hue-rotation-animate"
+              checked={spriteState.canvasHueRotationEnabled}
+              onCheckedChange={onCanvasHueRotationEnabledToggle}
+              disabled={!ready}
+              aria-labelledby="canvas-hue-rotation-animate-label"
+            />
+          </div>
+        </div>
+        {spriteState.canvasHueRotationEnabled && (
+          <div className="rotation-slider-wrapper">
+            <ControlSlider
+              id="canvas-hue-rotation-speed"
+              label="Rotation speed"
+              min={1}
+              max={100}
+              value={Math.round(spriteState.canvasHueRotationSpeed)}
+              displayValue={`${Math.round(spriteState.canvasHueRotationSpeed)}%`}
+              onChange={onCanvasHueRotationSpeedChange}
+              disabled={!ready}
+              tooltip="Control how quickly canvas background colors rotate through the color wheel."
             />
           </div>
         )}

@@ -63,11 +63,11 @@ export const PresetManager = ({
 
   const handleLoad = useCallback(
     (preset: Preset) => {
-      const state = loadPresetState(preset);
-      if (state) {
-        onLoadPreset(state);
-        onClose();
-      }
+    const state = loadPresetState(preset);
+    if (state) {
+      onLoadPreset(state);
+      onClose();
+    }
     },
     [onLoadPreset, onClose],
   );

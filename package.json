@@ -1,7 +1,7 @@
 {
   "name": "pixli",
   "private": true,
-  "version": "1.0.12",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "generate:collections": "node scripts/generate-sprite-collections.js",
@@ -16,16 +16,14 @@
     "analyze": "vite build --mode analyze"
   },
   "devDependencies": {
-    "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/postcss": "^4.1.17",
     "@types/p5": "^1.7.7",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react-swc": "^4.2.1",
-    "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "rollup-plugin-visualizer": "^6.0.5",
-    "tailwindcss": "^3.4.13",
+    "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
     "vite": "^7.1.7"
   },
@@ -39,13 +37,13 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.553.0",
+    "motion": "^12.23.11",
     "p5": "^2.0.5",
     "pixelarticons": "^1.8.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "svg-path-bounds": "^1.0.2",
     "svgo": "^4.0.0",
-    "tailwind-merge": "^2.6.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwind-merge": "^2.6.0"
   }
 }

@@ -6,6 +6,7 @@ import {
   defaultPaletteId,
   getPalette,
   getRandomPalette,
+  getAllPalettes,
   palettes,
 } from "./data/palettes";
 import { getGradientsForPalette } from "./data/gradients";
@@ -206,6 +207,13 @@ export interface GeneratorState {
   depthOfFieldStrength: number; // 0-100, controls blur intensity (0 = no blur, 100 = max blur)
   // Sprite collection settings
   spriteCollectionId: string; // Collection ID (e.g., "primitives", "christmas")
+  // Animation settings
+  hueRotationEnabled: boolean; // Toggle sprite hue rotation animation
+  hueRotationSpeed: number; // Speed of sprite hue rotation (0-100%)
+  paletteCycleEnabled: boolean; // Toggle palette cycling animation
+  paletteCycleSpeed: number; // Speed of palette cycling (0-100%)
+  canvasHueRotationEnabled: boolean; // Toggle canvas hue rotation animation
+  canvasHueRotationSpeed: number; // Speed of canvas hue rotation (0-100%)
 }
 
 export interface SpriteControllerOptions {
@@ -277,6 +285,13 @@ export const DEFAULT_STATE: GeneratorState = {
   depthOfFieldStrength: 50, // Moderate blur strength
   // Sprite collection defaults
   spriteCollectionId: "primitives", // Default to primitives collection
+  // Animation defaults
+  hueRotationEnabled: false,
+  hueRotationSpeed: 50,
+  paletteCycleEnabled: false,
+  paletteCycleSpeed: 50,
+  canvasHueRotationEnabled: false,
+  canvasHueRotationSpeed: 50,
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -421,6 +436,28 @@ const jitterColor = (hex: string, variance: number, random: () => number) => {
   const satShift = (random() - 0.5) * variance * 50;
   const lightShift = (random() - 0.5) * variance * 40;
   return hslToHex(h + hueShift, s + satShift, l + lightShift);
+};
+
+const interpolatePaletteColors = (
+  palette1: string[],
+  palette2: string[],
+  t: number // 0-1 interpolation factor
+): string[] => {
+  const maxLength = Math.max(palette1.length, palette2.length);
+  return Array.from({ length: maxLength }, (_, i) => {
+    const color1 = palette1[i % palette1.length];
+    const color2 = palette2[i % palette2.length];
+    const [h1, s1, l1] = hexToHsl(color1);
+    const [h2, s2, l2] = hexToHsl(color2);
+    // Handle hue wrapping (shortest path around color wheel)
+    let hueDiff = h2 - h1;
+    if (hueDiff > 180) hueDiff -= 360;
+    if (hueDiff < -180) hueDiff += 360;
+    const h = h1 + hueDiff * t;
+    const s = s1 + (s2 - s1) * t;
+    const l = l1 + (l2 - l1) * t;
+    return hslToHex(h, s, l);
+  });
 };
 
 const blendModePool: BlendModeKey[] = [
@@ -687,9 +724,9 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
  * @param state - Complete generator state (palette, density, motion, etc.)
  * @returns Prepared sprite with layers, tiles, and background configuration
  */
-const computeSprite = (state: GeneratorState): PreparedSprite => {
+const computeSprite = (state: GeneratorState, overridePalette?: { id: string; colors: string[] }): PreparedSprite => {
   const rng = createMulberry32(hashSeed(state.seed));
-  const palette = getPalette(state.paletteId);
+  const palette = overridePalette ? { id: overridePalette.id, name: "", colors: overridePalette.colors } : getPalette(state.paletteId);
   const originalPaletteColors = palette.colors;
   // Allow variance up to 1.5 (150% internal value) for more color variation
   const variance = clamp(state.paletteVariance / 100, 0, 1.5);
@@ -697,6 +734,8 @@ const computeSprite = (state: GeneratorState): PreparedSprite => {
   const colorRng = createMulberry32(hashSeed(`${state.seed}-color`));
   const positionRng = createMulberry32(hashSeed(`${state.seed}-position`));
   // Apply global hue shift to palette colors (0-100 maps to 0-360 degrees)
+  // Note: If hueRotationEnabled, static hue shift will be applied during rendering instead
+  // to avoid double-shifting and ensure smooth animation
   const hueShiftDegrees = (state.hueShift / 100) * 360;
   const shiftedPalette = originalPaletteColors.map((color) =>
     shiftHue(color, hueShiftDegrees),
@@ -725,7 +764,9 @@ const computeSprite = (state: GeneratorState): PreparedSprite => {
   // Always calculate rotation range based on rotationAmount, regardless of rotationEnabled
   // This allows toggling rotationEnabled without regenerating sprites
   const rotationRange = degToRad(clamp(state.rotationAmount, 0, MAX_ROTATION_DEGREES));
-  const rotationSpeedBase = clamp(state.rotationSpeed, 0, 100) / 100;
+  // Add minimum speed floor of 5% so animation never fully stops
+  const minSpeed = 0.05; // 5% minimum
+  const rotationSpeedBase = Math.max(minSpeed, clamp(state.rotationSpeed, 1, 100) / 100);
 
   // Determine if we're using shape-based or SVG-based collection
   const collection = getCollection(state.spriteCollectionId || "primitives");
@@ -783,8 +824,12 @@ const computeSprite = (state: GeneratorState): PreparedSprite => {
     // Reduce tile count when DoF is enabled (blur is expensive) to maintain performance
     // Apply a 0.75x multiplier when DoF is enabled to reduce blur operations
     const dofTileCountMultiplier = state.depthOfFieldEnabled ? 0.75 : 1.0;
+    // Account for 16:9 aspect ratio - wider canvas needs slightly more tiles to fill horizontal space
+    // Use geometric mean of aspect ratio (16/9 ≈ 1.33) to scale tile count appropriately
+    const aspectRatioTileMultiplier = Math.sqrt(16 / 9); // ≈ 1.33 for 16:9, 1.0 for 1:1
     // Reduced base max tiles from 60 to 50 for better performance at high density
-    const maxTiles = Math.round(50 * modeTileCountMultiplier * dofTileCountMultiplier);
+    // Multiply by aspect ratio multiplier to account for wider canvas
+    const maxTiles = Math.round(50 * modeTileCountMultiplier * dofTileCountMultiplier * aspectRatioTileMultiplier);
     const minTiles = layerIndex === 0 ? 1 : 0;
     const desiredTiles = 1 + normalizedDensity * (maxTiles - 1);
     const tileTotal = Math.max(minTiles, Math.round(desiredTiles));
@@ -799,7 +844,13 @@ const computeSprite = (state: GeneratorState): PreparedSprite => {
       : state.blendMode;
     const opacity = clamp(opacityBase + (rng() - 0.5) * 0.35, 0.12, 0.95);
 
-    const gridCols = Math.max(1, Math.round(Math.sqrt(tileTotal)));
+    // Calculate grid dimensions that match canvas aspect ratio
+    // For 16:9 canvas, we want more columns than rows to fill the wider space
+    // Use canvas aspect ratio to determine grid proportions
+    // Note: This is calculated at sprite computation time, so we approximate based on typical 16:9
+    // The actual canvas dimensions will be used during rendering
+    const canvasAspectRatio = 16 / 9; // Default to 16:9 for projector aspect ratio
+    const gridCols = Math.max(1, Math.round(Math.sqrt(tileTotal * canvasAspectRatio)));
     const gridRows = Math.max(1, Math.ceil(tileTotal / gridCols));
     const tiles: PreparedTile[] = [];
 
@@ -984,6 +1035,12 @@ export interface SpriteController {
   setDepthOfFieldFocus: (value: number) => void;
   setDepthOfFieldStrength: (value: number) => void;
   setSpriteCollection: (collectionId: string) => void;
+  setHueRotationEnabled: (enabled: boolean) => void;
+  setHueRotationSpeed: (speed: number) => void;
+  setPaletteCycleEnabled: (enabled: boolean) => void;
+  setPaletteCycleSpeed: (speed: number) => void;
+  setCanvasHueRotationEnabled: (enabled: boolean) => void;
+  setCanvasHueRotationSpeed: (speed: number) => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
   applyMinimalGridPreset: () => void;
@@ -1105,26 +1162,31 @@ export const createSpriteController = (
     let scaledAnimationTime = 0; // Scaled time that accumulates smoothly
     let currentSpeedFactor = 1.0; // Current speed factor (smoothly interpolated)
     let targetSpeedFactor = 1.0; // Target speed factor from slider
+    // Independent animation timelines
+    let spriteHueRotationTime = 0; // Timeline for sprite hue rotation (10s period)
+    let paletteCycleTime = 0; // Timeline for palette cycling (30s period)
+    let canvasHueRotationTime = 0; // Timeline for canvas hue rotation (12s period)
+    let wasPaletteCycleEnabled = false; // Track palette cycling state to detect enable/disable
 
     p.setup = () => {
       try {
-        // Use the same sizing logic as resizeCanvas to ensure consistency
-        // Canvas should match the card's intended size, accounting for padding and border
-        const cardPadding = 40; // 20px each side = 40px total (spacing.5)
-        const cardBorder = 4; // 2px each side = 4px total
+        // Canvas uses 16:9 aspect ratio for projectors
+        // Calculate canvas dimensions based on container width
         const containerWidth = container.clientWidth || 0;
-        // Minimum card width is 320px, so minimum canvas size accounting for padding/border
-        const minCardWidth = 320;
-        const minCanvasSize = Math.max(0, minCardWidth - cardPadding - cardBorder); // 276px minimum canvas
-        // Calculate canvas size: container width, clamped between min (276px) and max (960px)
-        const size = Math.min(960, Math.max(minCanvasSize, containerWidth));
+        const minCanvasWidth = 320; // Minimum canvas width
+        const maxCanvasWidth = Infinity; // No max width - use full available area
         
-        // Validate size before creating canvas
-        if (size <= 0 || !isFinite(size)) {
-          console.error("Invalid canvas size:", size);
-          canvas = p.createCanvas(720, 720); // Fallback to default size
+        // Calculate canvas width: use container width, clamped to minimum
+        const canvasWidth = Math.max(minCanvasWidth, containerWidth);
+        // Calculate canvas height based on 16:9 aspect ratio
+        const canvasHeight = Math.round(canvasWidth * (9 / 16));
+        
+        // Validate dimensions before creating canvas
+        if (canvasWidth <= 0 || canvasHeight <= 0 || !isFinite(canvasWidth) || !isFinite(canvasHeight)) {
+          console.error("Invalid canvas dimensions:", canvasWidth, canvasHeight);
+          canvas = p.createCanvas(1280, 720); // Fallback to 16:9 default (1280x720)
         } else {
-          canvas = p.createCanvas(size, size);
+          canvas = p.createCanvas(canvasWidth, canvasHeight);
         }
         
         if (!container || !container.parentNode) {
@@ -1140,7 +1202,7 @@ export const createSpriteController = (
       } catch (error) {
         console.error("Error in p5.setup:", error);
         // Fallback to safe defaults
-        canvas = p.createCanvas(720, 720);
+        canvas = p.createCanvas(1280, 720); // Fallback to 16:9 default (1280x720)
         if (container && container.parentNode) {
           canvas.parent(container);
         }
@@ -1171,33 +1233,51 @@ export const createSpriteController = (
         (document as any).msFullscreenElement
       );
       
-      let size: number;
       if (isFullscreen) {
-        // In fullscreen: use viewport width to create a large square canvas
-        // CSS will scale it down to fit the height, making it appear larger
-        size = window.innerWidth;
+        // In fullscreen: use viewport dimensions with 16:9 aspect ratio
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        // Use the dimension that gives us the largest 16:9 canvas that fits
+        const widthBasedHeight = Math.round(viewportWidth * (9 / 16));
+        const heightBasedWidth = Math.round(viewportHeight * (16 / 9));
+        
+        let canvasWidth: number;
+        let canvasHeight: number;
+        
+        if (widthBasedHeight <= viewportHeight) {
+          // Width is the limiting factor
+          canvasWidth = viewportWidth;
+          canvasHeight = widthBasedHeight;
+        } else {
+          // Height is the limiting factor
+          canvasWidth = heightBasedWidth;
+          canvasHeight = viewportHeight;
+        }
+        
+        p.resizeCanvas(canvasWidth, canvasHeight);
+        return; // Early return
       } else {
-        // Normal mode: canvas should match the card's intended size, not the container's width
-        // The card has max width of 960px with:
-        //   - border: 2px solid (2px each side = 4px total)
-        //   - padding-inline: spacing.5 (20px each side = 40px total)
-        //   - box-sizing: border-box (border and padding included in width)
-        // The container's clientWidth excludes border and padding, so:
-        //   clientWidth = cardWidth - border - padding = 960 - 4 - 40 = 916px
-        // To get the intended canvas size (960px), we add padding back: 916 + 40 = 956px
-        // But we want 960px, so we need to add border too: 916 + 40 + 4 = 960px
-        // Minimum card width is 320px, so minimum canvas size accounting for padding/border
-        const cardPadding = 40; // 20px each side = 40px total (spacing.5)
-        const cardBorder = 4; // 2px each side = 4px total
+        // Normal mode: canvas uses 16:9 aspect ratio for projectors
+        // Calculate canvas dimensions based on container width
         const containerWidth = container.clientWidth || 0;
-        const minCardWidth = 320;
-        const minCanvasSize = Math.max(0, minCardWidth - cardPadding - cardBorder); // 276px minimum canvas
-        // Calculate canvas size: container width, clamped between min (276px) and max (960px)
-        size = Math.min(960, Math.max(minCanvasSize, containerWidth));
+        const minCanvasWidth = 320; // Minimum canvas width
+        
+        // Calculate canvas width: use container width, clamped to minimum
+        const canvasWidth = Math.max(minCanvasWidth, containerWidth);
+        // Calculate canvas height based on 16:9 aspect ratio
+        const canvasHeight = Math.round(canvasWidth * (9 / 16));
+        
+        // Validate dimensions
+        if (canvasWidth <= 0 || canvasHeight <= 0 || !isFinite(canvasWidth) || !isFinite(canvasHeight)) {
+          console.error("Invalid canvas dimensions:", canvasWidth, canvasHeight);
+          p.resizeCanvas(1280, 720); // Fallback to 16:9 default
+        } else {
+          p.resizeCanvas(canvasWidth, canvasHeight);
+        }
+        return; // Early return since we've handled resize
       }
       
-      // Resize the canvas - this may trigger p5.js to call windowResized internally
-      // but our flag will prevent recursive calls
+      // Legacy square canvas resize (should not be reached in normal mode)
       p.resizeCanvas(size, size);
       
       // Reset flag after resize completes
@@ -1257,9 +1337,13 @@ export const createSpriteController = (
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     p.draw = () => {
-      const drawSize = Math.min(p.width, p.height);
-      const offsetX = (p.width - drawSize) / 2;
-      const offsetY = (p.height - drawSize) / 2;
+      // Calculate sprite sizing that accounts for canvas aspect ratio
+      // For 16:9 canvas, use geometric mean to maintain consistent scale across aspect ratios
+      // This ensures sprites scale appropriately for wider canvases while maintaining visual consistency
+      // Geometric mean: sqrt(width * height) works well for non-square canvases
+      const drawSize = Math.sqrt(p.width * p.height);
+      const offsetX = 0; // No offset - use full width
+      const offsetY = 0; // No offset - use full height
       // CRITICAL: Use getter function to always read current state
       // This ensures we always read from the current state object, even after HMR module reloads
       // The closure captures the getState function, which always returns the current state
@@ -1268,7 +1352,97 @@ export const createSpriteController = (
       const deltaMs = typeof p.deltaTime === "number" ? p.deltaTime : 16.666;
       // Delta time for time-based effects
       (p as P5WithCanvas).deltaMs = deltaMs;
-      const backgroundHueShiftDegrees = (currentState.backgroundHueShift / 100) * 360;
+      const deltaTime = deltaMs / 16.666;
+      
+      // Update animation timelines
+      // Sprite hue rotation animation
+      if (currentState.hueRotationEnabled) {
+        // Add minimum speed floor of 5% so animation never fully stops
+        const minSpeed = 0.05; // 5% minimum
+        const speedFactor = Math.max(minSpeed, currentState.hueRotationSpeed / 100); // 0.05-1
+        spriteHueRotationTime += deltaTime * speedFactor * 0.1; // Scale to ~10s period at 100% speed
+        spriteHueRotationTime = spriteHueRotationTime % 10; // Wrap at 10 seconds
+      }
+      
+      // Palette cycling animation
+      if (currentState.paletteCycleEnabled) {
+        // Add minimum speed floor of 5% so animation never fully stops
+        const minSpeed = 0.05; // 5% minimum
+        const speedFactor = Math.max(minSpeed, currentState.paletteCycleSpeed / 100); // 0.05-1
+        // Reduced from 60s to 30s period at 100% speed for better pacing (~2s per palette)
+        paletteCycleTime += deltaTime * speedFactor * (1 / 30); // Scale to ~30s period at 100% speed
+        paletteCycleTime = paletteCycleTime % 30; // Wrap at 30 seconds
+      }
+      
+      // Canvas hue rotation animation
+      if (currentState.canvasHueRotationEnabled) {
+        // Add minimum speed floor of 5% so animation never fully stops
+        const minSpeed = 0.05; // 5% minimum
+        const speedFactor = Math.max(minSpeed, currentState.canvasHueRotationSpeed / 100); // 0.05-1
+        canvasHueRotationTime += deltaTime * speedFactor * (1 / 12); // Scale to ~12s period at 100% speed
+        canvasHueRotationTime = canvasHueRotationTime % 12; // Wrap at 12 seconds
+      }
+      
+      // Calculate animated hue shifts with smooth wrapping
+      // Use modulo to ensure smooth transitions when wrapping (360° = 0°)
+      const animatedSpriteHueShift = currentState.hueRotationEnabled
+        ? ((spriteHueRotationTime / 10) * 360) % 360
+        : 0;
+      const animatedCanvasHueShift = currentState.canvasHueRotationEnabled
+        ? ((canvasHueRotationTime / 12) * 360) % 360
+        : 0;
+      
+      // Get animated palette if cycling is enabled
+      let activePalette = getPalette(currentState.paletteId);
+      let paletteCycleInterpolation = 0; // 0-1 interpolation factor between palettes
+      
+      // Detect when palette cycling is enabled/disabled to recompute sprite structure
+      const paletteCycleJustEnabled = currentState.paletteCycleEnabled && !wasPaletteCycleEnabled;
+      const paletteCycleJustDisabled = !currentState.paletteCycleEnabled && wasPaletteCycleEnabled;
+      
+      if (currentState.paletteCycleEnabled) {
+        const allPalettes = getAllPalettes();
+        if (allPalettes.length > 0) {
+          const cycleProgress = (paletteCycleTime / 30) * allPalettes.length;
+          const currentPaletteIndex = Math.floor(cycleProgress) % allPalettes.length;
+          const nextIndex = (currentPaletteIndex + 1) % allPalettes.length;
+          paletteCycleInterpolation = cycleProgress % 1;
+          activePalette = {
+            ...allPalettes[currentPaletteIndex],
+            colors: interpolatePaletteColors(
+              allPalettes[currentPaletteIndex].colors,
+              allPalettes[nextIndex].colors,
+              paletteCycleInterpolation
+            ),
+          };
+          
+          // Only recompute sprite structure when palette cycling is first enabled
+          // During active cycling, colors are updated dynamically via getAnimatedTileColor
+          // This avoids expensive recomputation every ~7 seconds that causes stuttering
+          if (paletteCycleJustEnabled) {
+            // When sprite hue rotation is enabled, exclude static hue shift from computation
+            // to avoid double-shifting (it will be applied during rendering with animated shift)
+            const stateWithPalette = {
+              ...currentState,
+              paletteId: activePalette.id,
+              hueShift: currentState.hueRotationEnabled ? 0 : currentState.hueShift,
+            };
+            prepared = computeSprite(stateWithPalette, activePalette);
+          }
+        }
+      } else if (paletteCycleJustDisabled) {
+        // When palette cycling is disabled, recompute with the static palette
+        const stateWithPalette = {
+          ...currentState,
+          hueShift: currentState.hueRotationEnabled ? 0 : currentState.hueShift,
+        };
+        prepared = computeSprite(stateWithPalette);
+      }
+      
+      // Update tracking variable for next frame
+      wasPaletteCycleEnabled = currentState.paletteCycleEnabled;
+      
+      const backgroundHueShiftDegrees = ((currentState.backgroundHueShift / 100) * 360) + animatedCanvasHueShift;
       const MOTION_SPEED_MAX_INTERNAL = 12.5;
       // Apply mode-specific speed multiplier to normalize perceived speed across modes
       // Higher multiplier = slower animation (divide to slow down)
@@ -1277,7 +1451,6 @@ export const createSpriteController = (
       targetSpeedFactor = baseSpeedFactor / modeSpeedMultiplier;
       
       // Accumulate base time at constant rate
-      const deltaTime = deltaMs / 16.666;
       animationTime += deltaTime;
       
       // Smoothly interpolate speed factor to prevent jiggling
@@ -1307,9 +1480,38 @@ export const createSpriteController = (
       ctx.imageSmoothingEnabled = false;
       const backgroundBrightness = clamp(currentState.backgroundBrightness, 0, 100);
       const resolveBackgroundPaletteId = () =>
-        currentState.backgroundMode === "auto" ? currentState.paletteId : currentState.backgroundMode;
+        currentState.backgroundMode === "auto" ? (currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId) : currentState.backgroundMode;
       const applyCanvasAdjustments = (hex: string) =>
         applyHueAndBrightness(hex, backgroundHueShiftDegrees, backgroundBrightness);
+      
+      // Helper function to get animated tile color
+      // Handles palette cycling (updates color from animated palette) and sprite hue rotation
+      const getAnimatedTileColor = (tile: PreparedTile): string => {
+        let color = tile.tint;
+        
+        // If palette cycling is enabled, get color from animated palette and reapply variance
+        if (currentState.paletteCycleEnabled && activePalette) {
+          const paletteColor = activePalette.colors[tile.paletteColorIndex % activePalette.colors.length];
+          // Apply variance deterministically (same seed-based RNG as in computeSprite)
+          const variance = clamp(currentState.paletteVariance / 100, 0, 1.5);
+          const colorRng = createMulberry32(hashSeed(`${currentState.seed}-color-${tile.u}-${tile.v}`));
+          color = jitterColor(paletteColor, variance, colorRng);
+          // Don't apply static hue shift here if hue rotation is enabled (will be applied below)
+          if (!currentState.hueRotationEnabled) {
+            const staticHueShift = (currentState.hueShift / 100) * 360;
+            color = shiftHue(color, staticHueShift);
+          }
+        }
+        
+        // Apply sprite hue rotation (combines static and animated shifts)
+        if (currentState.hueRotationEnabled) {
+          const staticHueShift = (currentState.hueShift / 100) * 360;
+          const totalHueShift = staticHueShift + animatedSpriteHueShift;
+          color = shiftHue(color, totalHueShift);
+        }
+        
+        return color;
+      };
       
       // Handle canvas background (gradient or solid)
       if (currentState.canvasFillMode === "gradient") {
@@ -1455,8 +1657,8 @@ export const createSpriteController = (
               speedFactor: 1.0, // Speed is already applied to scaledAnimationTime
             });
             
-            const baseX = offsetX + normalizedU * drawSize + movement.offsetX;
-            const baseY = offsetY + normalizedV * drawSize + movement.offsetY;
+            const baseX = offsetX + normalizedU * p.width + movement.offsetX;
+            const baseY = offsetY + normalizedV * p.height + movement.offsetY;
             
             const finalMovement = movement;
             const shapeSize = baseShapeSize * finalMovement.scaleMultiplier;
@@ -1489,24 +1691,26 @@ export const createSpriteController = (
               ctx.filter = 'none';
             }
             const halfSize = shapeSize / 2;
-            const allowableOverflow = Math.max(drawSize * 0.6, shapeSize * 1.25);
+            const allowableOverflow = Math.max(Math.max(p.width, p.height) * 0.6, shapeSize * 1.25);
             
             // Clamp positions to canvas bounds with overflow allowance
             // Note: baseX/baseY already includes movement.offsetX/offsetY, so don't add it again
             const clampedX = clamp(
               baseX,
               offsetX + halfSize - allowableOverflow,
-              offsetX + drawSize - halfSize + allowableOverflow,
+              offsetX + p.width - halfSize + allowableOverflow,
             );
             const clampedY = clamp(
               baseY,
               offsetY + halfSize - allowableOverflow,
-              offsetY + drawSize - halfSize + allowableOverflow,
+              offsetY + p.height - halfSize + allowableOverflow,
             );
             p.translate(clampedX, clampedY);
             const rotationTime = scaledAnimationTime; // Use smoothly accumulating scaled time
             // Recalculate rotation speed dynamically from currentState (no regeneration needed)
-            const rotationSpeedBase = clamp(currentState.rotationSpeed, 0, 100) / 100;
+            // Add minimum speed floor of 5% so animation never fully stops
+            const minSpeed = 0.05; // 5% minimum
+            const rotationSpeedBase = Math.max(minSpeed, clamp(currentState.rotationSpeed, 1, 100) / 100);
             const rotationSpeed = currentState.rotationAnimated && rotationSpeedBase > 0
               ? rotationSpeedBase * ROTATION_SPEED_MAX * tile.rotationSpeedMultiplier
               : 0;
@@ -1520,6 +1724,9 @@ export const createSpriteController = (
               p.rotate(rotationAngle);
             }
             
+            // Get animated tile color (applies sprite hue rotation if enabled)
+            const animatedTileColor = getAnimatedTileColor(tile);
+            
             // Determine if we should use canvas context for gradients
             const useGradient = currentState.spriteFillMode === "gradient";
             let gradientObj: CanvasGradient | null = null;
@@ -1527,13 +1734,17 @@ export const createSpriteController = (
             if (useGradient) {
               // Use the palette color index to select the corresponding gradient
               // This ensures sprite using palette color 'b' uses gradient 'b'
-              const paletteGradients = getGradientsForPalette(currentState.paletteId);
+              const paletteGradients = getGradientsForPalette(currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId);
               if (paletteGradients.length > 0) {
                 const gradientIndex = tile.paletteColorIndex % paletteGradients.length;
                 const gradientPreset = paletteGradients[gradientIndex];
                 if (gradientPreset) {
                   // Apply hue shift and variance to gradient colors
-                  const hueShiftDegrees = ((currentState.hueShift ?? 0) / 100) * 360;
+                  // Combine static and animated hue shifts for smooth transitions
+                  const staticHueShift = ((currentState.hueShift ?? 0) / 100) * 360;
+                  const hueShiftDegrees = currentState.hueRotationEnabled 
+                    ? staticHueShift + animatedSpriteHueShift
+                    : staticHueShift;
                   const variance = clamp((currentState.paletteVariance ?? 68) / 100, 0, 1.5);
                   
                   // Apply hue shift and variance to each gradient color
@@ -1573,7 +1784,7 @@ export const createSpriteController = (
             
             if (!useGradient || !gradientObj) {
               // Solid color fill
-              const fillColor = p.color(tile.tint);
+              const fillColor = p.color(animatedTileColor);
               fillColor.setAlpha(opacityAlpha);
               p.fill(fillColor);
             }
@@ -1630,7 +1841,7 @@ export const createSpriteController = (
                   if (gradientObj) {
                     ctx.strokeStyle = gradientObj;
                   } else {
-                    const strokeColor = p.color(tile.tint);
+                    const strokeColor = p.color(animatedTileColor);
                     strokeColor.setAlpha(opacityAlpha);
                     ctx.strokeStyle = strokeColor.toString();
                   }
@@ -1872,7 +2083,7 @@ export const createSpriteController = (
               
               // Only fill if we didn't fill Path2D directly
               if (!path2DFilled) {
-                ctx.fill();
+              ctx.fill();
               }
               ctx.restore();
             } else {
@@ -1880,7 +2091,7 @@ export const createSpriteController = (
               // Access canvas context from p5.js
               const p5Ctx = p.drawingContext as CanvasRenderingContext2D;
               // Set fill style for Path2D shapes
-              const fillColor = p.color(tile.tint);
+              const fillColor = p.color(animatedTileColor);
               fillColor.setAlpha(opacityAlpha);
               p5Ctx.fillStyle = fillColor.toString();
               let path2DFilled = false;
@@ -1928,7 +2139,7 @@ export const createSpriteController = (
                   Math.sin((tileIndex + p.frameCount) * 0.03 + layerIndex) *
                   0.35;
                 p.noFill();
-                const strokeColor = p.color(tile.tint);
+                const strokeColor = p.color(animatedTileColor);
                 strokeColor.setAlpha(opacityAlpha);
                 p.stroke(strokeColor);
                 p.strokeWeight(strokeWeight);
@@ -2164,6 +2375,8 @@ export const createSpriteController = (
             p.pop();
           } else if (tile.kind === "svg") {
             // SVG sprite rendering
+            // Get animated tile color (applies sprite hue rotation if enabled)
+            const animatedTileColor = getAnimatedTileColor(tile);
             const baseSvgSize =
               baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
             movement = computeMovementOffsets(currentState.movementMode, {
@@ -2176,8 +2389,8 @@ export const createSpriteController = (
               speedFactor: 1.0,
             });
             
-            const baseX = offsetX + normalizedU * drawSize + movement.offsetX;
-            const baseY = offsetY + normalizedV * drawSize + movement.offsetY;
+            const baseX = offsetX + normalizedU * p.width + movement.offsetX;
+            const baseY = offsetY + normalizedV * p.height + movement.offsetY;
             
             const finalMovement = movement;
             const svgSize = baseSvgSize * finalMovement.scaleMultiplier;
@@ -2206,25 +2419,27 @@ export const createSpriteController = (
             }
             
             const halfSize = svgSize / 2;
-            const allowableOverflow = Math.max(drawSize * 0.6, svgSize * 1.25);
+            const allowableOverflow = Math.max(Math.max(p.width, p.height) * 0.6, svgSize * 1.25);
             
             // Clamp positions to canvas bounds with overflow allowance
             // Note: baseX/baseY already includes movement.offsetX/offsetY, so don't add it again
             const clampedX = clamp(
               baseX,
               offsetX + halfSize - allowableOverflow,
-              offsetX + drawSize - halfSize + allowableOverflow,
+              offsetX + p.width - halfSize + allowableOverflow,
             );
             const clampedY = clamp(
               baseY,
               offsetY + halfSize - allowableOverflow,
-              offsetY + drawSize - halfSize + allowableOverflow,
+              offsetY + p.height - halfSize + allowableOverflow,
             );
             p.translate(clampedX, clampedY);
             
             // Apply rotation
             const rotationTime = scaledAnimationTime;
-            const rotationSpeedBase = clamp(currentState.rotationSpeed, 0, 100) / 100;
+            // Add minimum speed floor of 5% so animation never fully stops
+            const minSpeed = 0.05; // 5% minimum
+            const rotationSpeedBase = Math.max(minSpeed, clamp(currentState.rotationSpeed, 1, 100) / 100);
             const rotationSpeed = currentState.rotationAnimated && rotationSpeedBase > 0
               ? rotationSpeedBase * ROTATION_SPEED_MAX * tile.rotationSpeedMultiplier
               : 0;
@@ -2291,7 +2506,7 @@ export const createSpriteController = (
                 
                 // Draw the path directly on canvas
                 ctx.globalCompositeOperation = "source-over";
-                ctx.fillStyle = tile.tint; // Use tint color directly
+                ctx.fillStyle = animatedTileColor; // Use animated color
                 
                 // Transform to center and scale the path
                 // First translate by negative viewBox origin, then scale, then center
@@ -2318,7 +2533,7 @@ export const createSpriteController = (
                 
                 // Apply tint color using multiply
                 ctx.globalCompositeOperation = "multiply";
-                ctx.fillStyle = tile.tint;
+                ctx.fillStyle = animatedTileColor;
                 ctx.fillRect(-scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
               }
               
@@ -2634,7 +2849,7 @@ export const createSpriteController = (
       });
     },
     setRotationSpeed: (value: number) => {
-      applyState({ rotationSpeed: clamp(value, 0, 100) });
+      applyState({ rotationSpeed: clamp(value, 1, 100) });
     },
     setRotationAnimated: (value: boolean) => {
       stateRef.current.rotationAnimated = value;
@@ -2763,6 +2978,24 @@ export const createSpriteController = (
           applyState({ spriteCollectionId: collectionId });
         }
       }
+    },
+    setHueRotationEnabled: (enabled: boolean) => {
+      applyState({ hueRotationEnabled: enabled }, { recompute: false });
+    },
+    setHueRotationSpeed: (speed: number) => {
+      applyState({ hueRotationSpeed: clamp(speed, 1, 100) }, { recompute: false });
+    },
+    setPaletteCycleEnabled: (enabled: boolean) => {
+      applyState({ paletteCycleEnabled: enabled }, { recompute: false });
+    },
+    setPaletteCycleSpeed: (speed: number) => {
+      applyState({ paletteCycleSpeed: clamp(speed, 1, 100) }, { recompute: false });
+    },
+    setCanvasHueRotationEnabled: (enabled: boolean) => {
+      applyState({ canvasHueRotationEnabled: enabled }, { recompute: false });
+    },
+    setCanvasHueRotationSpeed: (speed: number) => {
+      applyState({ canvasHueRotationSpeed: clamp(speed, 1, 100) }, { recompute: false });
     },
     applySingleTilePreset: () => {
       updateSeed();

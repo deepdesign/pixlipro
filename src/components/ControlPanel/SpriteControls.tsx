@@ -1,6 +1,6 @@
 import { useRef, useMemo } from "react";
 import { Button } from "@/components/Button";
-import { Switch } from "@/components/retroui/Switch";
+import { Switch } from "@/components/catalyst/switch-adapter";
 import { Lock, Unlock, RefreshCw } from "lucide-react";
 import { SPRITE_MODES } from "@/constants/sprites";
 import { getAllCollections, getCollection } from "@/constants/spriteCollections";

@@ -1,4 +1,5 @@
 import { DEFAULT_STATE, type GeneratorState } from "@/generator";
+import { generateExportFilename } from "@/lib/services/exportService";
 
 type LegacyPresetStateExtras = {
   iconId?: string;
@@ -32,13 +33,20 @@ export const getAllPresets = (): Preset[] => {
   }
 };
 
+const generatePresetName = (state: GeneratorState): string => {
+  const exportName = generateExportFilename(state);
+  // Remove .png extension and timestamp (format: -YYYYMMDD-HHMM)
+  return exportName.replace(/\.png$/, "").replace(/-\d{8}-\d{4}$/, "");
+};
+
 export const savePreset = (name: string, state: GeneratorState): Preset => {
   const presets = getAllPresets();
   const now = Date.now();
   const stateSnapshot: GeneratorState = { ...state };
+  const presetName = name.trim() || generatePresetName(state);
   const preset: Preset = {
     id: `preset-${now}-${Math.random().toString(36).substring(2, 9)}`,
-    name: name.trim() || `Preset ${presets.length + 1}`,
+    name: presetName,
     state: stateSnapshot,
     createdAt: now,
     updatedAt: now,

@@ -1,49 +1,47 @@
 import { useRef, useMemo, useCallback, useState } from "react";
 import { Button } from "@/components/Button";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectValue,
-} from "@/components/retroui/Select";
 import { MobileMenu } from "@/components/MobileMenu";
 import { PixliLogo } from "./PixliLogo";
 import { useHeaderOverflow } from "@/hooks/useHeaderOverflow";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import {
-  THEME_COLOR_OPTIONS,
-  THEME_COLOR_PREVIEW,
-  type ThemeColor,
-} from "@/constants/theme";
-import { Moon, Monitor, Sun, HelpCircle } from "lucide-react";
-import type { CSSProperties } from "react";
+import { useSidebar } from "@/context/SidebarContext";
+import { Moon, Monitor, Sun, HelpCircle, Settings, Menu, X } from "lucide-react";
 // Help has moved under Settings; header Help menu removed
 
 interface HeaderProps {
   themeMode: "system" | "light" | "dark";
-  themeColor: ThemeColor;
-  themeShape: "box" | "rounded";
   onThemeModeChange: (mode: "system" | "light" | "dark") => void;
-  onThemeColorChange: (color: ThemeColor) => void;
-  onThemeShapeChange: (shape: "box" | "rounded") => void;
   onOpenOnboarding?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function Header({
   themeMode,
-  themeColor,
-  themeShape,
   onThemeModeChange,
-  onThemeColorChange,
-  onThemeShapeChange,
   onOpenOnboarding,
+  onOpenSettings,
 }: HeaderProps) {
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const isMobile = useIsMobile();
   const headerToolbarRef = useRef<HTMLDivElement | null>(null);
   const headerActionsRef = useRef<HTMLDivElement | null>(null);
+  
+  // Sidebar context (may not be available if not wrapped in SidebarProvider)
+  let sidebarContext: ReturnType<typeof useSidebar> | null = null;
+  try {
+    sidebarContext = useSidebar();
+  } catch {
+    // Sidebar context not available, sidebar toggle won't work
+  }
+  
+  const handleSidebarToggle = () => {
+    if (!sidebarContext) return;
+    if (window.innerWidth >= 1024) {
+      sidebarContext.toggleSidebar();
+    } else {
+      sidebarContext.toggleMobileSidebar();
+    }
+  };
 
   const {
     showHeaderOverflow,
@@ -58,9 +56,6 @@ export function Header({
     );
   }, [themeMode, onThemeModeChange]);
 
-  const cycleThemeShape = useCallback(() => {
-    onThemeShapeChange(themeShape === "box" ? "rounded" : "box");
-  }, [themeShape, onThemeShapeChange]);
 
   const themeModeText = useMemo(() => {
     switch (themeMode) {
@@ -86,35 +81,27 @@ export function Header({
 
   const ThemeModeIconComponent = ThemeModeIcon;
 
-  const handleThemeSelect = useCallback(
-    (value: string) => {
-      const validColors = [
-        "amber",
-        "violet",
-        "ember",
-        "lagoon",
-        "rose",
-        "battleship",
-        "cyan",
-      ];
-      if (validColors.includes(value)) {
-        onThemeColorChange(value as ThemeColor);
-      }
-    },
-    [onThemeColorChange],
-  );
-
-  const handleShapeSelect = useCallback(
-    (value: string) => {
-      onThemeShapeChange(value === "rounded" ? "rounded" : "box");
-    },
-    [onThemeShapeChange],
-  );
 
   return (
-    <header className={`app-header${isMobile ? " app-header--mobile" : ""}`}>
+    <header className={`app-header sticky top-0 z-50 bg-[var(--bg-top)] border-b border-[var(--panel-border)]${isMobile ? " app-header--mobile" : ""}`}>
       {isMobile ? (
         <div className="app-header-mobile-row">
+          {sidebarContext && (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="icon-button header-icon-button lg:hidden"
+              onClick={handleSidebarToggle}
+              aria-label="Toggle Sidebar"
+            >
+              {sidebarContext.isMobileOpen ? (
+                <X className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Menu className="h-4 w-4" aria-hidden="true" />
+              )}
+            </Button>
+          )}
           <div
             className="app-logo-button app-logo-button--mobile"
             aria-label="Pixli: generative art toy"
@@ -122,6 +109,19 @@ export function Header({
             <PixliLogo className="app-logo-svg" />
           </div>
           <div className="flex items-center gap-2">
+            {onOpenSettings && (
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="icon-button header-icon-button"
+                onClick={onOpenSettings}
+                aria-label="Open settings"
+                title="Settings"
+              >
+                <Settings className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
             {onOpenOnboarding && (
               <Button
                 type="button"
@@ -135,255 +135,76 @@ export function Header({
                 <HelpCircle className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
-            <MobileMenu
-              themeColor={themeColor}
-              themeShape={themeShape}
-              themeModeText={themeModeText}
-              ThemeModeIcon={ThemeModeIconComponent}
-              onThemeColorChange={handleThemeSelect}
-              onThemeShapeChange={handleShapeSelect}
-              onThemeModeCycle={cycleThemeMode}
-              themeColorOptions={THEME_COLOR_OPTIONS}
-              themeColorPreview={THEME_COLOR_PREVIEW}
-            />
+          <MobileMenu
+            themeModeText={themeModeText}
+            ThemeModeIcon={ThemeModeIconComponent}
+            onThemeModeCycle={cycleThemeMode}
+          />
           </div>
         </div>
       ) : (
         <>
+          {sidebarContext && (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="icon-button header-icon-button"
+              onClick={handleSidebarToggle}
+              aria-label="Toggle Sidebar"
+              title="Toggle Sidebar"
+            >
+              {sidebarContext.isExpanded ? (
+                <Menu className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Menu className="h-4 w-4" aria-hidden="true" />
+              )}
+            </Button>
+          )}
           <div className="app-logo-button" aria-label="Pixli">
             <PixliLogo className="app-logo-svg" />
           </div>
           <div className="header-toolbar" ref={headerToolbarRef}>
             <div className="header-spacer"></div>
-            {showHeaderOverflow ? (
-              <div className="header-actions header-actions--overflow">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  className="icon-button header-icon-button header-overflow-trigger"
-                  onClick={() => setIsHeaderOverflowOpen((prev) => !prev)}
-                  aria-label="Theme options"
-                  aria-expanded={isHeaderOverflowOpen}
-                  ref={headerOverflowTriggerRef}
-                >
-                  <svg
-                    width={16}
-                    height={16}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    style={{ display: "block" }}
-                    aria-hidden="true"
-                  >
-                    <line x1={3} y1={6} x2={21} y2={6} />
-                    <line x1={3} y1={12} x2={21} y2={12} />
-                    <line x1={3} y1={18} x2={21} y2={18} />
-                  </svg>
-                </Button>
-                {isHeaderOverflowOpen && (
-                  <div
-                    className="header-overflow-popover"
-                    role="dialog"
-                    aria-label="Theme options"
-                  >
-                    <div className="header-overflow-content">
-                      {onOpenOnboarding && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="md"
-                        onClick={() => {
-                          setIsHeaderOverflowOpen(false);
-                            onOpenOnboarding();
-                        }}
-                        className="w-full justify-start gap-2"
-                      >
-                        <HelpCircle className="h-4 w-4" />
-                        Help
-                      </Button>
-                      )}
-                      <div className="header-overflow-divider"></div>
-                      <div className="header-overflow-theme-section">
-                        <Select value={themeColor} onValueChange={handleThemeSelect}>
-                        <SelectTrigger
-                          className="header-theme-trigger"
-                          aria-label="Theme colour"
-                        >
-                          <SelectValue placeholder="Theme">
-                            {THEME_COLOR_OPTIONS.find(
-                              (option) => option.value === themeColor,
-                            )?.label ?? "Theme"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent className="header-theme-menu">
-                          <SelectGroup>
-                            {THEME_COLOR_OPTIONS.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                                className="header-theme-item"
-                                style={
-                                  {
-                                    "--theme-preview": THEME_COLOR_PREVIEW[option.value],
-                                  } as CSSProperties
-                                }
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="icon-button header-icon-button"
-                        onClick={cycleThemeShape}
-                        aria-label={`Switch theme shape (current ${themeShape === "rounded" ? "rounded" : "box"})`}
-                        title={`Shape: ${themeShape === "rounded" ? "Rounded" : "Box"}`}
-                      >
-                        {themeShape === "rounded" ? (
-                          <svg
-                            width={16}
-                            height={16}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            style={{ display: "block" }}
-                            aria-hidden="true"
-                          >
-                            <rect x={4} y={4} width={16} height={16} rx={3} ry={3} />
-                          </svg>
-                        ) : (
-                          <svg
-                            width={16}
-                            height={16}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            style={{ display: "block" }}
-                            aria-hidden="true"
-                          >
-                            <rect x={4} y={4} width={16} height={16} />
-                          </svg>
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        className="icon-button header-icon-button"
-                        onClick={cycleThemeMode}
-                        aria-label={`Switch theme mode (current ${themeModeText})`}
-                        title={`Theme: ${themeModeText}`}
-                      >
-                        <ThemeModeIconComponent className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="header-actions" ref={headerActionsRef}>
-                {onOpenOnboarding && (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    className="icon-button header-icon-button"
-                    onClick={onOpenOnboarding}
-                    aria-label="Open help and onboarding"
-                    title="Help & Getting Started"
-                  >
-                    <HelpCircle className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                )}
-                <Select value={themeColor} onValueChange={handleThemeSelect}>
-                  <SelectTrigger
-                    className="header-theme-trigger"
-                    aria-label="Theme colour"
-                  >
-                    <SelectValue placeholder="Theme">
-                      {THEME_COLOR_OPTIONS.find(
-                        (option) => option.value === themeColor,
-                      )?.label ?? "Theme"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="header-theme-menu">
-                    <SelectGroup>
-                      {THEME_COLOR_OPTIONS.map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value}
-                          className="header-theme-item"
-                          style={
-                            {
-                              "--theme-preview": THEME_COLOR_PREVIEW[option.value],
-                            } as CSSProperties
-                          }
-                        >
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+            <div className="header-actions" ref={headerActionsRef}>
+              {onOpenSettings && (
                 <Button
                   type="button"
                   size="icon"
                   variant="outline"
                   className="icon-button header-icon-button"
-                  onClick={cycleThemeShape}
-                  aria-label={`Switch theme shape (current ${themeShape === "rounded" ? "rounded" : "box"})`}
-                  title={`Shape: ${themeShape === "rounded" ? "Rounded" : "Box"}`}
+                  onClick={onOpenSettings}
+                  aria-label="Open settings"
+                  title="Settings"
                 >
-                  {themeShape === "rounded" ? (
-                    <svg
-                      width={16}
-                      height={16}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      style={{ display: "block" }}
-                      aria-hidden="true"
-                    >
-                      <rect x={4} y={4} width={16} height={16} rx={3} ry={3} />
-                    </svg>
-                  ) : (
-                    <svg
-                      width={16}
-                      height={16}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      style={{ display: "block" }}
-                      aria-hidden="true"
-                    >
-                      <rect x={4} y={4} width={16} height={16} />
-                    </svg>
-                  )}
+                  <Settings className="h-4 w-4" aria-hidden="true" />
                 </Button>
+              )}
+              {onOpenOnboarding && (
                 <Button
                   type="button"
                   size="icon"
                   variant="outline"
                   className="icon-button header-icon-button"
-                  onClick={cycleThemeMode}
-                  aria-label={`Switch theme mode (current ${themeModeText})`}
-                  title={`Theme: ${themeModeText}`}
+                  onClick={onOpenOnboarding}
+                  aria-label="Open help and onboarding"
+                  title="Help & Getting Started"
                 >
-                  <ThemeModeIconComponent className="h-4 w-4" aria-hidden="true" />
+                  <HelpCircle className="h-4 w-4" aria-hidden="true" />
                 </Button>
-              </div>
-            )}
+              )}
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="icon-button header-icon-button"
+                onClick={cycleThemeMode}
+                aria-label={`Switch theme mode (current ${themeModeText})`}
+                title={`Theme: ${themeModeText}`}
+              >
+                <ThemeModeIconComponent className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
           </div>
         </>
       )}
