@@ -1330,20 +1330,20 @@ html[data-theme="dark"] body {
   padding-bottom: 0; /* Footer uses internal padding only */
   gap: 0;
   width: 100%;
-  max-width: 100%;
+  max-width: none; /* Allow unlimited scaling */
   overflow-x: hidden;
   overflow-y: auto; /* Allow scrolling within content area */
   box-sizing: border-box;
 }
 
 .app-frame {
-  width: min(100%, var(--layout-max-width-split-with-padding));
+  width: 100%;
   margin-inline: auto;
   position: relative;
   box-sizing: border-box;
   overflow-x: hidden;
   overflow-y: visible;
-  max-width: 100%;
+  max-width: none; /* Allow unlimited scaling */
 }
 
 /* On mobile, header frame should be full width to match main frame */
@@ -1364,19 +1364,15 @@ html[data-theme="dark"] body {
 }
 
 .app-frame--compact {
-  width: clamp(
-    var(--layout-min-width-compact),
-    100%,
-    calc(960px + var(--control-column-width) + theme("spacing.6") * 2)
-  );
+  width: 100%;
+  min-width: var(--layout-min-width-compact);
+  max-width: none; /* Allow unlimited scaling */
 }
 
 .app-frame--stacked {
-  width: clamp(
-    var(--layout-min-width-stacked),
-    100%,
-    calc(960px + var(--control-column-width) + theme("spacing.6") * 2)
-  );
+  width: 100%;
+  min-width: var(--layout-min-width-stacked);
+  max-width: none; /* Allow unlimited scaling */
 }
 
 .app-frame--main {
@@ -1398,14 +1394,10 @@ html[data-theme="dark"] body {
   max-width: 100% !important; /* Force full width */
   z-index: 60; /* Higher than sidebar (z-50) to ensure border is visible */
   background-color: var(--bg-top);
-  border-top: 1px solid rgb(226 232 240); /* slate-200 - matches vertical borders */
+  @apply border-t border-slate-200 dark:border-slate-800; /* Matches status bar and section dividers */
   margin-bottom: 0;
   margin-left: 0 !important;
   margin-right: 0 !important;
-}
-
-.dark .app-frame--footer {
-  border-top-color: rgb(30 41 59); /* slate-800 - matches vertical borders */
 }
 
 /* Remove footer frame margin on mobile */
@@ -1753,7 +1745,7 @@ body:has(.app-layout--wide) .app-header {
 .app-layout--small-canvas .display-column {
   order: -1 !important;
   width: 100% !important;
-  max-width: 100% !important;
+  max-width: none !important; /* Allow unlimited scaling */
   min-width: 0 !important;
   min-height: 0 !important;
   flex: 0 1 auto !important; /* Prevent growing - only shrink if needed */
@@ -1783,7 +1775,7 @@ body:has(.app-layout--wide) .app-header {
   margin: 0 !important;
   width: 100%;
   min-width: 0 !important; /* Allow cards to shrink below 320px when constrained by container */
-  max-width: 100% !important; /* Prevent cards from exceeding container width */
+  max-width: none !important; /* Allow unlimited scaling */
 }
 
 /* Mobile Layout */
@@ -1810,7 +1802,7 @@ body:has(.app-layout--wide) .app-header {
   .app-layout--mobile .control-column,
   .app-layout--mobile .display-column {
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: none !important; /* Allow unlimited scaling */
     min-width: 0 !important;
     flex: 1 1 auto !important;
     overflow: visible !important; /* Allow drop shadows to show */
@@ -1859,12 +1851,12 @@ body:has(.app-layout--wide) .app-header {
   .app-layout--mobile .canvas-card-shell,
   .app-layout--mobile .canvas-card {
     width: 100%;
-    max-width: 100%;
+    max-width: none !important; /* Allow unlimited scaling */
   }
 
   .app-layout--mobile .display-column {
     min-width: 0;
-    max-width: 100%;
+    max-width: none !important; /* Allow unlimited scaling */
   }
 
   /* Header adjustments for mobile - spacing.3 padding for .app-header--mobile */
@@ -2715,6 +2707,8 @@ body:has(.app-frame--stacked) .header-toolbar {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: none; /* Allow unlimited scaling */
 }
 
 /* CRITICAL: Lock .app-main padding when cards are stacked - DO NOT ALLOW TO COLLAPSE */
@@ -2738,6 +2732,9 @@ body:has(.app-frame--stacked) .header-toolbar {
   gap: theme("spacing.5"); /* layout.gap.small-canvas */
   flex-wrap: nowrap;
   align-items: flex-start;
+  min-width: 0; /* Allow flex items to shrink below content size */
+  width: 100%;
+  max-width: none; /* Allow unlimited scaling */
 }
 
 /* Canvas butts up left - remove gap before display-column */
@@ -2824,14 +2821,13 @@ body:has(.app-frame--stacked) .header-toolbar {
  * Contains the main canvas/canvas-card
  * 
  * Flex properties:
- *   flex: 1 - Grows to fill available space, but constrained by max-width
+ *   flex: 1 - Grows to fill available space, no max-width constraint
  *   flex-basis: 0 - Starts from zero, allowing smooth growth
  *   min-width: 0 - Allows column to shrink freely, canvas card has its own min-width
- *   max-width: 960px - Prevents column from growing beyond canvas max size
- *                      This keeps the motion column close to the canvas
+ *   max-width: none - No maximum width constraint, allows unlimited scaling
  * 
- * The canvas-card inside scales with container width, clamped between
- * minimum (480px) and maximum (960px) sizes
+ * The canvas-card inside scales with container width, maintaining aspect ratio
+ * Minimum width: 320px, no maximum width limit
  */
 .display-column {
   @apply flex flex-1 flex-col items-start;
@@ -2849,8 +2845,9 @@ body:has(.app-frame--stacked) .header-toolbar {
 }
 
 .app-layout--studio .display-column {
-  width: clamp(960px, 70vw, 960px);
-  flex: 0 0 clamp(960px, 70vw, 960px);
+  /* Allow display column to scale freely - no width constraint */
+  flex: 1;
+  width: auto;
 }
 
 .panel,
@@ -2990,7 +2987,7 @@ body:has(.app-frame--stacked) .control-card:last-child {
 
 body:has(.app-frame--stacked) .canvas-card-shell {
   min-width: 0 !important; /* Allow canvas card shell to shrink below 320px when stacked */
-  max-width: 100% !important; /* Prevent exceeding container width */
+  max-width: none !important; /* Allow unlimited scaling */
 }
 
 .panel-heading {
@@ -3046,6 +3043,11 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   color: var(--heading-color);
   margin: 0;
   margin-bottom: theme("spacing.0"); /* section.heading.margin.bottom.desktop */
+}
+
+/* Dark mode: section titles should be white */
+[data-theme="dark"] .section-title {
+  color: white !important;
 }
 
 .section-hint {
@@ -3131,96 +3133,104 @@ button[aria-label*="refresh"] {
   flex: 1;
 }
 
-/* Lock button - naked variant by default, red when locked */
-.control-lock-button {
-  flex-shrink: 0 !important;
-  /* Naked variant - no background by default */
-  background-color: transparent !important;
-  border: 0 !important;
-  color: rgb(113 113 122) !important; /* zinc-500 */
-  box-shadow: none !important;
-}
-
-.dark .control-lock-button {
-  color: rgb(209 213 219) !important; /* gray-300 */
-}
-
-.control-lock-button:hover:not(:disabled) {
-  background-color: rgb(249 250 251) !important; /* gray-50 */
-}
-
-.dark .control-lock-button:hover:not(:disabled) {
-  background-color: rgba(31, 41, 55, 0.5) !important; /* gray-800/50 */
-}
-
-/* Lock button when locked - red background */
-.control-lock-button[data-locked="true"],
-.control-lock-button[data-locked="true"]:hover:not(:disabled) {
-  background-color: rgb(220 38 38) !important; /* red-600 */
-  color: white !important;
-  box-shadow: none !important;
-}
-
-.control-lock-button[data-locked="true"]:active:not(:disabled) {
-  background-color: rgb(185 28 28) !important; /* red-700 */
-}
-
-/* Icon button base styles */
+/* Icon button base styles - layout and behavior only */
 .icon-button {
-  border: 0 !important;
+  @apply border-0 p-0 inline-flex items-center justify-center flex-shrink-0;
+  @apply transition-colors cursor-pointer select-none;
+  @apply focus-visible:outline-none;
   box-shadow: none !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-  transition: background-color 0.2s ease, color 0.2s ease !important;
-  cursor: pointer !important;
-  user-select: none !important;
   -webkit-tap-highlight-color: transparent !important;
   touch-action: manipulation !important;
 }
 
-/* Icon button variant classes are handled by Tailwind classes in Button component */
-/* These are just for any edge cases or overrides if needed */
-.icon-button--background {
-  /* Styling handled by Tailwind classes in Button component */
+/* Icon button hover - no background change, handled by variant classes */
+.icon-button:hover:not(:disabled) {
+  box-shadow: none !important;
 }
 
-.icon-button--naked {
-  /* Styling handled by Tailwind classes in Button component */
+/* Icon button active state - uses theme accent color */
+.icon-button:active:not(:disabled) {
+  @apply bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)];
+  box-shadow: none !important;
 }
 
-/* Selected state is now handled by Button component Tailwind classes */
+/* Lock button - naked variant by default */
+.control-lock-button {
+  @apply flex-shrink-0 bg-transparent border-0;
+  @apply text-slate-500 dark:text-slate-300;
+  box-shadow: none !important;
+}
 
-/* Icon button style for NavbarItem components - no background in default state */
+.control-lock-button:hover:not(:disabled) {
+  @apply bg-slate-50 dark:bg-slate-800/50;
+}
+
+/* Lock button active state when UNLOCKED - keeps hover background, not theme color */
+/* Must override .icon-button:active which applies theme accent color */
+.control-lock-button:active:not(:disabled):not([data-locked="true"]),
+.icon-button.control-lock-button:active:not(:disabled):not([data-locked="true"]),
+.control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) {
+  box-shadow: none !important;
+  /* Explicitly override .icon-button:active theme accent color - match hover state */
+  background-color: rgb(248 250 252) !important; /* slate-50 */
+  background: rgb(248 250 252) !important;
+  color: rgb(100 116 139) !important; /* slate-500 */
+}
+
+/* Dark mode active state */
+[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]),
+[data-theme="dark"] .icon-button.control-lock-button:active:not(:disabled):not([data-locked="true"]),
+[data-theme="dark"] .control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) {
+  background-color: rgba(30, 41, 59, 0.5) !important; /* slate-800/50 */
+  background: rgba(30, 41, 59, 0.5) !important;
+  color: rgb(203 213 225) !important; /* slate-300 */
+}
+
+/* Lock button when locked - red background */
+.control-lock-button[data-locked="true"] {
+  @apply bg-red-600 text-white;
+  box-shadow: none !important;
+}
+
+.control-lock-button[data-locked="true"]:hover:not(:disabled) {
+  @apply bg-red-700 dark:bg-red-600;
+}
+
+/* Lock button active state when LOCKED - red, not theme color (must override .icon-button:active) */
+.control-lock-button[data-locked="true"]:active:not(:disabled),
+.icon-button.control-lock-button[data-locked="true"]:active:not(:disabled),
+.control-lock-button.icon-button[data-locked="true"]:active:not(:disabled) {
+  @apply text-white;
+  box-shadow: none !important;
+  /* Explicitly override hover background */
+  background-color: rgb(220 38 38) !important; /* red-600 */
+  background: rgb(220 38 38) !important; /* red-600 */
+  color: white !important;
+}
+
+/* Ensure SVG icons in active locked button use white */
+.control-lock-button[data-locked="true"]:active:not(:disabled) svg,
+.icon-button.control-lock-button[data-locked="true"]:active:not(:disabled) svg,
+.control-lock-button.icon-button[data-locked="true"]:active:not(:disabled) svg {
+  color: white !important;
+}
+
+.control-lock-button-locked {
+  /* Selected state styling handled by Button component */
+}
+
+/* Icon button style for NavbarItem components */
 .icon-button-nav button,
 .icon-button-nav a {
-  border: 0 !important;
-  padding: 0.5rem !important;
-  background: transparent !important;
-  color: rgb(113 113 122) !important; /* zinc-500 */
-  border-radius: 0.375rem !important; /* rounded-md */
-  transition: background-color 0.2s ease !important;
+  @apply border-0 p-2 bg-transparent rounded-md transition-colors;
+  @apply text-zinc-500 dark:text-gray-300;
 }
 
 .icon-button-nav button:hover,
 .icon-button-nav a:hover,
 .icon-button-nav button[data-hover],
 .icon-button-nav a[data-hover] {
-  background: rgb(249 250 251) !important; /* gray-50 */
-}
-
-.dark .icon-button-nav button,
-.dark .icon-button-nav a {
-  color: rgb(209 213 219) !important; /* gray-300 */
-}
-
-.dark .icon-button-nav button:hover,
-.dark .icon-button-nav a:hover,
-.dark .icon-button-nav button[data-hover],
-.dark .icon-button-nav a[data-hover] {
-  background: rgba(31, 41, 55, 0.5) !important; /* gray-800/50 */
+  @apply bg-gray-50 dark:bg-gray-800/50;
 }
 
 /* Ensure SVG icons inside icon buttons use currentColor and proper size */
@@ -3237,6 +3247,27 @@ button.header-icon-button svg,
   min-height: 1rem !important;
   max-width: 1rem !important;
   max-height: 1rem !important;
+}
+
+/* Dark mode: all icon button icons should be white */
+/* Active/selected states will override this with their specific contrast colors */
+[data-theme="dark"] .icon-button svg,
+[data-theme="dark"] .header-icon-button svg,
+[data-theme="dark"] button.icon-button svg,
+[data-theme="dark"] button.header-icon-button svg,
+[data-theme="dark"] [class*="icon-button"] svg {
+  color: white !important;
+}
+
+/* Dark mode: header tab icons should match help icon color (slate-400) */
+[data-theme="dark"] .app-header nav button svg {
+  color: rgb(148 163 184) !important; /* slate-400 - matches help icons */
+}
+
+/* Right-align header navigation tabs and match status bar padding */
+/* Status bar has padding-left and padding-right of spacing.5 (20px) */
+.app-header nav {
+  padding-right: theme("spacing.5"); /* Match status bar right padding (20px) */
 }
 
 /* Icon button icon sizing */
@@ -3340,22 +3371,16 @@ button.header-icon-button > svg {
   stroke-width: 0 !important;
 }
 
-.icon-button:hover:not(:disabled) {
-  box-shadow: none !important;
-}
-
 /* Selected button state - default variant buttons (selected) */
 button.bg-primary.border-black {
   border-color: var(--accent-primary) !important;
   box-shadow: none !important;
 }
 
-/* Selected button hover - shadow animates from 3px to 5px */
 button.bg-primary.border-black:hover:not(:active) {
   box-shadow: none !important;
 }
 
-/* Selected button active/click - shadow animates to 0px for smooth transition */
 button.bg-primary.border-black:active {
   box-shadow: none !important;
 }
@@ -3397,17 +3422,6 @@ button.bg-primary.button-selected:active {
   box-shadow: 0px 0px 0 0 transparent !important;
 }
 
-.icon-button:active:not(:disabled) {
-  box-shadow: none !important;
-  background-color: var(--accent-primary) !important;
-  color: var(--accent-primary-contrast) !important;
-}
-
-.control-lock-button-locked {
-  /* Selected state styling handled by Button component variant="default" */
-  /* No transform or box-shadow - keep button in place */
-}
-
 .field-heading {
   @apply flex items-center justify-between;
   gap: theme("spacing.2"); /* section.control.heading.gap.desktop */
@@ -3422,7 +3436,7 @@ button.bg-primary.button-selected:active {
   font-size: 0.58rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--text-subtle);
+  @apply text-slate-600 dark:text-slate-300; /* Light slate tint in dark mode */
 }
 
 .field-value {
@@ -4015,7 +4029,7 @@ button.bg-primary.button-selected:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-subtle);
+  @apply text-slate-500 dark:text-slate-400; /* Slightly darker than label text (slate-300) in dark mode */
   background: transparent;
   border: none;
   border-radius: 0;
@@ -4110,16 +4124,16 @@ button.bg-primary.button-selected:active {
 
 /* Canvas Card
  * 
- * Smooth scaling between minimum (400px) and maximum (960px) sizes
+ * Scales with container width, maintaining aspect ratio
  * 
- * Uses 100% of container width to scale with available space, clamped between min and max
+ * Uses 100% of container width to scale with available space
  * 
  * - width: 100% allows card to fill its container (display-column)
- * - min-width: 400px ensures card doesn't get too small
- * - max-width: 960px prevents card from exceeding optimal size
+ * - min-width: 320px ensures card doesn't get too small
+ * - max-width: none - no maximum width constraint, allows unlimited scaling
  * 
  * The container (display-column) handles the flex shrinking, allowing the card
- * to scale smoothly as the viewport changes.
+ * to scale smoothly as the viewport changes while maintaining aspect ratio.
  */
 .canvas-card-shell {
   width: 100%;
@@ -4132,6 +4146,12 @@ button.bg-primary.button-selected:active {
   padding-left: 0 !important; /* Explicitly remove left padding */
   margin: 0 !important; /* No margin */
   margin-left: 0 !important;
+}
+
+/* Ensure the aspect ratio container div can scale freely */
+.canvas-card-shell > div[style*="paddingTop"] {
+  width: 100% !important;
+  max-width: none !important;
 }
 
 /* Canvas card display properties - does not affect padding */
@@ -4236,8 +4256,8 @@ button.bg-primary.button-selected:active {
   bottom: 0 !important;
   width: 100% !important;
   height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
+  max-width: 100% !important; /* Canvas should fill container, not exceed it */
+  max-height: 100% !important; /* Canvas should fill container, not exceed it */
   min-width: 0 !important;
   min-height: 0 !important;
   display: block !important;
@@ -4273,12 +4293,8 @@ button.bg-primary.button-selected:active {
 @media (min-width: 769px) {
   .status-bar {
     padding-top: theme("spacing.4"); /* Top spacing on desktop */
-    border-bottom: 1px solid rgb(226 232 240); /* slate-200 - matches vertical borders */
+    @apply border-b border-slate-200 dark:border-slate-800; /* Matches section dividers */
     padding-bottom: theme("spacing.4"); /* Padding below border */
-  }
-  
-  .dark .status-bar {
-    border-bottom-color: rgb(30 41 59); /* slate-800 - matches vertical borders */
   }
 }
 
@@ -4514,7 +4530,7 @@ button.bg-primary.button-selected:active {
   padding-inline: theme("spacing.6"); /* footer.padding.inline.desktop */
   padding-top: theme("spacing.2"); /* footer.padding.top.desktop */
   padding-bottom: theme("spacing.5"); /* footer.padding.bottom.desktop */
-  @apply text-[0.7rem] uppercase tracking-[0.18em] text-[var(--text-muted)] flex items-center justify-between flex-wrap;
+  @apply text-[0.7rem] uppercase tracking-[0.18em] text-[var(--text-muted)] flex items-center justify-between flex-wrap border-t border-slate-200 dark:border-slate-800; /* Matches status bar and section dividers */
   gap: theme("spacing.3"); /* footer.gap.desktop */
   justify-items: center;
   max-width: 100%;
@@ -6205,5 +6221,4 @@ input[type="color"]::-moz-color-swatch {
   display: none;
 }
 
-/* End DEBUG */
 

@@ -30,7 +30,6 @@ export function useSpriteController(containerRef: React.RefObject<HTMLDivElement
 
       // CRITICAL: Ensure container is attached to DOM and has proper parent structure
       if (!container.parentNode) {
-        console.log("Container not attached, retrying...");
         timeoutId = setTimeout(() => {
           if (isMounted) {
             initializeController();
@@ -39,11 +38,10 @@ export function useSpriteController(containerRef: React.RefObject<HTMLDivElement
         return;
       }
 
-      // Check if parent container (canvas-wrapper) exists and has dimensions
+      // Check if parent container exists and has dimensions
       // sketch-container is absolutely positioned, so we need parent to have dimensions
       const parentContainer = container.parentElement;
       if (!parentContainer) {
-        console.log("Container has no parent element, retrying...");
         timeoutId = setTimeout(() => {
           if (isMounted) {
             initializeController();
@@ -64,28 +62,16 @@ export function useSpriteController(containerRef: React.RefObject<HTMLDivElement
                               parentContainer.classList.contains('h-screen');
       
       if (!isMainApp && !isProjectorPage) {
-        console.error("Container parent is not a valid container! Got:", {
-          className: parentContainer.className,
-          paddingTop: parentContainer.style.paddingTop,
-          clientWidth: parentContainer.clientWidth,
-          offsetWidth: parentContainer.offsetWidth,
-          path: window.location.pathname
-        });
         timeoutId = setTimeout(() => {
           if (isMounted) {
             initializeController();
           }
         }, 100);
         return;
-      }
-      
-      if (isProjectorPage) {
-        console.log("ProjectorPage detected, using projector container structure");
       }
       
       const parentWidth = parentContainer.clientWidth || 0;
       if (parentWidth === 0) {
-        console.log("Parent container has no width, retrying...");
         timeoutId = setTimeout(() => {
           if (isMounted) {
             initializeController();
@@ -93,8 +79,6 @@ export function useSpriteController(containerRef: React.RefObject<HTMLDivElement
         }, 100);
         return;
       }
-      
-      console.log("Container is ready! Parent:", parentContainer.className, "Width:", parentWidth);
 
       // Don't re-initialize if container hasn't changed and controller exists and canvas is properly parented
       if (containerElementRef.current === container && controllerRef.current) {

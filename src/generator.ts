@@ -207,7 +207,7 @@ export interface GeneratorState {
   depthOfFieldFocus: number; // 0-100, represents focus percentage (50 = middle)
   depthOfFieldStrength: number; // 0-100, controls blur intensity (0 = no blur, 100 = max blur)
   // Sprite collection settings
-  spriteCollectionId: string; // Collection ID (e.g., "primitives", "christmas")
+  spriteCollectionId: string; // Collection ID (e.g., "default", "christmas")
   // Animation settings
   hueRotationEnabled: boolean; // Toggle sprite hue rotation animation
   hueRotationSpeed: number; // Speed of sprite hue rotation (0-100%)
@@ -288,7 +288,7 @@ export const DEFAULT_STATE: GeneratorState = {
   depthOfFieldFocus: 50, // Start at middle of depth range
   depthOfFieldStrength: 50, // Moderate blur strength
   // Sprite collection defaults
-  spriteCollectionId: "primitives", // Default to primitives collection
+  spriteCollectionId: "default", // Default to default collection
   // Animation defaults
   hueRotationEnabled: false,
   hueRotationSpeed: 50,
@@ -524,11 +524,28 @@ const computeMovementOffsets = (
 
   switch (mode) {
     case "pulse": {
-      const pulse = Math.sin(phased * 0.08) * motionScale;
+      // Easing function for smooth in-out animation
+      const easeInOut = (t: number): number => {
+        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      };
+      
+      // Get raw sine wave value (-1 to 1)
+      const rawPulse = Math.sin(phased * 0.08);
+      
+      // Normalize to 0-1 range for easing
+      const normalizedPulse = (rawPulse + 1) / 2;
+      
+      // Apply easing for smoother animation
+      const easedPulse = easeInOut(normalizedPulse);
+      
+      // Convert back to -1 to 1 range and apply motion scale
+      const pulse = (easedPulse * 2 - 1) * motionScale;
+      
+      // Apply pulse to scale only (no position changes)
       const scaleMultiplier = clampScale(1 + pulse * 0.55);
-      const offsetY =
-        Math.sin(phased * 0.04) * baseUnit * motionScale * 0.25 * layerFactor;
-      return { offsetX: 0, offsetY, scaleMultiplier };
+      
+      // Keep sprites in place - no x,y movement
+      return { offsetX: 0, offsetY: 0, scaleMultiplier };
     }
     case "drift": {
       const driftX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.45;
@@ -776,7 +793,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   const rotationSpeedBase = Math.max(minSpeed, clamp(state.rotationSpeed, 1, 100) / 100);
 
   // Determine if we're using shape-based or SVG-based collection
-  const collection = getCollection(state.spriteCollectionId || "primitives");
+  const collection = getCollection(state.spriteCollectionId || "default");
   const isShapeBased = collection?.isShapeBased ?? true;
   
   // Get the active sprite (shape or SVG)
@@ -925,7 +942,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       // This allows toggling gradients without regenerating sprite positions/scales
       
       if (isShapeBased) {
-        // Shape-based collection (primitives)
+        // Shape-based collection (default)
         // If randomSprites is enabled, assign a random shape to each tile
         // Otherwise, use the activeShape from spriteMode
         const tileShape = state.randomSprites
@@ -1360,15 +1377,15 @@ export const createSpriteController = (
         // Check if container is attached - if not, create canvas anyway and parent it later
         const isContainerReady = container && container.parentNode;
         
-        if (!isContainerReady) {
-          console.warn("Container not attached to DOM yet, creating canvas with fallback size...");
-        }
+        // Container may not be attached during initial setup - this is handled gracefully
         
-        // Get container width - use parent (canvas-wrapper) since sketch-container is absolutely positioned
+        // Get container width - use parent since sketch-container is absolutely positioned
+        // Use getBoundingClientRect() for accurate width calculation (matches performResize)
         const parentContainer = container?.parentElement;
         let containerWidth = 0;
         if (isContainerReady && parentContainer) {
-          containerWidth = parentContainer.clientWidth || 0;
+          const rect = parentContainer.getBoundingClientRect();
+          containerWidth = rect.width || parentContainer.clientWidth || 0;
         }
         
         // If container has no width yet, use fallback
@@ -1394,10 +1411,9 @@ export const createSpriteController = (
             break;
         }
         
-        // Minimum canvas size
+        // Minimum canvas size (no maximum - let it scale with container)
         const minCanvasSize = 320;
-        const maxCanvasSize = 1920;
-        const size = Math.min(maxCanvasSize, Math.max(minCanvasSize, containerWidth));
+        const size = Math.max(minCanvasSize, containerWidth);
         
         // Calculate width and height maintaining aspect ratio
         const canvasWidth = size;
@@ -1411,13 +1427,10 @@ export const createSpriteController = (
           canvas = p.createCanvas(canvasWidth, canvasHeight);
         }
         
-        console.log("Canvas created:", canvasWidth, "x", canvasHeight, "container ready:", isContainerReady);
-        
         // CRITICAL: Parent canvas to container immediately
         // If container isn't ready, the canvas will be in the wrong place
         if (container && container.parentNode) {
           canvas.parent(container);
-          console.log("Canvas parented to container immediately");
           
           // CRITICAL: Ensure canvas element's actual dimensions match container for proper rendering
           // Canvas elements need their width/height attributes to match display size for proper scaling
@@ -1431,46 +1444,35 @@ export const createSpriteController = (
               // This ensures the canvas renders correctly at the container size
               canvas.elt.width = Math.round(containerWidth);
               canvas.elt.height = Math.round(containerHeight);
-              console.log("Canvas element dimensions set to match container:", canvas.elt.width, "x", canvas.elt.height);
             }
           }
           
           // Verify it worked
           if (canvas.elt && canvas.elt.parentElement !== container) {
-            console.error("Canvas parent mismatch after parent() call! Forcing...");
             // Force it into the right place
             container.appendChild(canvas.elt);
-            console.log("Canvas forcefully moved to container");
           }
         } else {
-          // Container not ready - this is a problem, but we'll try to fix it
-          console.error("Container not ready when creating canvas! Canvas will be misplaced.");
-          // Try to parent it anyway - p5.js might put it somewhere wrong
+          // Container not ready - try to parent it anyway
           try {
             canvas.parent(container);
           } catch (e) {
-            console.error("Failed to parent canvas:", e);
+            // Container will be ready soon, canvas will be repositioned
           }
           
-          // Aggressively retry to fix the parenting
+          // Retry to fix the parenting once container is ready
           let retryCount = 0;
           const maxRetries = 40; // 2 seconds max
           const tryParentCanvas = () => {
             if (canvas && canvas.elt && container && container.parentNode) {
               // Check if canvas is in wrong place
               if (canvas.elt.parentElement !== container) {
-                console.log("Fixing canvas parent (retry #" + retryCount + ")");
                 // Force it into the right place
                 container.appendChild(canvas.elt);
-                console.log("Canvas successfully moved to container (retry #" + retryCount + ")");
-              } else {
-                console.log("Canvas is already in correct container");
               }
             } else if (canvas && canvas.elt && retryCount < maxRetries) {
               retryCount++;
               setTimeout(tryParentCanvas, 50);
-            } else if (retryCount >= maxRetries) {
-              console.error("Failed to parent canvas after", maxRetries, "retries");
             }
           };
           setTimeout(tryParentCanvas, 50);
@@ -1480,72 +1482,28 @@ export const createSpriteController = (
         if (canvas.elt) {
           // Force canvas into container if it's not there
           if (container && canvas.elt.parentElement !== container) {
-            console.error("Canvas parent mismatch! Expected:", container.className, "Got:", canvas.elt.parentElement?.className || "none");
-            // Always force it into the right place, even if container doesn't have parentNode yet
-            // The container should be attached by now, but if not, we'll try anyway
+            // Always force it into the right place
             try {
               container.appendChild(canvas.elt);
-              console.log("Canvas forcefully moved to correct container");
             } catch (e) {
-              console.error("Failed to move canvas to container:", e);
               // Retry in a moment
               setTimeout(() => {
                 if (container && container.parentNode && canvas.elt && canvas.elt.parentElement !== container) {
                   container.appendChild(canvas.elt);
-                  console.log("Canvas moved to container (retry)");
                 }
               }, 100);
             }
           }
           
-          // Verify container has height (canvas-wrapper should have padding-top for aspect ratio)
+          // Verify container has height (parent should have padding-top for aspect ratio)
           const parentWrapper = container?.parentElement;
           if (parentWrapper) {
             const wrapperRect = parentWrapper.getBoundingClientRect();
             const wrapperHeight = wrapperRect.height;
-            const wrapperWidth = wrapperRect.width;
-            console.log("Canvas wrapper dimensions:", wrapperWidth, "x", wrapperHeight);
-            console.log("Canvas wrapper position:", "top:", wrapperRect.top, "left:", wrapperRect.left);
-            console.log("Canvas wrapper computed overflow:", getComputedStyle(parentWrapper).overflow);
-            console.log("Canvas wrapper computed z-index:", getComputedStyle(parentWrapper).zIndex || "auto");
-            
-            // Check sketch-container position
-            const containerRect = container.getBoundingClientRect();
-            console.log("Sketch-container dimensions:", containerRect.width, "x", containerRect.height);
-            console.log("Sketch-container position:", "top:", containerRect.top, "left:", containerRect.left);
-            console.log("Sketch-container computed position:", getComputedStyle(container).position);
-            console.log("Sketch-container computed overflow:", getComputedStyle(container).overflow);
-            console.log("Sketch-container computed z-index:", getComputedStyle(container).zIndex || "auto");
-            console.log("Sketch-container computed inset:", {
-              top: getComputedStyle(container).top,
-              left: getComputedStyle(container).left,
-              right: getComputedStyle(container).right,
-              bottom: getComputedStyle(container).bottom,
-            });
-            
-            // Check if canvas is actually inside the sketch-container bounds
-            const canvasRect = canvas.elt.getBoundingClientRect();
-            const isInsideContainer = canvasRect.top >= containerRect.top && 
-                                      canvasRect.left >= containerRect.left &&
-                                      canvasRect.bottom <= containerRect.bottom &&
-                                      canvasRect.right <= containerRect.right;
-            console.log("Canvas is inside sketch-container bounds:", isInsideContainer);
-            if (!isInsideContainer) {
-              console.error("Canvas is OUTSIDE sketch-container bounds!");
-              console.error("Canvas bounds:", canvasRect);
-              console.error("Container bounds:", containerRect);
-            }
             
             if (wrapperHeight === 0) {
               console.error("Canvas wrapper has no height! This will cause positioning issues.");
-              console.log("Wrapper computed styles:", {
-                paddingTop: getComputedStyle(parentWrapper).paddingTop,
-                height: getComputedStyle(parentWrapper).height,
-                display: getComputedStyle(parentWrapper).display,
-              });
             }
-          } else {
-            console.warn("Canvas container has no parent wrapper!");
           }
           
           // Remove ALL inline styles - CSS will control display size
@@ -1599,88 +1557,27 @@ export const createSpriteController = (
           // Intercept style setters to prevent p5.js from re-adding inline styles
           interceptStyleSetters();
           
-          // Log canvas element info AFTER removing inline styles
+          // Verify canvas is visible
           try {
             const canvasRect = canvas.elt.getBoundingClientRect();
-            const computedStyle = getComputedStyle(canvas.elt);
-            
-            // Get all parent containers to check positioning
-            let parent = canvas.elt.parentElement;
-            const parentChain: string[] = [];
-            while (parent) {
-              const rect = parent.getBoundingClientRect();
-              parentChain.push(`${parent.className || parent.tagName} (${rect.width}x${rect.height} at ${rect.left},${rect.top})`);
-              parent = parent.parentElement;
-            }
-            
-            console.log("Canvas element dimensions:", canvasRect.width, "x", canvasRect.height);
-            console.log("Canvas element position:", "top:", canvasRect.top, "left:", canvasRect.left, "right:", canvasRect.right, "bottom:", canvasRect.bottom);
-            console.log("Viewport size:", window.innerWidth, "x", window.innerHeight);
-            const isVisible = canvasRect.top >= 0 && canvasRect.left >= 0 && canvasRect.bottom <= window.innerHeight && canvasRect.right <= window.innerWidth;
-            console.log("Canvas viewport position:", "visible:", isVisible, "top check:", canvasRect.top >= 0, "left check:", canvasRect.left >= 0, "bottom check:", canvasRect.bottom <= window.innerHeight, "right check:", canvasRect.right <= window.innerWidth);
-            console.log("Canvas parent:", canvas.elt.parentElement?.className || "none");
-            console.log("Canvas computed position:", computedStyle.position);
-            console.log("Parent chain:", parentChain.join(" -> "));
-            console.log("Canvas computed display:", computedStyle.display);
-            console.log("Canvas computed visibility:", computedStyle.visibility);
-            console.log("Canvas computed opacity:", computedStyle.opacity);
-            console.log("Canvas inline width:", canvas.elt.style.width || "(none)");
-            console.log("Canvas inline height:", canvas.elt.style.height || "(none)");
-            console.log("Canvas inline position:", canvas.elt.style.position || "(none)");
-            
-            // Verify canvas is visible
             if (canvasRect.width === 0 || canvasRect.height === 0) {
               console.error("Canvas has zero dimensions!");
-              console.error("Rect:", canvasRect);
-              console.error("Computed width:", computedStyle.width);
-              console.error("Computed height:", computedStyle.height);
-            } else {
-              console.log("Canvas is visible with dimensions:", canvasRect.width, "x", canvasRect.height);
             }
           } catch (error) {
-            console.error("Error logging canvas info:", error);
+            // Canvas info check failed - not critical
           }
           
-          // DISABLED: MutationObserver was causing flickering
-          // Let CSS !important rules handle style overrides instead
-          // Use MutationObserver to catch when p5.js sets inline styles
-          // const observer = new MutationObserver((mutations) => {
-          //   mutations.forEach((mutation) => {
-          //     if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-          //       console.log("MutationObserver: p5.js set inline styles, removing them");
-          //       removeInlineStyles();
-          //     }
-          //   });
-          // });
-          
-          // observer.observe(canvas.elt, {
-          //   attributes: true,
-          //   attributeFilter: ['style']
-          // });
-          
-          // Create a dummy observer for cleanup compatibility
+          // Monitor canvas parent to ensure it stays in the correct container
+          // CSS handles style overrides, so we only need to check parent positioning
           const observer = { disconnect: () => {} } as MutationObserver;
           
-          // Also poll as backup (p5.js might set styles in ways MutationObserver misses)
-          // DISABLED: This was causing flickering - let p5.js manage styles, CSS will override
           const styleInterval = setInterval(() => {
             if (canvas.elt && container && container.parentNode) {
               // Check if canvas is still in the right parent
               if (canvas.elt.parentElement !== container) {
-                console.error("Canvas moved out of container! Moving back...", {
-                  currentParent: canvas.elt.parentElement?.className || "none",
-                  expectedParent: container.className || "none"
-                });
                 // Force it back
                 container.appendChild(canvas.elt);
-                console.log("Canvas moved back to container");
               }
-              // DISABLED: Don't remove inline styles - let CSS handle it with !important
-              // Removing styles was causing flickering as p5.js re-added them
-              // if (canvas.elt.style.width || canvas.elt.style.height || canvas.elt.style.position) {
-              //   console.log("Polling: Found inline styles, removing them. Width:", canvas.elt.style.width, "Height:", canvas.elt.style.height);
-              //   removeInlineStyles();
-              // }
             }
           }, 100);
           
@@ -1701,7 +1598,6 @@ export const createSpriteController = (
         
         // Mark canvas as ready - this allows performResize to work
         canvasReady = true;
-        console.log("p5.setup completed, canvas ready:", canvasReady);
       } catch (error) {
         console.error("Error in p5.setup:", error);
         // Fallback to safe defaults
@@ -1716,7 +1612,6 @@ export const createSpriteController = (
         
         // Mark canvas as ready even in error case
         canvasReady = true;
-        console.log("p5.setup completed (fallback), canvas ready:", canvasReady);
       }
     };
 
@@ -1728,17 +1623,14 @@ export const createSpriteController = (
     const performResize = () => {
       // Don't resize if canvas hasn't been created yet
       if (!canvas || !canvas.elt) {
-        console.log("performResize: Canvas not ready yet, skipping");
         return;
       }
       
       // Prevent recursive calls
       if (isResizing) {
-        console.log("performResize: Already resizing, skipping");
         return;
       }
       
-      console.log("performResize: Starting resize");
       isResizing = true;
       
       // In fullscreen, use viewport dimensions; otherwise use container width
@@ -1764,7 +1656,6 @@ export const createSpriteController = (
         if (isFullscreen && (containerWidth === 0 || containerHeight === 0)) {
           containerWidth = window.innerWidth || 1920;
           containerHeight = window.innerHeight || 1080;
-          console.log("Fullscreen: Using viewport dimensions", containerWidth, "x", containerHeight);
         }
         
         // If height is 0 or invalid, calculate from width and aspect ratio
@@ -1781,7 +1672,6 @@ export const createSpriteController = (
         if (isFullscreen && (containerWidth === 0 || containerHeight === 0)) {
           containerWidth = window.innerWidth || 1920;
           containerHeight = window.innerHeight || 1080;
-          console.log("Fullscreen: Using viewport dimensions (no parent)", containerWidth, "x", containerHeight);
         }
       }
       
@@ -1791,7 +1681,6 @@ export const createSpriteController = (
         if (isFullscreen) {
           containerWidth = window.innerWidth || 1920;
           containerHeight = window.innerHeight || 1080;
-          console.log("Fullscreen: Forced viewport dimensions", containerWidth, "x", containerHeight);
         } else {
           // Don't log warning - this is normal during initial setup
           // The canvas will resize once the container is properly laid out
@@ -1809,36 +1698,13 @@ export const createSpriteController = (
         console.error("performResize: Invalid canvas dimensions:", canvasWidth, canvasHeight, "containerWidth:", containerWidth, "containerHeight:", containerHeight);
         p.resizeCanvas(1280, 720); // Fallback to 16:9 default
       } else {
-        console.log("performResize: Resizing canvas to", canvasWidth, "x", canvasHeight, "from container:", containerWidth, "x", containerHeight);
         p.resizeCanvas(canvasWidth, canvasHeight);
-        
-        // CRITICAL: After resize, ensure canvas element's actual dimensions match container for proper rendering
-        // Canvas elements need their width/height attributes to match display size for proper scaling
-        if (canvas && canvas.elt && container) {
-          const containerRect = container.getBoundingClientRect();
-          const actualContainerWidth = containerRect.width || container.clientWidth || 0;
-          const actualContainerHeight = containerRect.height || container.clientHeight || 0;
-          
-          if (actualContainerWidth > 0 && actualContainerHeight > 0) {
-            // Set canvas element's actual pixel dimensions to match container
-            // This ensures the canvas renders correctly at the container size
-            canvas.elt.width = Math.round(actualContainerWidth);
-            canvas.elt.height = Math.round(actualContainerHeight);
-            console.log("performResize: Canvas element dimensions updated to match container:", canvas.elt.width, "x", canvas.elt.height);
-          }
-        }
       }
       
       // After resize, remove ALL inline styles so CSS can control display size
       // p5.js sets width/height ATTRIBUTES (not styles) which are needed for rendering
       // CSS will control the display size via width: 100%, height: 100%
       if (canvas && canvas.elt) {
-        console.log("performResize: Canvas element size:", canvas.elt.width, "x", canvas.elt.height, "attributes:", {
-          width: canvas.elt.getAttribute('width'),
-          height: canvas.elt.getAttribute('height'),
-          styleWidth: canvas.elt.style.width,
-          styleHeight: canvas.elt.style.height
-        });
         // Remove ALL inline styles - CSS will handle everything
         canvas.elt.style.position = '';
         canvas.elt.style.top = '';
@@ -1847,7 +1713,6 @@ export const createSpriteController = (
         canvas.elt.style.bottom = '';
         canvas.elt.style.width = '';
         canvas.elt.style.height = '';
-        console.log("performResize: Removed all inline styles - CSS will control display size");
       }
       
       // Reset flag after resize completes
@@ -1865,11 +1730,8 @@ export const createSpriteController = (
       // Create a fake UIEvent if p5.js called without one (to satisfy Zod validation)
       const uiEvent = event || new UIEvent('resize', { bubbles: false, cancelable: false });
       
-      console.log("windowResized called, isResizing:", isResizing, "canvasReady:", canvasReady, "hasEvent:", !!event);
-      
       // Don't resize if canvas isn't ready yet
       if (!canvasReady || !canvas || !canvas.elt) {
-        console.log("windowResized: Canvas not ready, skipping");
         return uiEvent;
       }
       
@@ -1892,14 +1754,12 @@ export const createSpriteController = (
     let setupComplete = false;
     setTimeout(() => {
       setupComplete = true;
-      console.log("Setup complete, ResizeObserver can now trigger");
     }, 1000); // Give setup 1 second to complete - canvas needs time to render
     
     if (typeof ResizeObserver !== 'undefined') {
       const containerResizeObserver = new ResizeObserver(() => {
         // Don't resize during initial setup - wait for setup to complete
         if (!setupComplete || !canvasReady) {
-          console.log("ResizeObserver: Skipping resize - setup not complete or canvas not ready");
           return;
         }
         // Small delay to ensure layout has settled
@@ -1913,7 +1773,6 @@ export const createSpriteController = (
       setTimeout(() => {
         if (container && container.parentNode) {
           containerResizeObserver.observe(container);
-          console.log("ResizeObserver: Started observing container");
         }
       }, 1200); // Start observing after setup completes
       
@@ -1942,15 +1801,6 @@ export const createSpriteController = (
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     p.draw = () => {
-      // Debug: Log first few draw calls to verify canvas is drawing
-      if (!(p as any)._drawCount) {
-        (p as any)._drawCount = 0;
-      }
-      (p as any)._drawCount++;
-      if ((p as any)._drawCount <= 3) {
-        console.log("p5.js draw() called #" + (p as any)._drawCount, "canvas exists:", !!canvas, "canvas.elt:", !!canvas?.elt);
-      }
-      
       // CRITICAL: If canvas doesn't exist, something is very wrong
       if (!canvas || !canvas.elt) {
         console.error("p5.js draw() called but canvas doesn't exist!");
@@ -2264,15 +2114,6 @@ export const createSpriteController = (
         // Use p5.js background() which clears and fills the canvas each frame
         // This must be called every frame for the animation to work
         p.background(finalBackground);
-        
-        // Debug: Log first few background calls to verify canvas is being drawn
-        if (!(p as any)._bgCount) {
-          (p as any)._bgCount = 0;
-        }
-        (p as any)._bgCount++;
-        if ((p as any)._bgCount <= 3) {
-          console.log("p.background() called #" + (p as any)._bgCount, "canvas size:", p.width, "x", p.height, "background:", finalBackground);
-        }
       }
       
       // Apply fade transition opacity if transitioning
@@ -3706,21 +3547,21 @@ export const createSpriteController = (
       applyState({ layerOpacity: clamp(value, 15, 100) }, { recompute: false });
     },
     setSpriteMode: (mode: SpriteMode) => {
-      // Get the current collection ID - if not set, default to primitives
-      const collectionId = stateRef.current.spriteCollectionId || "primitives";
+      // Get the current collection ID - if not set, default to default
+      const collectionId = stateRef.current.spriteCollectionId || "default";
       const collection = getCollection(collectionId);
       
       if (!collection) {
-        // Collection doesn't exist - fallback to primitives
-        const primitivesCollection = getCollection("primitives");
-        if (primitivesCollection?.isShapeBased && shapeModes.includes(mode as ShapeMode)) {
-          applyState({ spriteCollectionId: "primitives", spriteMode: mode });
+        // Collection doesn't exist - fallback to default
+        const defaultCollection = getCollection("default");
+        if (defaultCollection?.isShapeBased && shapeModes.includes(mode as ShapeMode)) {
+          applyState({ spriteCollectionId: "default", spriteMode: mode });
         }
         return;
       }
       
       if (collection.isShapeBased) {
-        // For primitives, validate it's a shape mode
+        // For default, validate it's a shape mode
         if (shapeModes.includes(mode as ShapeMode)) {
           applyState({ spriteMode: mode });
         }

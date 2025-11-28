@@ -71,6 +71,8 @@ export function useDualMonitor() {
   }, []);
 
   // Setup BroadcastChannel for state synchronization
+  // Note: This hook doesn't have access to spriteState, so we'll handle state requests
+  // in App.tsx where spriteState is available
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") {
       console.warn("BroadcastChannel API not available, using window.postMessage fallback");
@@ -80,17 +82,8 @@ export function useDualMonitor() {
     const channel = new BroadcastChannel("pixli-projector-sync");
     broadcastChannelRef.current = channel;
 
-    channel.onmessage = (event) => {
-      // Handle messages from projector window
-      if (event.data.type === "request-state") {
-        // Projector window is requesting current state
-        // We'll send state updates through the channel
-        channel.postMessage({
-          type: "state-requested",
-          timestamp: Date.now(),
-        });
-      }
-    };
+    // State requests are handled in App.tsx where spriteState is available
+    // This channel is just kept open for sending state updates
 
     return () => {
       channel.close();

@@ -3,7 +3,7 @@
  * 
  * File-based collection discovery for sprite collections.
  * Collections are organized as: public/sprites/{collection-name}/*.svg
- * The "primitives" collection uses existing shape-based rendering.
+ * The "default" collection uses existing shape-based rendering.
  * 
  * SVG collections are automatically discovered from the file system.
  * Run "npm run generate:collections" to regenerate collections after adding new SVG files.
@@ -17,13 +17,13 @@ export interface SpriteInfo {
   id: string;
   name: string; // Display name (sanitized from filename)
   svgPath?: string; // Path to SVG file (only for SVG-based sprites)
-  spriteMode?: SpriteMode; // For primitives collection
+  spriteMode?: SpriteMode; // For default collection
 }
 
 export interface SpriteCollection {
   id: string;
   label: string; // Display name (capitalized collection name)
-  isShapeBased: boolean; // true for primitives, false for SVG collections
+  isShapeBased: boolean; // true for default, false for SVG collections
   sprites: SpriteInfo[];
 }
 
@@ -101,12 +101,12 @@ function buildCollectionsFromManual(): Map<string, SpriteCollection> {
 }
 
 /**
- * Create primitives collection from existing SPRITE_MODES
+ * Create default collection from existing SPRITE_MODES
  */
-function createPrimitivesCollection(): SpriteCollection {
+function createDefaultCollection(): SpriteCollection {
   return {
-    id: 'primitives',
-    label: 'Primitives',
+    id: 'default',
+    label: 'Default',
     isShapeBased: true,
     sprites: SPRITE_MODES.map(mode => ({
       id: mode.value,
@@ -118,8 +118,8 @@ function createPrimitivesCollection(): SpriteCollection {
 
 // Build all collections
 const allCollectionsMap = buildCollectionsFromManual();
-// Always add primitives collection first
-allCollectionsMap.set('primitives', createPrimitivesCollection());
+// Always add default collection first
+allCollectionsMap.set('default', createDefaultCollection());
 
 /**
  * Get all available collections
@@ -147,9 +147,9 @@ export function getSpriteInCollection(
 }
 
 /**
- * Check if a collection is shape-based (primitives) or SVG-based
+ * Check if a collection is shape-based (default) or SVG-based
  */
 export function isShapeBasedCollection(collectionId: string): boolean {
-  return collectionId === 'primitives';
+  return collectionId === 'default';
 }
 

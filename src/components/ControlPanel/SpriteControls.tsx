@@ -51,7 +51,7 @@ export function SpriteControls({
   // Get all collections and current collection
   const allCollections = useMemo(() => getAllCollections(), []);
   const currentCollection = useMemo(
-    () => getCollection(spriteState.spriteCollectionId || "primitives"),
+    () => getCollection(spriteState.spriteCollectionId || "default"),
     [spriteState.spriteCollectionId]
   );
 
@@ -62,7 +62,7 @@ export function SpriteControls({
     }
 
     if (currentCollection.isShapeBased) {
-      // For primitives, filter SPRITE_MODES to only include sprites in the collection
+      // For default, filter SPRITE_MODES to only include sprites in the collection
       return SPRITE_MODES.filter(mode =>
         currentCollection.sprites.some(s => s.spriteMode === mode.value)
       );
@@ -85,7 +85,7 @@ export function SpriteControls({
       <div className="section">
         <h3 className="section-title">Shape</h3>
         {/* Collection selector */}
-        {/* <div className="control-field">
+        <div className="control-field">
           <div className="field-heading">
             <div className="field-heading-left">
               <span className="field-label" id="collection-label">
@@ -99,7 +99,7 @@ export function SpriteControls({
             </div>
           </div>
           <Select
-            value={spriteState.spriteCollectionId || "primitives"}
+            value={spriteState.spriteCollectionId || "default"}
             onValueChange={(value) => controller?.setSpriteCollection(value)}
             disabled={!ready}
           >
@@ -114,7 +114,7 @@ export function SpriteControls({
               ))}
             </SelectContent>
           </Select>
-        </div> */}
+        </div>
 
         {/* Label, status, and tooltip for sprite selection */}
         <div className="control-field">

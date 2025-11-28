@@ -82,19 +82,9 @@ export const SPRITE_MODES: Array<{
     description: "Romantic shapes that add warmth and emotion",
   },
   {
-    value: "snowflake",
-    label: "Snowflake",
-    description: "Intricate crystalline patterns with radial symmetry",
-  },
-  {
     value: "smiley",
     label: "Smiley",
     description: "Friendly circular faces with expressive features",
-  },
-  {
-    value: "tree",
-    label: "Tree",
-    description: "Evergreen trees with triangular foliage and trunk",
   },
   {
     value: "x",

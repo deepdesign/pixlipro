@@ -42,7 +42,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // Base classes for all buttons
     const baseClasses = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
 
-    // Variant classes
+    // Variant classes - all use theme-aware Tailwind colors
     const variantClasses = {
       default: size === "icon" 
         ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)] hover:bg-[var(--accent-primary)]/90 border-0"
@@ -52,7 +52,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       link: "text-slate-900 underline-offset-4 hover:underline dark:text-slate-100",
       background: "bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-700 border-0",
       naked: "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50 border-0",
-      lock: "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50 border-0 data-[locked=true]:bg-red-500 data-[locked=true]:text-white data-[locked=true]:hover:bg-red-600 dark:data-[locked=true]:bg-red-600 dark:data-[locked=true]:hover:bg-red-700",
+      lock: "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50 border-0 data-[locked=true]:bg-red-600 data-[locked=true]:text-white data-[locked=true]:hover:bg-red-700 dark:data-[locked=true]:bg-red-600 dark:data-[locked=true]:hover:bg-red-700",
       circle: "bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-700 border-0 rounded-full icon-button h-6 w-6 p-0 flex items-center justify-center aspect-square",
     };
 

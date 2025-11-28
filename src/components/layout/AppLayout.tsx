@@ -28,7 +28,6 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideS
               ? "lg:ml-[370px]" 
               : "lg:ml-[64px]"
         } ${isMobileOpen ? "ml-0" : ""}`}
-        style={{ backgroundColor: 'rgba(255, 0, 0, 0.1)', minHeight: '400px' }}
       >
         {children}
       </div>

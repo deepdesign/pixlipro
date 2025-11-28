@@ -2,7 +2,8 @@ import { useSidebar } from "@/context/SidebarContext";
 import { SpriteControls } from "@/components/ControlPanel/SpriteControls";
 import { FxControls } from "@/components/ControlPanel/FxControls";
 import { MotionControls } from "@/components/ControlPanel/MotionControls";
-import { Shapes, Palette, Zap } from "lucide-react";
+import { Shapes, Palette, Zap, Settings, Moon, Monitor, Sun } from "lucide-react";
+import { useMemo } from "react";
 import type { GeneratorState, SpriteController, SpriteMode, MovementMode } from "@/types/generator";
 import type { BlendModeOption } from "@/types/generator";
 
@@ -59,6 +60,13 @@ interface AppSidebarProps {
   
   // Layout
   isWideLayout: boolean;
+  
+  // Theme and Settings
+  themeMode?: "system" | "light" | "dark";
+  onThemeModeChange?: (mode: "system" | "light" | "dark") => void;
+  onOpenSettings?: () => void;
+  onNavigate?: (page: "create" | "palettes" | "presets" | "sequences" | "settings") => void;
+  currentPage?: "create" | "palettes" | "presets" | "sequences" | "settings" | null;
 }
 
 export const AppSidebar = ({
@@ -99,8 +107,34 @@ export const AppSidebar = ({
   onCanvasHueRotationEnabledToggle,
   onCanvasHueRotationSpeedChange,
   isWideLayout,
+  themeMode,
+  onThemeModeChange,
+  onOpenSettings,
+  onNavigate,
+  currentPage,
 }: AppSidebarProps) => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  
+  const cycleThemeMode = () => {
+    if (!onThemeModeChange || !themeMode) return;
+    onThemeModeChange(
+      themeMode === "system" ? "light" : themeMode === "light" ? "dark" : "system",
+    );
+  };
+
+  const ThemeModeIcon = useMemo(() => {
+    if (!themeMode) return Monitor;
+    switch (themeMode) {
+      case "light":
+        return Sun;
+      case "dark":
+        return Moon;
+      default:
+        return Monitor;
+    }
+  }, [themeMode]);
+
+  const ThemeModeIconComponent = ThemeModeIcon;
   
   const navigationItems = [
     { value: "sprites" as const, label: "Sprites", icon: Shapes },
@@ -126,7 +160,7 @@ export const AppSidebar = ({
       {/* Left Column - Icon Navigation */}
       <div className="flex flex-col w-[64px] border-r border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         {/* Navigation Icons */}
-        <div className="flex flex-col gap-2 px-[10px] pt-8">
+        <div className="flex flex-col gap-2 px-[14px] pt-8 flex-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -147,6 +181,42 @@ export const AppSidebar = ({
               </button>
             );
           })}
+        </div>
+        
+        {/* Bottom Actions - Theme Toggle and Settings */}
+        <div className="flex flex-col gap-2 px-[14px] pb-8">
+          {onThemeModeChange && themeMode && (
+            <button
+              type="button"
+              onClick={cycleThemeMode}
+              className="h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
+              aria-label={`Switch theme mode (current ${themeMode === "system" ? "System" : themeMode === "light" ? "Light" : "Dark"})`}
+              title={`Theme: ${themeMode === "system" ? "System" : themeMode === "light" ? "Light" : "Dark"}`}
+            >
+              <ThemeModeIconComponent className="h-5 w-5" />
+            </button>
+          )}
+          {(onNavigate || onOpenSettings) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (onNavigate) {
+                  onNavigate("settings");
+                } else if (onOpenSettings) {
+                  onOpenSettings();
+                }
+              }}
+              className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button ${
+                currentPage === "settings"
+                  ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)]"
+                  : "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
+              }`}
+              aria-label="Open settings"
+              title="Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </div>
 

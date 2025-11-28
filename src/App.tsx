@@ -124,19 +124,100 @@ const App = () => {
     controllerRef.current = controller;
   }, [controller]);
   
-  // Sync state to projector window when in main window
+  // Stream canvas frames to projector window
   useEffect(() => {
     if (isProjectorMode) {
-      return; // Don't sync if we're in projector mode
+      return; // Don't stream if we're in projector mode
     }
 
-    if (!spriteState || !dualMonitor.isProjectorMode) {
+    if (!controller || !dualMonitor.isProjectorMode) {
       return;
     }
 
-    // Send state update to projector window via BroadcastChannel
-    dualMonitor.sendStateToProjector(spriteState);
-  }, [spriteState, dualMonitor.isProjectorMode, isProjectorMode, dualMonitor]);
+    if (typeof BroadcastChannel === "undefined") {
+      return;
+    }
+
+    const channel = new BroadcastChannel("pixli-projector-sync");
+    let animationFrameId: number | null = null;
+    let lastFrameTime = 0;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
+
+    const streamCanvas = () => {
+      const p5Instance = controller?.getP5Instance();
+      if (!p5Instance || !p5Instance.canvas) {
+        animationFrameId = requestAnimationFrame(streamCanvas);
+        return;
+      }
+
+      const canvas = p5Instance.canvas as HTMLCanvasElement;
+      const currentTime = performance.now();
+
+      // Throttle to target FPS
+      if (currentTime - lastFrameTime >= frameInterval) {
+        try {
+          // Capture canvas directly as data URL (faster than toBlob + FileReader)
+          const imageData = canvas.toDataURL("image/png");
+          
+          // Calculate aspect ratio percentage for projector window
+          let aspectRatioPercent = 56.25; // Default to 16:9
+          if (spriteState) {
+            switch (spriteState.aspectRatio) {
+              case "16:9":
+                aspectRatioPercent = 56.25; // 9/16 * 100
+                break;
+              case "21:9":
+                aspectRatioPercent = 42.857; // 9/21 * 100
+                break;
+              case "16:10":
+                aspectRatioPercent = 62.5; // 10/16 * 100
+                break;
+              case "custom":
+                const custom = spriteState.customAspectRatio;
+                aspectRatioPercent = (custom.height / custom.width) * 100;
+                break;
+              default:
+                aspectRatioPercent = 56.25;
+            }
+          }
+          
+          channel.postMessage({
+            type: "canvas-frame",
+            imageData,
+            aspectRatio: aspectRatioPercent,
+            timestamp: Date.now(),
+          });
+        } catch (error) {
+          console.error("Error capturing canvas frame:", error);
+        }
+        lastFrameTime = currentTime;
+      }
+
+      animationFrameId = requestAnimationFrame(streamCanvas);
+    };
+
+    // Start streaming
+    streamCanvas();
+
+    // Handle state requests
+    channel.onmessage = (event) => {
+      if (event.data.type === "request-state" && spriteState) {
+        channel.postMessage({
+          type: "state-update",
+          state: spriteState,
+          timestamp: Date.now(),
+        });
+      }
+    };
+
+    return () => {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      channel.close();
+    };
+  }, [isProjectorMode, controller, dualMonitor.isProjectorMode, spriteState]);
   
   const [activePanel, setActivePanel] = useState<"sprites" | "colours" | "motion">("sprites");
   const [showPresetManager, setShowPresetManager] = useState(false);
@@ -470,16 +551,16 @@ const App = () => {
   const currentModeLabel = useMemo(() => {
     if (!spriteState) return SPRITE_MODES[0].label;
     
-    // Check if it's a shape-based mode (primitives)
+    // Check if it's a shape-based mode (default)
     const shapeMode = SPRITE_MODES.find((mode) => mode.value === spriteState.spriteMode);
     if (shapeMode) {
       return shapeMode.label;
     }
     
     // Otherwise, it might be an SVG sprite from a collection
-    const collection = getCollection(spriteState.spriteCollectionId || "primitives");
+    const collection = getCollection(spriteState.spriteCollectionId || "default");
     if (collection && !collection.isShapeBased) {
-      const sprite = getSpriteInCollection(spriteState.spriteCollectionId || "primitives", spriteState.spriteMode);
+      const sprite = getSpriteInCollection(spriteState.spriteCollectionId || "default", spriteState.spriteMode);
       if (sprite) {
         return sprite.name;
       }
@@ -500,15 +581,11 @@ const App = () => {
   // Controller initialization is now handled by useSpriteController hook
 
   const handlePaletteSelection = useCallback((paletteId: string) => {
-    console.log(`[App] handlePaletteSelection called with:`, paletteId);
     if (!controllerRef.current) {
-      console.log(`[App] No controller, returning`);
       return;
     }
     const currentState = controllerRef.current.getState();
-    console.log(`[App] Current paletteId:`, currentState.paletteId, `New paletteId:`, paletteId);
     if (currentState.paletteId === paletteId) {
-      console.log(`[App] Palette ID unchanged, skipping update`);
       return;
     }
     controllerRef.current.setHueShift(0);
@@ -922,46 +999,6 @@ const App = () => {
   );
   };
 
-  // Prepare sidebar props
-  const sidebarProps = {
-    activePanel,
-    onPanelChange: setActivePanel,
-    spriteState,
-    controller,
-    ready,
-    currentModeLabel,
-    lockedSpriteMode,
-    lockedSpritePalette,
-    lockedCanvasPalette,
-    lockedBlendMode,
-    lockedMovementMode,
-    onLockSpriteMode: setLockedSpriteMode,
-    onLockSpritePalette: setLockedSpritePalette,
-    onLockCanvasPalette: setLockedCanvasPalette,
-    onLockBlendMode: setLockedBlendMode,
-    onModeChange: handleModeChange,
-    onRotationToggle: handleRotationToggle,
-    onRotationAmountChange: handleRotationAmountChange,
-    currentPaletteId: currentPalette.id,
-    currentPaletteName: currentPalette.name,
-    paletteOptions: PALETTE_OPTIONS,
-    canvasPaletteOptions: CANVAS_PALETTE_OPTIONS,
-    onPaletteSelection: handlePaletteSelection,
-    onPaletteOptionSelect: handlePaletteOptionSelect,
-    onBlendSelect: handleBlendSelect,
-    onBlendAutoToggle: handleBlendAutoToggle,
-    onLockMovementMode: setLockedMovementMode,
-    onMovementSelect: handleMovementSelect,
-    onRotationAnimatedToggle: handleRotationAnimatedToggle,
-    onRotationSpeedChange: handleRotationSpeedChange,
-    onHueRotationEnabledToggle: handleHueRotationEnabledToggle,
-    onHueRotationSpeedChange: handleHueRotationSpeedChange,
-    onPaletteCycleEnabledToggle: handlePaletteCycleEnabledToggle,
-    onPaletteCycleSpeedChange: handlePaletteCycleSpeedChange,
-    onCanvasHueRotationEnabledToggle: handleCanvasHueRotationEnabledToggle,
-    onCanvasHueRotationSpeedChange: handleCanvasHueRotationSpeedChange,
-    isWideLayout,
-  };
 
   // Calculate header height and set CSS variable
   const headerRef = useRef<HTMLDivElement>(null);
@@ -1005,6 +1042,51 @@ const App = () => {
     } else {
       window.history.pushState({}, "", `/${page}`);
     }
+  };
+
+  // Prepare sidebar props (must be after handleNavigate is defined)
+  const sidebarProps = {
+    activePanel,
+    onPanelChange: setActivePanel,
+    spriteState,
+    controller,
+    ready,
+    currentModeLabel,
+    lockedSpriteMode,
+    lockedSpritePalette,
+    lockedCanvasPalette,
+    lockedBlendMode,
+    lockedMovementMode,
+    onLockSpriteMode: setLockedSpriteMode,
+    onLockSpritePalette: setLockedSpritePalette,
+    onLockCanvasPalette: setLockedCanvasPalette,
+    onLockBlendMode: setLockedBlendMode,
+    onModeChange: handleModeChange,
+    onRotationToggle: handleRotationToggle,
+    onRotationAmountChange: handleRotationAmountChange,
+    currentPaletteId: currentPalette.id,
+    currentPaletteName: currentPalette.name,
+    paletteOptions: PALETTE_OPTIONS,
+    canvasPaletteOptions: CANVAS_PALETTE_OPTIONS,
+    onPaletteSelection: handlePaletteSelection,
+    onPaletteOptionSelect: handlePaletteOptionSelect,
+    onBlendSelect: handleBlendSelect,
+    onBlendAutoToggle: handleBlendAutoToggle,
+    onLockMovementMode: setLockedMovementMode,
+    onMovementSelect: handleMovementSelect,
+    onRotationAnimatedToggle: handleRotationAnimatedToggle,
+    onRotationSpeedChange: handleRotationSpeedChange,
+    onHueRotationEnabledToggle: handleHueRotationEnabledToggle,
+    onHueRotationSpeedChange: handleHueRotationSpeedChange,
+    onPaletteCycleEnabledToggle: handlePaletteCycleEnabledToggle,
+    onPaletteCycleSpeedChange: handlePaletteCycleSpeedChange,
+    onCanvasHueRotationEnabledToggle: handleCanvasHueRotationEnabledToggle,
+    onCanvasHueRotationSpeedChange: handleCanvasHueRotationSpeedChange,
+    isWideLayout,
+    themeMode,
+    onThemeModeChange: setThemeMode,
+    onNavigate: handleNavigate,
+    currentPage,
   };
 
   // Initialize page from URL
