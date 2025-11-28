@@ -6,21 +6,29 @@ import { ReactNode } from "react";
 interface AppLayoutProps {
   children: ReactNode;
   sidebarProps: React.ComponentProps<typeof AppSidebar>;
+  hideSidebar?: boolean;
 }
 
-const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps }) => {
+const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideSidebar = false }) => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   return (
     <div className="flex flex-1 lg:flex-row pb-[var(--footer-height)]">
-      <div className="lg:flex-shrink-0">
-        <AppSidebar {...sidebarProps} />
-        <Backdrop />
-      </div>
+      {!hideSidebar && (
+        <div className="lg:flex-shrink-0">
+          <AppSidebar {...sidebarProps} />
+          <Backdrop />
+        </div>
+      )}
       <div
-        className={`flex-1 transition-all duration-300 ease-in-out ${
-          isExpanded || isHovered ? "lg:ml-[370px]" : "lg:ml-[64px]"
+        className={`flex-1 min-w-0 transition-all duration-300 ease-in-out border-t border-slate-200 dark:border-slate-800 ${
+          hideSidebar 
+            ? "lg:ml-0" 
+            : isExpanded || isHovered 
+              ? "lg:ml-[370px]" 
+              : "lg:ml-[64px]"
         } ${isMobileOpen ? "ml-0" : ""}`}
+        style={{ backgroundColor: 'rgba(255, 0, 0, 0.1)', minHeight: '400px' }}
       >
         {children}
       </div>
@@ -28,10 +36,10 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps }) => 
   );
 };
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children, sidebarProps }) => {
+export const AppLayout: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideSidebar = false }) => {
   return (
     <SidebarProvider>
-      <LayoutContent sidebarProps={sidebarProps}>{children}</LayoutContent>
+      <LayoutContent sidebarProps={sidebarProps} hideSidebar={hideSidebar}>{children}</LayoutContent>
     </SidebarProvider>
   );
 };

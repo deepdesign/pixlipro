@@ -1,0 +1,93 @@
+warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/Button.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/Card.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ControlPanel/FxControls.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ControlPanel/MotionControls.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ControlPanel/SpriteControls.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ControlPanel/shared/ControlSelect.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ControlPanel/shared/ControlSlider.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ControlPanel/shared/ShapeIcon.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ControlPanel/shared/TooltipIcon.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/CustomPaletteManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ExportModal.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/Header/Header.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/MobileMenu.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/PresetManager.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/StatusBar/StatusBar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/catalyst/alert.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/catalyst/auth-layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/catalyst/badge.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/catalyst/button.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/catalyst/combobox.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/catalyst/switch-adapter.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/catalyst/switch.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/layout/AppLayout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/layout/AppSidebar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/constants/spriteCollections.generated.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/generator.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/hooks/useFullscreen.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/hooks/useSpriteController.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/index.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/storage/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/storage/settingsStorage.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/pages/SettingsPage.tsx', LF will be replaced by CRLF the next time Git touches it
+ package-lock.json                                  |  975 [32m++++++++++++++[m[31m---[m
+ package.json                                       |   13 [32m+[m[31m-[m
+ postcss.config.js                                  |    5 [31m-[m
+ src/App.tsx                                        |  531 [32m++++++++[m[31m--[m
+ src/components/Button.tsx                          |  102 [32m+[m[31m-[m
+ src/components/Card.tsx                            |    8 [32m+[m[31m-[m
+ src/components/ControlPanel/FxControls.tsx         |   71 [32m+[m[31m-[m
+ src/components/ControlPanel/MotionControls.tsx     |   46 [32m+[m[31m-[m
+ src/components/ControlPanel/SpriteControls.tsx     |   32 [32m+[m[31m-[m
+ .../ControlPanel/shared/ControlSelect.tsx          |  134 [32m+[m[31m--[m
+ .../ControlPanel/shared/ControlSlider.tsx          |   93 [32m+[m[31m-[m
+ src/components/ControlPanel/shared/ShapeIcon.tsx   |   18 [32m+[m[31m-[m
+ src/components/ControlPanel/shared/TooltipIcon.tsx |    2 [32m+[m[31m-[m
+ src/components/CustomPaletteManager.tsx            |   10 [32m+[m[31m-[m
+ src/components/ExportModal.tsx                     |   18 [32m+[m[31m-[m
+ src/components/Header/Header.tsx                   |  256 [32m++[m[31m---[m
+ src/components/MobileMenu.tsx                      |   10 [32m+[m[31m-[m
+ src/components/Onboarding/HelpMenu.tsx             |  177 [31m----[m
+ src/components/Onboarding/OnboardingPanel.tsx      | 1116 [31m--------------------[m
+ src/components/Onboarding/OnboardingTour.tsx       |  244 [31m-----[m
+ src/components/Onboarding/TabOnboarding.tsx        |  188 [31m----[m
+ src/components/Onboarding/WelcomeScreen.tsx        |  149 [31m---[m
+ src/components/Onboarding/index.ts                 |   13 [31m-[m
+ src/components/PresetManager.tsx                   |    8 [32m+[m[31m-[m
+ src/components/StatusBar/StatusBar.tsx             |   56 [32m+[m[31m-[m
+ src/components/catalyst/alert.tsx                  |    6 [32m+[m[31m-[m
+ src/components/catalyst/auth-layout.tsx            |    2 [32m+[m[31m-[m
+ src/components/catalyst/badge.tsx                  |    2 [32m+[m[31m-[m
+ src/components/catalyst/button.tsx                 |    2 [32m+[m[31m-[m
+ src/components/catalyst/combobox.tsx               |    8 [32m+[m[31m-[m
+ src/components/catalyst/switch-adapter.tsx         |    4 [32m+[m[31m-[m
+ src/components/catalyst/switch.tsx                 |   63 [32m+[m[31m-[m
+ src/components/layout/AppLayout.tsx                |   25 [32m+[m[31m-[m
+ src/components/layout/AppSidebar.tsx               |   20 [32m+[m[31m-[m
+ src/components/retroui/Accordion.tsx               |   65 [31m--[m
+ src/components/retroui/Badge.tsx                   |   45 [31m-[m
+ src/components/retroui/ButtonGroup.tsx             |   53 [31m-[m
+ src/components/retroui/Card.tsx                    |   49 [31m-[m
+ src/components/retroui/Input.tsx                   |   35 [31m-[m
+ src/components/retroui/Label.tsx                   |   25 [31m-[m
+ src/components/retroui/Select.tsx                  |   83 [31m--[m
+ src/components/retroui/Slider.tsx                  |   28 [31m-[m
+ src/components/retroui/Switch.tsx                  |   20 [31m-[m
+ src/components/retroui/Tab.tsx                     |  104 [31m--[m
+ src/components/retroui/Text.tsx                    |   37 [31m-[m
+ src/constants/spriteCollections.generated.ts       |    2 [32m+[m[31m-[m
+ src/generator.ts                                   |  944 [32m+++++++++++++[m[31m----[m
+ src/hooks/useFullscreen.ts                         |   19 [32m+[m[31m-[m
+ src/hooks/useSpriteController.ts                   |   47 [32m+[m[31m-[m
+ src/index.css                                      |  918 [32m+++++++[m[31m---------[m
+ src/lib/storage/index.ts                           |    1 [31m-[m
+ src/lib/storage/onboardingStorage.ts               |  145 [31m---[m
+ src/lib/storage/settingsStorage.ts                 |  186 [32m++[m[31m--[m
+ src/main.tsx                                       |    1 [32m+[m
+ src/pages/HelpPage.tsx                             |   39 [31m-[m
+ src/pages/SettingsPage.tsx                         |  227 [32m++[m[31m--[m
+ vite.config.ts                                     |   61 [32m+[m[31m-[m
+ 57 files changed, 3257 insertions(+), 4284 deletions(-)

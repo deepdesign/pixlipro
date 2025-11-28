@@ -1,28 +1,6 @@
-"use client";
+// This file was deleted but is kept as a placeholder for Git worktree compatibility
+// The Slider component has been removed from the codebase
 
-import * as React from "react";
-import * as SliderPrimitive from "@radix-ui/react-slider";
+export {};
 
-import { cn } from "@/lib/utils";
 
-const Slider = React.forwardRef<
-  React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <SliderPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative flex w-full touch-none select-none items-center",
-      className,
-    )}
-    {...props}
-  >
-    <SliderPrimitive.Track className="relative h-3 w-full grow overflow-visible border-2 slider-track-theme">
-      <SliderPrimitive.Range className="absolute h-full slider-range-filled" />
-    </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="relative z-10 block h-4.5 w-4.5 border-2 slider-thumb-theme bg-background shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50" />
-  </SliderPrimitive.Root>
-));
-Slider.displayName = SliderPrimitive.Root.displayName;
-
-export { Slider };

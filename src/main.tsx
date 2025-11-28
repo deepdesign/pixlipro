@@ -1,9 +1,12 @@
+import "./input.css";  // Tailwind
+import "./index.css";  // Your overrides
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App";
+
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import "./index.css";
 import { initializeSettings } from "./lib/storage/settingsStorage";
 
 // Initialize settings (e.g., reduced motion preference)

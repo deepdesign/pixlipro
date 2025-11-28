@@ -2,9 +2,9 @@ import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Download, Upload } from "lucide-react";
-import { ButtonGroup } from "@/components/retroui/ButtonGroup";
-import { Input } from "@/components/retroui/Input";
-import { Label } from "@/components/retroui/Label";
+import { ButtonGroup } from "@/components/ui/ButtonGroup";
+import { Input } from "@/components/catalyst/input";
+import { Label } from "@/components/ui/Label";
 import {
   getAllCustomPalettes,
   saveCustomPalette,
@@ -501,7 +501,7 @@ export const CustomPaletteManager = ({
                           title="Export palette as JSON"
                           aria-label="Export palette"
                         >
-                          <Download className="h-4 w-4" />
+                          <Download className="h-6 w-6" />
                         </Button>
                         <Button
                           type="button"
@@ -528,7 +528,7 @@ export const CustomPaletteManager = ({
                           size="md"
                           variant="link"
                           onClick={() => handleDelete(palette.id)}
-                          className="text-[var(--destructive)]"
+                          className="text-red-600 dark:text-red-400"
                         >
                           Delete
                         </Button>

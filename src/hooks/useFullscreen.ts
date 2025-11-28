@@ -8,6 +8,12 @@ export function useFullscreen(canvasWrapperRef: React.RefObject<HTMLDivElement |
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hudVisible, setHudVisible] = useState(true);
   const hudTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hudVisibleRef = useRef(hudVisible);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    hudVisibleRef.current = hudVisible;
+  }, [hudVisible]);
 
   // Track fullscreen state changes
   useEffect(() => {
@@ -69,13 +75,20 @@ export function useFullscreen(canvasWrapperRef: React.RefObject<HTMLDivElement |
         (document as any).msFullscreenElement;
 
       if (!fullscreenElement) {
-        // Not in fullscreen, always show
-        setHudVisible(true);
+        // Not in fullscreen, always show (but only update if not already visible)
+        if (!hudVisibleRef.current) {
+          setHudVisible(true);
+        }
         return;
       }
 
       // In fullscreen, show HUD on interaction
-      setHudVisible(true);
+      // Only update state if currently hidden
+      if (!hudVisibleRef.current) {
+        setHudVisible(true);
+      }
+      
+      // Reset timeout (don't update state if already visible)
       if (hudTimeoutRef.current) {
         clearTimeout(hudTimeoutRef.current);
       }

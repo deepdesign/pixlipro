@@ -4,6 +4,7 @@ import { Badge } from "@/components/catalyst/badge";
 import { Maximize2, X, RefreshCw, Bookmark, Camera, HelpCircle, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { animatePulse } from "@/lib/utils/animations";
+import { DualMonitorIcon } from "@/components/Header/DualMonitorIcon";
 import type { GeneratorState, MovementMode } from "@/types/generator";
 import type { BlendModeOption } from "@/types/generator";
 
@@ -20,6 +21,8 @@ interface StatusBarProps {
   onShowExport: () => void;
   onFullscreenToggle: () => void;
   onFullscreenClose: () => void;
+  onOpenProjector?: () => void;
+  isProjectorMode?: boolean;
   formatBlendMode: (mode: BlendModeOption) => string;
   formatMovementMode: (mode: MovementMode) => string;
   currentModeLabel: string;
@@ -40,6 +43,8 @@ export function StatusBar({
   onShowExport,
   onFullscreenToggle,
   onFullscreenClose,
+  onOpenProjector,
+  isProjectorMode = false,
   formatBlendMode,
   formatMovementMode,
   currentModeLabel,
@@ -194,13 +199,13 @@ export function StatusBar({
             <Button
               type="button"
               size="icon"
-              variant="outline"
+              variant="background"
               onClick={() => setShowStatusInfo(!showStatusInfo)}
-              className="icon-button status-bar-info-toggle"
+              className="status-bar-info-toggle"
               aria-label="Toggle status information"
               title="Status information"
             >
-              <HelpCircle className="status-bar-icon" />
+              <HelpCircle className="status-bar-icon" data-slot="icon" />
             </Button>
             {showStatusInfo && (
               <div className="status-bar-info-mobile">
@@ -229,8 +234,7 @@ export function StatusBar({
                 <Button
                   type="button"
                   size="icon"
-                  variant="outline"
-                  className="icon-button"
+                  variant="background"
                   aria-label="Show status summary"
                   title="Show status summary"
                   onClick={() =>
@@ -238,7 +242,7 @@ export function StatusBar({
                   }
                   ref={badgeTriggerRef}
                 >
-                  <Info className="status-bar-icon" />
+                  <Info className="status-bar-icon" data-slot="icon" />
                 </Button>
                 {isBadgePopoverOpen && (
                   <div
@@ -291,7 +295,7 @@ export function StatusBar({
           ref={randomiseButtonRef}
           type="button"
           size="icon"
-          variant="outline"
+          variant="background"
           onClick={() => {
             if (randomiseButtonRef.current) {
               animatePulse(randomiseButtonRef.current);
@@ -299,50 +303,64 @@ export function StatusBar({
             onRandomiseAll();
           }}
           disabled={!ready}
-          className="icon-button status-bar-randomise-button"
+          className="status-bar-randomise-button"
           aria-label="Randomise all sprites"
           title="Randomise all sprites"
         >
-          <RefreshCw className="status-bar-icon" />
+          <RefreshCw className="status-bar-icon" data-slot="icon" />
         </Button>
         <Button
           type="button"
           size="icon"
-          variant="outline"
+          variant="background"
           onClick={onShowPresets}
           disabled={!ready}
-          className="icon-button status-bar-presets-button"
+          className="status-bar-presets-button"
           aria-label="Manage presets"
           title="Manage presets"
         >
-          <Bookmark className="status-bar-icon" />
+          <Bookmark className="status-bar-icon" data-slot="icon" />
         </Button>
         <Button
           type="button"
           size="icon"
-          variant="outline"
+          variant="background"
           onClick={onShowExport}
           disabled={!ready}
-          className="icon-button status-bar-export-button"
+          className="status-bar-export-button"
           aria-label="Share & Export"
           title="Share & Export"
         >
-          <Camera className="status-bar-icon" />
+          <Camera className="status-bar-icon" data-slot="icon" />
         </Button>
+        {onOpenProjector && !isProjectorMode && (
+          <Button
+            type="button"
+            size="icon"
+            variant="background"
+            onClick={onOpenProjector}
+            disabled={!ready}
+            className="status-bar-projector-button"
+            aria-label="Open projector window"
+            title="Projector Mode"
+          >
+            <DualMonitorIcon className="status-bar-icon" data-slot="icon" />
+          </Button>
+        )}
         <Button
           type="button"
           size="icon"
-          variant="outline"
+          variant="background"
           onClick={isFullscreen ? onFullscreenClose : onFullscreenToggle}
           disabled={!ready}
-          className="icon-button status-bar-fullscreen-button"
+          className="status-bar-fullscreen-button"
           aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
         >
           {isFullscreen ? (
-            <X className="status-bar-icon" />
+            <X className="status-bar-icon" data-slot="icon" />
           ) : (
-            <Maximize2 className="status-bar-icon" />
+            <Maximize2 className="status-bar-icon" data-slot="icon" />
           )}
         </Button>
       </div>

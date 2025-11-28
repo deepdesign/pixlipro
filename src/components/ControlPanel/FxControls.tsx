@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Button } from "@/components/Button";
 import { Switch } from "@/components/catalyst/switch-adapter";
-import { RefreshCw, ImagePlus } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { BLEND_MODES } from "@/constants/blend";
 import { ControlSlider, ControlSelect, TooltipIcon } from "./shared";
 import { varianceToUi, uiToVariance, formatBlendMode } from "@/lib/utils";
@@ -41,7 +41,7 @@ interface FxControlsProps {
   onPaletteOptionSelect: (paletteId: string) => void;
   onBlendSelect: (mode: BlendModeOption) => void;
   onBlendAutoToggle: (checked: boolean) => void;
-  onShowCustomPaletteManager: () => void;
+  onOpenSettings?: () => void;
 }
 
 /**
@@ -68,7 +68,7 @@ export function FxControls({
   onPaletteOptionSelect,
   onBlendSelect,
   onBlendAutoToggle,
-  onShowCustomPaletteManager,
+  onOpenSettings,
 }: FxControlsProps) {
   const blendAutoLabelId = "blend-auto-label";
   const refreshPaletteButtonRef = useRef<HTMLButtonElement>(null);
@@ -100,8 +100,6 @@ export function FxControls({
           label="Sprite palette"
           value={currentPaletteId}
           onChange={onPaletteSelection}
-          onItemSelect={onPaletteOptionSelect}
-          onItemPointerDown={onPaletteOptionSelect}
           disabled={!ready}
           options={paletteOptions}
           tooltip="Select the core palette used for tinting sprites before variance is applied."
@@ -113,7 +111,7 @@ export function FxControls({
               ref={refreshPaletteButtonRef}
               type="button"
               size="icon"
-              variant="outline"
+              variant="background"
               onClick={() => {
                 if (refreshPaletteButtonRef.current) {
                   animatePulse(refreshPaletteButtonRef.current);
@@ -123,26 +121,23 @@ export function FxControls({
               disabled={!ready || lockedSpritePalette}
               aria-label="Refresh palette application"
               title="Re-apply the selected palette randomly across sprites"
-              className="flex-shrink-0 icon-button"
+              className="flex-shrink-0"
             >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          }
-          suffixButton={
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              onClick={onShowCustomPaletteManager}
-              disabled={!ready}
-              aria-label="Manage custom palettes"
-              title="Manage custom palettes"
-              className="flex-shrink-0 icon-button"
-            >
-              <ImagePlus className="h-4 w-4" />
+              <RefreshCw className="h-6 w-6" data-slot="icon" />
             </Button>
           }
         />
+        {onOpenSettings && (
+          <div className="control-field">
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline-offset-4 hover:underline transition-colors"
+            >
+              Create palette
+            </button>
+          </div>
+        )}
         <div className="control-field">
           <div className="field-heading">
             <div className="field-heading-left">
@@ -191,7 +186,7 @@ export function FxControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
         <h3 className="section-title">Blend &amp; opacity</h3>
         <ControlSlider
           id="opacity-range"
@@ -220,6 +215,18 @@ export function FxControls({
           onLockToggle={() => onLockBlendMode(!lockedBlendMode)}
         />
         <div className="control-field">
+          <div className="field-heading">
+            <div className="field-heading-left">
+              <span className="field-label" id={blendAutoLabelId}>
+                Random sprite blend
+              </span>
+              <TooltipIcon
+                id="blend-auto-tip"
+                text="Give every sprite an individual blend mode"
+                label="Random sprite blend"
+              />
+            </div>
+          </div>
           <div className="switch-row">
             <Switch
               id="blend-auto"
@@ -232,7 +239,7 @@ export function FxControls({
               ref={randomizeBlendButtonRef}
               type="button"
               size="icon"
-              variant="outline"
+              variant="background"
               onClick={() => {
                 if (randomizeBlendButtonRef.current) {
                   animatePulse(randomizeBlendButtonRef.current);
@@ -242,26 +249,15 @@ export function FxControls({
               disabled={!ready || !spriteState.blendModeAuto}
               aria-label="Randomise sprite blend modes"
               title="Randomise sprite blend modes"
-              className="icon-button"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-6 w-6" />
             </Button>
-            <div className="field-heading-left">
-              <span className="field-label" id={blendAutoLabelId}>
-                Random sprite blend
-              </span>
-              <TooltipIcon
-                id="blend-auto-tip"
-                text="Give every sprite an individual blend mode"
-                label="Random sprite blend"
-              />
-            </div>
           </div>
         </div>
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
         <h3 className="section-title">Canvas</h3>
         <ControlSelect
           id={isCanvasGradient ? "canvas-gradient" : "background-mode"}
@@ -285,7 +281,7 @@ export function FxControls({
               <span className="field-label">Use gradients</span>
               <TooltipIcon
                 id="canvas-fill-mode-tip"
-                text="Enable gradient fills for canvas background instead of solid color."
+                text="Enable gradient fills for canvas background instead of solid colour."
                 label="Use gradients"
               />
             </div>
@@ -326,4 +322,3 @@ export function FxControls({
     </>
   );
 }
-

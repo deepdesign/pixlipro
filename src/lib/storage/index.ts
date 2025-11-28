@@ -6,6 +6,5 @@
 
 export * from "./presetStorage";
 export * from "./customPaletteStorage";
-export * from "./onboardingStorage";
 export * from "./settingsStorage";
 

@@ -132,7 +132,7 @@ export function MotionControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
         <h3 className="section-title">Rotation</h3>
         <div className="control-field control-field--rotation">
           <div className="field-heading">
@@ -175,8 +175,8 @@ export function MotionControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
-        <h3 className="section-title">Sprite Hue Rotation</h3>
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <h3 className="section-title">Sprite hue rotation</h3>
         <div className="control-field control-field--rotation">
           <div className="field-heading">
             <div className="field-heading-left">
@@ -185,7 +185,7 @@ export function MotionControls({
               </span>
               <TooltipIcon
                 id="hue-rotation-animate-tip"
-                text="Continuously rotate sprite colors through the color wheel."
+                text="Continuously rotate sprite colours through the colour wheel."
                 label="Animate hue rotation"
               />
             </div>
@@ -205,21 +205,22 @@ export function MotionControls({
             <ControlSlider
               id="hue-rotation-speed"
               label="Rotation speed"
-              min={1}
+              min={0.1}
               max={100}
-              value={Math.round(spriteState.hueRotationSpeed)}
-              displayValue={`${Math.round(spriteState.hueRotationSpeed)}%`}
+              step={0.1}
+              value={spriteState.hueRotationSpeed}
+              displayValue={`${spriteState.hueRotationSpeed < 1 ? spriteState.hueRotationSpeed.toFixed(1) : Math.round(spriteState.hueRotationSpeed)}%`}
               onChange={onHueRotationSpeedChange}
               disabled={!ready}
-              tooltip="Control how quickly sprite colors rotate through the color wheel."
+              tooltip="Control how quickly sprite colours rotate through the colour wheel."
             />
           </div>
         )}
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
-        <h3 className="section-title">Palette Cycling</h3>
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <h3 className="section-title">Palette cycling</h3>
         <div className="control-field control-field--rotation">
           <div className="field-heading">
             <div className="field-heading-left">
@@ -248,15 +249,16 @@ export function MotionControls({
             <ControlSlider
               id="palette-cycle-speed"
               label="Cycle speed"
-              min={1}
+              min={0.1}
               max={100}
-              value={Math.round(spriteState.paletteCycleSpeed)}
-              displayValue={`${Math.round(spriteState.paletteCycleSpeed)}%`}
+              step={0.1}
+              value={spriteState.paletteCycleSpeed}
+              displayValue={`${spriteState.paletteCycleSpeed < 1 ? spriteState.paletteCycleSpeed.toFixed(1) : Math.round(spriteState.paletteCycleSpeed)}%`}
               onChange={onPaletteCycleSpeedChange}
               disabled={!ready}
               tooltip="Control how quickly palettes cycle."
             />
-            <div className="text-xs text-[var(--text-muted)] mt-1 text-right">
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-right">
               {currentPaletteName}
             </div>
           </div>
@@ -264,8 +266,8 @@ export function MotionControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
-        <h3 className="section-title">Canvas Hue Rotation</h3>
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <h3 className="section-title">Canvas hue rotation</h3>
         <div className="control-field control-field--rotation">
           <div className="field-heading">
             <div className="field-heading-left">
@@ -274,7 +276,7 @@ export function MotionControls({
               </span>
               <TooltipIcon
                 id="canvas-hue-rotation-animate-tip"
-                text="Continuously rotate canvas background colors through the color wheel."
+                text="Continuously rotate canvas background colours through the colour wheel."
                 label="Animate canvas hue"
               />
             </div>
@@ -294,13 +296,14 @@ export function MotionControls({
             <ControlSlider
               id="canvas-hue-rotation-speed"
               label="Rotation speed"
-              min={1}
+              min={0.1}
               max={100}
-              value={Math.round(spriteState.canvasHueRotationSpeed)}
-              displayValue={`${Math.round(spriteState.canvasHueRotationSpeed)}%`}
+              step={0.1}
+              value={spriteState.canvasHueRotationSpeed}
+              displayValue={`${spriteState.canvasHueRotationSpeed < 1 ? spriteState.canvasHueRotationSpeed.toFixed(1) : Math.round(spriteState.canvasHueRotationSpeed)}%`}
               onChange={onCanvasHueRotationSpeedChange}
               disabled={!ready}
-              tooltip="Control how quickly canvas background colors rotate through the color wheel."
+              tooltip="Control how quickly canvas background colours rotate through the colour wheel."
             />
           </div>
         )}
@@ -308,4 +311,3 @@ export function MotionControls({
     </>
   );
 }
-

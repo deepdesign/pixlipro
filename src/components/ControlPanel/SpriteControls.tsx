@@ -10,7 +10,7 @@ import {
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from "@/components/retroui/Select";
+} from "@/components/ui/Select";
 import { ControlSlider, ShapeIcon, TooltipIcon } from "./shared";
 import { densityToUi, uiToDensity } from "@/lib/utils";
 import { animatePulse } from "@/lib/utils/animations";
@@ -144,17 +144,17 @@ export function SpriteControls({
                       key={mode.value}
                       type="button"
                       size="icon"
-                      variant={isSelected ? "default" : "outline"}
+                      variant={isSelected ? "default" : "background"}
                       onClick={() => onModeChange(mode.value)}
                       disabled={!ready || lockedSpriteMode}
                       title={mode.label}
                       aria-label={mode.label}
-                      className={isSelected ? undefined : "icon-button"}
                     >
                       <ShapeIcon 
                         shape={mode.value} 
-                        size={24} 
+                        size={20} 
                         svgPath={(mode as any).svgPath}
+                        data-slot="icon"
                       />
                     </Button>
                   );
@@ -162,21 +162,18 @@ export function SpriteControls({
             <Button
               type="button"
               size="icon"
-              variant="outline"
+              variant="lock"
+              data-locked={lockedSpriteMode}
               onClick={() => onLockSpriteMode(!lockedSpriteMode)}
               disabled={!ready}
               aria-label={lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"}
               title={lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"}
-              className={
-                lockedSpriteMode
-                  ? "icon-button control-lock-button control-lock-button-locked"
-                  : "icon-button control-lock-button"
-              }
+              className="control-lock-button"
             >
               {lockedSpriteMode ? (
-                <Lock className="h-4 w-4" />
+                <Lock className="h-6 w-6" data-slot="icon" />
               ) : (
-                <Unlock className="h-4 w-4" />
+                <Unlock className="h-6 w-6" data-slot="icon" />
               )}
             </Button>
           </div>
@@ -197,7 +194,7 @@ export function SpriteControls({
               ref={randomizeButtonRef}
               type="button"
               size="icon"
-              variant="outline"
+              variant="background"
               onClick={() => {
                 if (randomizeButtonRef.current) {
                   animatePulse(randomizeButtonRef.current);
@@ -215,9 +212,8 @@ export function SpriteControls({
               disabled={!ready}
               aria-label="Regenerate sprites"
               title="Regenerate all sprites on the canvas with new positions and sizes"
-              className="icon-button"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-6 w-6" />
             </Button>
             <div className="field-heading-left">
               <span className="field-label" id="regenerate-sprites-label">
@@ -234,7 +230,7 @@ export function SpriteControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
         <h3 className="section-title">Density &amp; scale</h3>
         <ControlSlider
           id="density-range"
@@ -272,7 +268,7 @@ export function SpriteControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
         <h3 className="section-title">Depth</h3>
         <div className="control-field control-field--rotation">
           <div className="field-heading">
@@ -326,7 +322,7 @@ export function SpriteControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider" />
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
         <h3 className="section-title">Rotation</h3>
         <div className="control-field control-field--rotation">
           <div className="field-heading">

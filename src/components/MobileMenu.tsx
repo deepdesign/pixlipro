@@ -29,16 +29,15 @@ export const MobileMenu = ({
         type="button"
         size="icon"
         variant="outline"
-        className="icon-button header-icon-button"
         onClick={handleToggle}
         aria-label="Open menu"
         aria-expanded={isOpen}
         title="Menu"
       >
         {isOpen ? (
-          <X className="h-4 w-4" aria-hidden="true" />
+          <X className="h-6 w-6" data-slot="icon" aria-hidden="true" />
         ) : (
-          <Menu className="h-4 w-4" aria-hidden="true" />
+          <Menu className="h-6 w-6" data-slot="icon" aria-hidden="true" />
         )}
       </Button>
       {isOpen && (
@@ -55,11 +54,10 @@ export const MobileMenu = ({
                 type="button"
                 size="icon"
                 variant="outline"
-                className="icon-button"
                 onClick={handleClose}
                 aria-label="Close menu"
               >
-                <X className="h-4 w-4" aria-hidden="true" />
+                <X className="h-6 w-6" data-slot="icon" aria-hidden="true" />
               </Button>
             </div>
             <div className="mobile-menu-actions">
@@ -73,7 +71,7 @@ export const MobileMenu = ({
                 }}
                 className="w-full justify-start gap-2"
               >
-                <ThemeModeIcon className="h-4 w-4" />
+                <ThemeModeIcon className="h-6 w-6" />
                 Theme: {themeModeText}
               </Button>
             </div>

@@ -10,7 +10,7 @@ interface TooltipIconProps {
  * TooltipIcon Component
  * 
  * Displays a help icon with a tooltip that appears on hover.
- * Uses RetroUI tooltip styling.
+ * Uses standard tooltip styling.
  */
 export function TooltipIcon({ id, text, label }: TooltipIconProps) {
   return (

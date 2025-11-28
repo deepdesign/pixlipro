@@ -2,8 +2,8 @@ import { Switch as CatalystSwitch } from './switch'
 import type { ComponentProps } from 'react'
 
 /**
- * Adapter component to bridge RetroUI Switch API (Radix UI) to Catalyst Switch API (Headless UI)
- * RetroUI uses: checked, onCheckedChange
+ * Adapter component to bridge Radix UI Switch API to Catalyst Switch API (Headless UI)
+ * Radix UI uses: checked, onCheckedChange
  * Catalyst uses: checked, onChange
  */
 export function Switch({

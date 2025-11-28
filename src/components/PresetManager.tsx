@@ -276,7 +276,7 @@ export const PresetManager = ({
                   size="md"
                   variant="link"
                   onClick={handleExportAll}
-                  className="text-[var(--text-muted)] hover:text-[var(--text-color)] text-xs"
+                  className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs"
                 >
                   Export all
                 </Button>
@@ -310,7 +310,7 @@ export const PresetManager = ({
                       title="Export preset as JSON"
                       aria-label="Export preset"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-6 w-6" />
                     </Button>
                     <Button
                       ref={(el) => {
@@ -324,9 +324,9 @@ export const PresetManager = ({
                       onClick={() => handleDelete(preset.id)}
                       title="Delete preset"
                       aria-label="Delete preset"
-                      className="text-[var(--destructive)] border-[var(--destructive)] hover:bg-[color-mix(in_srgb,var(--destructive)_15%,transparent)]"
+                      className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-950/20"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-6 w-6" />
                     </Button>
                   </div>
                 ))}

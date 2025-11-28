@@ -45,24 +45,24 @@ export function SwitchField({
 
 const colors = {
   'dark/zinc': [
-    '[--switch-bg-ring:var(--accent-primary)]/90 [--switch-bg:var(--accent-primary)] [data-theme="dark"]:[--switch-bg-ring:var(--accent-primary)]/50 [data-theme="dark"]:[--switch-bg:var(--accent-primary)]',
-    '[--switch-ring:var(--accent-primary)]/90 [--switch-shadow:var(--accent-primary-shadow)]/20 [--switch:var(--accent-primary-contrast)] [data-theme="dark"]:[--switch-ring:var(--accent-primary)]/70 [data-theme="dark"]:[--switch:var(--accent-primary-contrast)]',
+    // This color uses the primary theme color variable directly in the component
+    // No additional styles needed
   ],
   'dark/white': [
-    '[--switch-bg-ring:var(--color-zinc-950)]/90 [--switch-bg:var(--color-zinc-900)] [data-theme="dark"]:[--switch-bg-ring:transparent] [data-theme="dark"]:[--switch-bg:var(--color-white)]',
-    '[--switch-ring:var(--color-zinc-950)]/90 [--switch-shadow:var(--color-black)]/10 [--switch:white] [data-theme="dark"]:[--switch-ring:transparent] [data-theme="dark"]:[--switch:var(--color-zinc-900)]',
+    '[--switch-bg-ring:var(--color-slate-950)]/90 [--switch-bg:var(--color-slate-900)] [data-theme="dark"]:[--switch-bg-ring:transparent] [data-theme="dark"]:[--switch-bg:var(--color-white)]',
+    '[--switch-ring:var(--color-slate-950)]/90 [--switch-shadow:var(--color-black)]/10 [--switch:white] [data-theme="dark"]:[--switch-ring:transparent] [data-theme="dark"]:[--switch:var(--color-slate-900)]',
   ],
   dark: [
-    '[--switch-bg-ring:var(--color-zinc-950)]/90 [--switch-bg:var(--color-zinc-900)] [data-theme="dark"]:[--switch-bg-ring:var(--color-white)]/15',
-    '[--switch-ring:var(--color-zinc-950)]/90 [--switch-shadow:var(--color-black)]/10 [--switch:white]',
+    '[--switch-bg-ring:var(--color-slate-950)]/90 [--switch-bg:var(--color-slate-900)] [data-theme="dark"]:[--switch-bg-ring:var(--color-white)]/15',
+    '[--switch-ring:var(--color-slate-950)]/90 [--switch-shadow:var(--color-black)]/10 [--switch:white]',
   ],
   zinc: [
-    '[--switch-bg-ring:var(--color-zinc-700)]/90 [--switch-bg:var(--color-zinc-600)] [data-theme="dark"]:[--switch-bg-ring:transparent]',
-    '[--switch-shadow:var(--color-black)]/10 [--switch:white] [--switch-ring:var(--color-zinc-700)]/90',
+    '[--switch-bg-ring:var(--color-slate-700)]/90 [--switch-bg:var(--color-slate-600)] [data-theme="dark"]:[--switch-bg-ring:transparent]',
+    '[--switch-shadow:var(--color-black)]/10 [--switch:white] [--switch-ring:var(--color-slate-700)]/90',
   ],
   white: [
     '[--switch-bg-ring:var(--color-black)]/15 [--switch-bg:white] [data-theme="dark"]:[--switch-bg-ring:transparent]',
-    '[--switch-shadow:var(--color-black)]/10 [--switch-ring:transparent] [--switch:var(--color-zinc-950)]',
+    '[--switch-shadow:var(--color-black)]/10 [--switch-ring:transparent] [--switch:var(--color-slate-950)]',
   ],
   red: [
     '[--switch-bg-ring:var(--color-red-700)]/90 [--switch-bg:var(--color-red-600)] [data-theme="dark"]:[--switch-bg-ring:transparent]',
@@ -150,24 +150,15 @@ export function Switch({
       {...props}
       className={clsx(
         className,
-        // Base styles
-        'group relative isolate inline-flex h-6 w-10 cursor-default rounded-full p-[3px] sm:h-5 sm:w-8',
-        // Transitions
-        'transition duration-0 ease-in-out data-changing:duration-200',
-        // Outline and background color in forced-colors mode so switch is still visible
-        'forced-colors:outline forced-colors:[--switch-bg:Highlight] [data-theme="dark"]:forced-colors:[--switch-bg:Highlight]',
-        // Unchecked - neutral gray styling
-        'bg-zinc-200 ring-1 ring-black/5 ring-inset [data-theme="dark"]:bg-white/5 [data-theme="dark"]:ring-white/15',
-        // Checked - use primary color for active state
-        'data-checked:bg-(--switch-bg) data-checked:ring-(--switch-bg-ring) [data-theme="dark"]:data-checked:bg-(--switch-bg) [data-theme="dark"]:data-checked:ring-(--switch-bg-ring)',
-        // Focus
-        'focus:not-data-focus:outline-hidden data-focus:outline-2 data-focus:outline-offset-2 data-focus:outline-blue-500',
-        // Hover
-        'data-hover:ring-black/15 data-hover:data-checked:ring-(--switch-bg-ring)',
-        '[data-theme="dark"]:data-hover:ring-white/25 [data-theme="dark"]:data-hover:data-checked:ring-(--switch-bg-ring)',
-        // Disabled
-        'data-disabled:bg-zinc-200 data-disabled:opacity-50 data-disabled:data-checked:bg-zinc-200 data-disabled:data-checked:ring-black/5',
-        '[data-theme="dark"]:data-disabled:bg-white/15 [data-theme="dark"]:data-disabled:data-checked:bg-white/15 [data-theme="dark"]:data-disabled:data-checked:ring-white/15',
+        // Base styles - standard Tailwind switch
+        'group relative inline-flex h-6 w-11 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
+        // Unchecked state - filled background
+        'bg-slate-200 dark:bg-slate-700',
+        // Checked state - use primary UI theme color variable
+        'data-checked:bg-[var(--accent-primary)]',
+        // Disabled state
+        'data-disabled:opacity-50 data-disabled:cursor-not-allowed',
         // Color specific styles
         colors[color]
       )}
@@ -175,20 +166,14 @@ export function Switch({
       <span
         aria-hidden="true"
         className={clsx(
-          // Basic layout
-          'pointer-events-none relative inline-block size-4.5 rounded-full sm:size-3.5',
-          // Transition
-          'translate-x-0 transition duration-200 ease-in-out',
-          // Invisible border so the switch is still visible in forced-colors mode
-          'border border-transparent',
-          // Unchecked - neutral gray thumb on left
-          'bg-white shadow-sm ring-1 ring-black/5 [data-theme="dark"]:bg-white [data-theme="dark"]:ring-white/20',
+          // Thumb - standard Tailwind switch thumb
+          'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+          // Unchecked position
           'translate-x-0',
-          // Checked - use primary color, thumb moves to right
-          'group-data-checked:bg-(--switch) group-data-checked:shadow-(--switch-shadow) group-data-checked:ring-(--switch-ring)',
-          'group-data-checked:translate-x-4 sm:group-data-checked:translate-x-3',
+          // Checked position
+          'group-data-checked:translate-x-5',
           // Disabled
-          'group-data-checked:group-data-disabled:bg-white group-data-checked:group-data-disabled:shadow-sm group-data-checked:group-data-disabled:ring-black/5'
+          'group-data-disabled:opacity-50'
         )}
       />
     </Headless.Switch>

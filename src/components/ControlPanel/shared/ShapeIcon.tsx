@@ -5,6 +5,7 @@ interface ShapeIconProps {
   shape: SpriteMode;
   size?: number;
   svgPath?: string; // Optional SVG path for custom sprite icons
+  "data-slot"?: string; // For Catalyst icon button pattern
 }
 
 /**
@@ -13,7 +14,7 @@ interface ShapeIconProps {
  * Renders SVG icons for different sprite shapes.
  * Used in the sprite selection buttons to provide visual previews.
  */
-export function ShapeIcon({ shape, size = 24, svgPath }: ShapeIconProps) {
+export function ShapeIcon({ shape, size = 24, svgPath, "data-slot": dataSlot }: ShapeIconProps) {
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgError, setSvgError] = useState(false);
 
@@ -92,6 +93,7 @@ export function ShapeIcon({ shape, size = 24, svgPath }: ShapeIconProps) {
         viewBox={viewBox}
         style={{ display: "block", overflow: "visible" }}
         fill="currentColor"
+        data-slot={dataSlot}
         dangerouslySetInnerHTML={{ __html: processedContent }}
       />
     );
@@ -259,14 +261,22 @@ export function ShapeIcon({ shape, size = 24, svgPath }: ShapeIconProps) {
         const startY = (24 - totalSize) / 2;
         
         return (
-          <g fill="currentColor">
+          <g>
             {Array.from({ length: 16 }, (_, i) => {
               const row = Math.floor(i / 4);
               const col = i % 4;
               const x = startX + col * (squareSize + gap);
               const y = startY + row * (squareSize + gap);
               return (
-                <rect key={i} x={x} y={y} width={squareSize} height={squareSize} />
+                <rect 
+                  key={i} 
+                  x={x} 
+                  y={y} 
+                  width={squareSize} 
+                  height={squareSize} 
+                  fill="currentColor"
+                  stroke="none"
+                />
               );
             })}
           </g>
@@ -375,9 +385,9 @@ export function ShapeIcon({ shape, size = 24, svgPath }: ShapeIconProps) {
       viewBox={viewBox}
       style={{ display: "block" }}
       fill="currentColor"
+      data-slot={dataSlot}
     >
       {renderShape()}
     </svg>
   );
 }
-

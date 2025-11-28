@@ -13,6 +13,7 @@ import { getGradientsForPalette } from "./data/gradients";
 import { calculateGradientLine } from "./lib/utils";
 import { getCollection, getSpriteInCollection, getAllCollections } from "./constants/spriteCollections";
 import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache } from "./lib/services/spriteImageLoader";
+import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 
 const MIN_TILE_SCALE = 0.12;
 const MAX_TILE_SCALE = 5.5; // Allow large sprites, but positioning will be adjusted
@@ -214,6 +215,9 @@ export interface GeneratorState {
   paletteCycleSpeed: number; // Speed of palette cycling (0-100%)
   canvasHueRotationEnabled: boolean; // Toggle canvas hue rotation animation
   canvasHueRotationSpeed: number; // Speed of canvas hue rotation (0-100%)
+  // Aspect ratio settings
+  aspectRatio: "16:9" | "21:9" | "16:10" | "custom"; // Canvas aspect ratio (square removed, defaults to 16:9)
+  customAspectRatio: { width: number; height: number }; // Custom aspect ratio dimensions
 }
 
 export interface SpriteControllerOptions {
@@ -292,6 +296,9 @@ export const DEFAULT_STATE: GeneratorState = {
   paletteCycleSpeed: 50,
   canvasHueRotationEnabled: false,
   canvasHueRotationSpeed: 50,
+  // Aspect ratio defaults
+  aspectRatio: "16:9", // Industry standard for projectors
+  customAspectRatio: { width: 1920, height: 1080 }, // Default custom dimensions (16:9)
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -991,9 +998,11 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   return { layers, background };
 };
 
+export type TransitionType = "instant" | "fade" | "smooth";
+
 export interface SpriteController {
   getState: () => GeneratorState;
-  applyState: (state: GeneratorState) => void;
+  applyState: (state: GeneratorState, transition?: TransitionType) => void;
   randomizeAll: () => void;
   randomizeColors: () => void;
   refreshPaletteApplication: () => void;
@@ -1041,6 +1050,8 @@ export interface SpriteController {
   setPaletteCycleSpeed: (speed: number) => void;
   setCanvasHueRotationEnabled: (enabled: boolean) => void;
   setCanvasHueRotationSpeed: (speed: number) => void;
+  setAspectRatio: (ratio: "16:9" | "21:9" | "16:10" | "custom") => void;
+  setCustomAspectRatio: (width: number, height: number) => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
   applyMinimalGridPreset: () => void;
@@ -1069,6 +1080,34 @@ export const createSpriteController = (
   container: HTMLElement,
   options: SpriteControllerOptions = {},
 ): SpriteController => {
+  // Load settings from localStorage
+  let initialAspectRatio = DEFAULT_STATE.aspectRatio; // Defaults to "16:9"
+  let initialCustomAspectRatio = DEFAULT_STATE.customAspectRatio;
+  let canvasBlackBackground = false;
+  try {
+    const settingsJson = localStorage.getItem("pixli-settings");
+    if (settingsJson) {
+      const settings = JSON.parse(settingsJson);
+      if (settings.aspectRatio) {
+        // Force 16:9 if "square" is saved (remove square support)
+        initialAspectRatio = settings.aspectRatio === "square" ? "16:9" : settings.aspectRatio;
+      }
+      if (settings.customAspectRatio) {
+        initialCustomAspectRatio = settings.customAspectRatio;
+      }
+      if (settings.canvasBlackBackground) {
+        canvasBlackBackground = settings.canvasBlackBackground;
+      }
+    }
+  } catch (error) {
+    console.error("Failed to load aspect ratio settings:", error);
+  }
+  
+  // Always default to 16:9, never square
+  if (initialAspectRatio === "square") {
+    initialAspectRatio = "16:9";
+  }
+
   // Store state in an object that can be updated
   // This ensures closures always read from the same reference, even after HMR
   const stateRef = { 
@@ -1076,13 +1115,69 @@ export const createSpriteController = (
       ...DEFAULT_STATE,
       seed: generateSeedString(),
       previousBlendMode: DEFAULT_STATE.blendMode,
+      aspectRatio: initialAspectRatio,
+      customAspectRatio: initialCustomAspectRatio,
     } as GeneratorState
   };
   let state = stateRef.current;
   let prepared = computeSprite(state);
+  
+  // Initialize CSS variable for container aspect ratio
+  const initializeAspectRatioCSS = () => {
+    const currentRatio = stateRef.current.aspectRatio;
+    let paddingTopPercent = 56.25; // Default to 16:9
+    switch (currentRatio) {
+      case "16:9":
+        paddingTopPercent = 56.25; // 9/16 * 100
+        break;
+      case "21:9":
+        paddingTopPercent = 42.857; // 9/21 * 100
+        break;
+      case "16:10":
+        paddingTopPercent = 62.5; // 10/16 * 100
+        break;
+      case "custom":
+        const custom = stateRef.current.customAspectRatio;
+        paddingTopPercent = (custom.height / custom.width) * 100;
+        break;
+      default:
+        // Always default to 16:9 (square removed)
+        paddingTopPercent = 56.25;
+        break;
+    }
+    document.documentElement.style.setProperty('--canvas-aspect-ratio', `${paddingTopPercent}%`);
+  };
+  
+  // Initialize on creation - set CSS variable immediately
+  initializeAspectRatioCSS();
+  
+  // Also set it on the next frame to ensure it's applied after DOM is ready
+  if (typeof requestAnimationFrame !== 'undefined') {
+    requestAnimationFrame(() => {
+      initializeAspectRatioCSS();
+    });
+  }
+  
   let p5Instance: P5WithCanvas | null = null;
   let destroyTimeoutId: ReturnType<typeof setTimeout> | null = null;
   let pauseTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  
+  // Transition state
+  let transitionState: {
+    isTransitioning: boolean;
+    fromState: GeneratorState | null;
+    toState: GeneratorState | null;
+    startTime: number;
+    duration: number;
+    type: TransitionType;
+  } = {
+    isTransitioning: false,
+    fromState: null,
+    toState: null,
+    startTime: 0,
+    duration: 0,
+    type: "instant",
+  };
   // Loop capture override: when enabled, draw uses time modulo a fixed period
   const loopOverrideRef = {
     enabled: false,
@@ -1156,6 +1251,95 @@ export const createSpriteController = (
     state = stateRef.current; // Keep local variable in sync
   };
 
+  // Helper function to calculate canvas dimensions based on aspect ratio
+  const calculateCanvasDimensions = (
+    containerWidth: number,
+    containerHeight: number,
+    isFullscreen: boolean
+  ): { width: number; height: number } => {
+    const state = getState();
+    const minCanvasWidth = 320;
+    const minCanvasHeight = 240;
+    
+    let targetWidth: number;
+    let targetHeight: number;
+    
+    if (isFullscreen) {
+      // In fullscreen, use viewport dimensions
+      targetWidth = window.innerWidth;
+      targetHeight = window.innerHeight;
+    } else {
+      // In normal mode, use container dimensions
+      targetWidth = Math.max(minCanvasWidth, containerWidth);
+      targetHeight = containerHeight;
+    }
+    
+    // Calculate dimensions based on aspect ratio
+    switch (state.aspectRatio) {
+      case "16:9":
+        // 16:9 (Widescreen)
+        const width169 = Math.max(minCanvasWidth, targetWidth);
+        return {
+          width: width169,
+          height: Math.max(minCanvasHeight, Math.round(width169 * (9 / 16))),
+        };
+      
+      case "21:9":
+        // 21:9 (Ultra-Wide)
+        const width219 = Math.max(minCanvasWidth, targetWidth);
+        return {
+          width: width219,
+          height: Math.max(minCanvasHeight, Math.round(width219 * (9 / 21))),
+        };
+      
+      case "16:10":
+        // 16:10 (WUXGA)
+        const width1610 = Math.max(minCanvasWidth, targetWidth);
+        return {
+          width: width1610,
+          height: Math.max(minCanvasHeight, Math.round(width1610 * (10 / 16))),
+        };
+      
+      case "custom":
+        // Custom dimensions
+        const custom = state.customAspectRatio;
+        if (isFullscreen) {
+          // In fullscreen, scale custom ratio to fit viewport
+          const viewportRatio = targetWidth / targetHeight;
+          const customRatio = custom.width / custom.height;
+          
+          if (viewportRatio > customRatio) {
+            // Viewport is wider, height is limiting
+            return {
+              width: Math.round(targetHeight * customRatio),
+              height: targetHeight,
+            };
+          } else {
+            // Viewport is taller, width is limiting
+            return {
+              width: targetWidth,
+              height: Math.round(targetWidth / customRatio),
+            };
+          }
+        } else {
+          // In normal mode, scale custom ratio to fit container width
+          const scale = targetWidth / custom.width;
+          return {
+            width: Math.max(minCanvasWidth, Math.round(custom.width * scale)),
+            height: Math.max(minCanvasHeight, Math.round(custom.height * scale)),
+          };
+        }
+      
+      default:
+        // Fallback to 16:9
+        const widthDefault = Math.max(minCanvasWidth, targetWidth);
+        return {
+          width: widthDefault,
+          height: Math.max(minCanvasHeight, Math.round(widthDefault * (9 / 16))),
+        };
+    }
+  };
+
   const sketch = (p: p5) => {
     let canvas: p5.Renderer;
     let animationTime = 0;
@@ -1170,39 +1354,358 @@ export const createSpriteController = (
 
     p.setup = () => {
       try {
-        // Canvas uses 16:9 aspect ratio for projectors
-        // Calculate canvas dimensions based on container width
-        const containerWidth = container.clientWidth || 0;
-        const minCanvasWidth = 320; // Minimum canvas width
-        const maxCanvasWidth = Infinity; // No max width - use full available area
+        // Ensure CSS variable is set before creating canvas
+        initializeAspectRatioCSS();
         
-        // Calculate canvas width: use container width, clamped to minimum
-        const canvasWidth = Math.max(minCanvasWidth, containerWidth);
-        // Calculate canvas height based on 16:9 aspect ratio
-        const canvasHeight = Math.round(canvasWidth * (9 / 16));
+        // Check if container is attached - if not, create canvas anyway and parent it later
+        const isContainerReady = container && container.parentNode;
         
-        // Validate dimensions before creating canvas
-        if (canvasWidth <= 0 || canvasHeight <= 0 || !isFinite(canvasWidth) || !isFinite(canvasHeight)) {
-          console.error("Invalid canvas dimensions:", canvasWidth, canvasHeight);
-          canvas = p.createCanvas(1280, 720); // Fallback to 16:9 default (1280x720)
+        if (!isContainerReady) {
+          console.warn("Container not attached to DOM yet, creating canvas with fallback size...");
+        }
+        
+        // Get container width - use parent (canvas-wrapper) since sketch-container is absolutely positioned
+        const parentContainer = container?.parentElement;
+        let containerWidth = 0;
+        if (isContainerReady && parentContainer) {
+          containerWidth = parentContainer.clientWidth || 0;
+        }
+        
+        // If container has no width yet, use fallback
+        if (containerWidth === 0) {
+          containerWidth = 1280; // Fallback width
+        }
+        
+        // Calculate canvas dimensions based on aspect ratio
+        const state = getState();
+        let aspectRatioMultiplier = 9 / 16; // Default to 16:9
+        switch (state.aspectRatio) {
+          case "16:9":
+            aspectRatioMultiplier = 9 / 16;
+            break;
+          case "21:9":
+            aspectRatioMultiplier = 9 / 21;
+            break;
+          case "16:10":
+            aspectRatioMultiplier = 10 / 16;
+            break;
+          case "custom":
+            aspectRatioMultiplier = state.customAspectRatio.height / state.customAspectRatio.width;
+            break;
+        }
+        
+        // Minimum canvas size
+        const minCanvasSize = 320;
+        const maxCanvasSize = 1920;
+        const size = Math.min(maxCanvasSize, Math.max(minCanvasSize, containerWidth));
+        
+        // Calculate width and height maintaining aspect ratio
+        const canvasWidth = size;
+        const canvasHeight = Math.round(size * aspectRatioMultiplier);
+        
+        // Validate size before creating canvas
+        if (size <= 0 || !isFinite(size) || canvasWidth <= 0 || canvasHeight <= 0) {
+          console.error("Invalid canvas size:", canvasWidth, canvasHeight, "containerWidth:", containerWidth);
+          canvas = p.createCanvas(1280, 720); // Fallback to 16:9 default
         } else {
           canvas = p.createCanvas(canvasWidth, canvasHeight);
         }
         
-        if (!container || !container.parentNode) {
-          console.error("Container is not attached to DOM");
-          return;
+        console.log("Canvas created:", canvasWidth, "x", canvasHeight, "container ready:", isContainerReady);
+        
+        // CRITICAL: Parent canvas to container immediately
+        // If container isn't ready, the canvas will be in the wrong place
+        if (container && container.parentNode) {
+          canvas.parent(container);
+          console.log("Canvas parented to container immediately");
+          
+          // CRITICAL: Ensure canvas element's actual dimensions match container for proper rendering
+          // Canvas elements need their width/height attributes to match display size for proper scaling
+          if (canvas.elt) {
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width || container.clientWidth || 0;
+            const containerHeight = containerRect.height || container.clientHeight || 0;
+            
+            if (containerWidth > 0 && containerHeight > 0) {
+              // Set canvas element's actual pixel dimensions to match container
+              // This ensures the canvas renders correctly at the container size
+              canvas.elt.width = Math.round(containerWidth);
+              canvas.elt.height = Math.round(containerHeight);
+              console.log("Canvas element dimensions set to match container:", canvas.elt.width, "x", canvas.elt.height);
+            }
+          }
+          
+          // Verify it worked
+          if (canvas.elt && canvas.elt.parentElement !== container) {
+            console.error("Canvas parent mismatch after parent() call! Forcing...");
+            // Force it into the right place
+            container.appendChild(canvas.elt);
+            console.log("Canvas forcefully moved to container");
+          }
+        } else {
+          // Container not ready - this is a problem, but we'll try to fix it
+          console.error("Container not ready when creating canvas! Canvas will be misplaced.");
+          // Try to parent it anyway - p5.js might put it somewhere wrong
+          try {
+            canvas.parent(container);
+          } catch (e) {
+            console.error("Failed to parent canvas:", e);
+          }
+          
+          // Aggressively retry to fix the parenting
+          let retryCount = 0;
+          const maxRetries = 40; // 2 seconds max
+          const tryParentCanvas = () => {
+            if (canvas && canvas.elt && container && container.parentNode) {
+              // Check if canvas is in wrong place
+              if (canvas.elt.parentElement !== container) {
+                console.log("Fixing canvas parent (retry #" + retryCount + ")");
+                // Force it into the right place
+                container.appendChild(canvas.elt);
+                console.log("Canvas successfully moved to container (retry #" + retryCount + ")");
+              } else {
+                console.log("Canvas is already in correct container");
+              }
+            } else if (canvas && canvas.elt && retryCount < maxRetries) {
+              retryCount++;
+              setTimeout(tryParentCanvas, 50);
+            } else if (retryCount >= maxRetries) {
+              console.error("Failed to parent canvas after", maxRetries, "retries");
+            }
+          };
+          setTimeout(tryParentCanvas, 50);
         }
         
-        canvas.parent(container);
+        // Verify canvas is in the right place and remove inline styles
+        if (canvas.elt) {
+          // Force canvas into container if it's not there
+          if (container && canvas.elt.parentElement !== container) {
+            console.error("Canvas parent mismatch! Expected:", container.className, "Got:", canvas.elt.parentElement?.className || "none");
+            // Always force it into the right place, even if container doesn't have parentNode yet
+            // The container should be attached by now, but if not, we'll try anyway
+            try {
+              container.appendChild(canvas.elt);
+              console.log("Canvas forcefully moved to correct container");
+            } catch (e) {
+              console.error("Failed to move canvas to container:", e);
+              // Retry in a moment
+              setTimeout(() => {
+                if (container && container.parentNode && canvas.elt && canvas.elt.parentElement !== container) {
+                  container.appendChild(canvas.elt);
+                  console.log("Canvas moved to container (retry)");
+                }
+              }, 100);
+            }
+          }
+          
+          // Verify container has height (canvas-wrapper should have padding-top for aspect ratio)
+          const parentWrapper = container?.parentElement;
+          if (parentWrapper) {
+            const wrapperRect = parentWrapper.getBoundingClientRect();
+            const wrapperHeight = wrapperRect.height;
+            const wrapperWidth = wrapperRect.width;
+            console.log("Canvas wrapper dimensions:", wrapperWidth, "x", wrapperHeight);
+            console.log("Canvas wrapper position:", "top:", wrapperRect.top, "left:", wrapperRect.left);
+            console.log("Canvas wrapper computed overflow:", getComputedStyle(parentWrapper).overflow);
+            console.log("Canvas wrapper computed z-index:", getComputedStyle(parentWrapper).zIndex || "auto");
+            
+            // Check sketch-container position
+            const containerRect = container.getBoundingClientRect();
+            console.log("Sketch-container dimensions:", containerRect.width, "x", containerRect.height);
+            console.log("Sketch-container position:", "top:", containerRect.top, "left:", containerRect.left);
+            console.log("Sketch-container computed position:", getComputedStyle(container).position);
+            console.log("Sketch-container computed overflow:", getComputedStyle(container).overflow);
+            console.log("Sketch-container computed z-index:", getComputedStyle(container).zIndex || "auto");
+            console.log("Sketch-container computed inset:", {
+              top: getComputedStyle(container).top,
+              left: getComputedStyle(container).left,
+              right: getComputedStyle(container).right,
+              bottom: getComputedStyle(container).bottom,
+            });
+            
+            // Check if canvas is actually inside the sketch-container bounds
+            const canvasRect = canvas.elt.getBoundingClientRect();
+            const isInsideContainer = canvasRect.top >= containerRect.top && 
+                                      canvasRect.left >= containerRect.left &&
+                                      canvasRect.bottom <= containerRect.bottom &&
+                                      canvasRect.right <= containerRect.right;
+            console.log("Canvas is inside sketch-container bounds:", isInsideContainer);
+            if (!isInsideContainer) {
+              console.error("Canvas is OUTSIDE sketch-container bounds!");
+              console.error("Canvas bounds:", canvasRect);
+              console.error("Container bounds:", containerRect);
+            }
+            
+            if (wrapperHeight === 0) {
+              console.error("Canvas wrapper has no height! This will cause positioning issues.");
+              console.log("Wrapper computed styles:", {
+                paddingTop: getComputedStyle(parentWrapper).paddingTop,
+                height: getComputedStyle(parentWrapper).height,
+                display: getComputedStyle(parentWrapper).display,
+              });
+            }
+          } else {
+            console.warn("Canvas container has no parent wrapper!");
+          }
+          
+          // Remove ALL inline styles - CSS will control display size
+          // The canvas element's width/height ATTRIBUTES (not styles) are set by p5.js and are needed for rendering
+          // But we need to remove inline width/height STYLES so CSS can control the display size
+          const removeInlineStyles = () => {
+            if (canvas.elt) {
+              // Remove ALL inline styles - CSS will handle everything
+              canvas.elt.style.removeProperty('position');
+              canvas.elt.style.removeProperty('top');
+              canvas.elt.style.removeProperty('left');
+              canvas.elt.style.removeProperty('right');
+              canvas.elt.style.removeProperty('bottom');
+              canvas.elt.style.removeProperty('width');
+              canvas.elt.style.removeProperty('height');
+              // Set all to empty so CSS can control them
+              canvas.elt.style.position = '';
+              canvas.elt.style.width = '';
+              canvas.elt.style.height = '';
+            }
+          };
+          
+          // Intercept style property setters to prevent p5.js from setting inline styles
+          const interceptStyleSetters = () => {
+            if (!canvas.elt) return;
+            
+            const style = canvas.elt.style;
+            const originalSetProperty = style.setProperty.bind(style);
+            const originalRemoveProperty = style.removeProperty.bind(style);
+            
+            // Override setProperty to block width/height/position styles
+            style.setProperty = function(property: string, value: string, priority?: string) {
+              if (property === 'width' || property === 'height' || property === 'position' || 
+                  property === 'top' || property === 'left' || property === 'right' || property === 'bottom') {
+                // Block these properties - CSS will handle them
+                return;
+              }
+              return originalSetProperty(property, value, priority);
+            };
+            
+            // Store cleanup function
+            (p as any)._pixliStyleIntercept = () => {
+              style.setProperty = originalSetProperty;
+              style.removeProperty = originalRemoveProperty;
+            };
+          };
+          
+          // Remove immediately
+          removeInlineStyles();
+          
+          // Intercept style setters to prevent p5.js from re-adding inline styles
+          interceptStyleSetters();
+          
+          // Log canvas element info AFTER removing inline styles
+          try {
+            const canvasRect = canvas.elt.getBoundingClientRect();
+            const computedStyle = getComputedStyle(canvas.elt);
+            
+            // Get all parent containers to check positioning
+            let parent = canvas.elt.parentElement;
+            const parentChain: string[] = [];
+            while (parent) {
+              const rect = parent.getBoundingClientRect();
+              parentChain.push(`${parent.className || parent.tagName} (${rect.width}x${rect.height} at ${rect.left},${rect.top})`);
+              parent = parent.parentElement;
+            }
+            
+            console.log("Canvas element dimensions:", canvasRect.width, "x", canvasRect.height);
+            console.log("Canvas element position:", "top:", canvasRect.top, "left:", canvasRect.left, "right:", canvasRect.right, "bottom:", canvasRect.bottom);
+            console.log("Viewport size:", window.innerWidth, "x", window.innerHeight);
+            const isVisible = canvasRect.top >= 0 && canvasRect.left >= 0 && canvasRect.bottom <= window.innerHeight && canvasRect.right <= window.innerWidth;
+            console.log("Canvas viewport position:", "visible:", isVisible, "top check:", canvasRect.top >= 0, "left check:", canvasRect.left >= 0, "bottom check:", canvasRect.bottom <= window.innerHeight, "right check:", canvasRect.right <= window.innerWidth);
+            console.log("Canvas parent:", canvas.elt.parentElement?.className || "none");
+            console.log("Canvas computed position:", computedStyle.position);
+            console.log("Parent chain:", parentChain.join(" -> "));
+            console.log("Canvas computed display:", computedStyle.display);
+            console.log("Canvas computed visibility:", computedStyle.visibility);
+            console.log("Canvas computed opacity:", computedStyle.opacity);
+            console.log("Canvas inline width:", canvas.elt.style.width || "(none)");
+            console.log("Canvas inline height:", canvas.elt.style.height || "(none)");
+            console.log("Canvas inline position:", canvas.elt.style.position || "(none)");
+            
+            // Verify canvas is visible
+            if (canvasRect.width === 0 || canvasRect.height === 0) {
+              console.error("Canvas has zero dimensions!");
+              console.error("Rect:", canvasRect);
+              console.error("Computed width:", computedStyle.width);
+              console.error("Computed height:", computedStyle.height);
+            } else {
+              console.log("Canvas is visible with dimensions:", canvasRect.width, "x", canvasRect.height);
+            }
+          } catch (error) {
+            console.error("Error logging canvas info:", error);
+          }
+          
+          // DISABLED: MutationObserver was causing flickering
+          // Let CSS !important rules handle style overrides instead
+          // Use MutationObserver to catch when p5.js sets inline styles
+          // const observer = new MutationObserver((mutations) => {
+          //   mutations.forEach((mutation) => {
+          //     if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          //       console.log("MutationObserver: p5.js set inline styles, removing them");
+          //       removeInlineStyles();
+          //     }
+          //   });
+          // });
+          
+          // observer.observe(canvas.elt, {
+          //   attributes: true,
+          //   attributeFilter: ['style']
+          // });
+          
+          // Create a dummy observer for cleanup compatibility
+          const observer = { disconnect: () => {} } as MutationObserver;
+          
+          // Also poll as backup (p5.js might set styles in ways MutationObserver misses)
+          // DISABLED: This was causing flickering - let p5.js manage styles, CSS will override
+          const styleInterval = setInterval(() => {
+            if (canvas.elt && container && container.parentNode) {
+              // Check if canvas is still in the right parent
+              if (canvas.elt.parentElement !== container) {
+                console.error("Canvas moved out of container! Moving back...", {
+                  currentParent: canvas.elt.parentElement?.className || "none",
+                  expectedParent: container.className || "none"
+                });
+                // Force it back
+                container.appendChild(canvas.elt);
+                console.log("Canvas moved back to container");
+              }
+              // DISABLED: Don't remove inline styles - let CSS handle it with !important
+              // Removing styles was causing flickering as p5.js re-added them
+              // if (canvas.elt.style.width || canvas.elt.style.height || canvas.elt.style.position) {
+              //   console.log("Polling: Found inline styles, removing them. Width:", canvas.elt.style.width, "Height:", canvas.elt.style.height);
+              //   removeInlineStyles();
+              // }
+            }
+          }, 100);
+          
+          // Clean up on destroy
+          (p as any)._pixliStyleCleanup = () => {
+            observer.disconnect();
+            clearInterval(styleInterval);
+            if ((p as any)._pixliStyleIntercept) {
+              (p as any)._pixliStyleIntercept();
+            }
+          };
+        }
+        
         p.pixelDensity(1);
         p.noStroke();
         p.noSmooth();
         p.imageMode(p.CENTER);
+        
+        // Mark canvas as ready - this allows performResize to work
+        canvasReady = true;
+        console.log("p5.setup completed, canvas ready:", canvasReady);
       } catch (error) {
         console.error("Error in p5.setup:", error);
         // Fallback to safe defaults
-        canvas = p.createCanvas(1280, 720); // Fallback to 16:9 default (1280x720)
+        canvas = p.createCanvas(1280, 720);
         if (container && container.parentNode) {
           canvas.parent(container);
         }
@@ -1210,19 +1713,32 @@ export const createSpriteController = (
         p.noStroke();
         p.noSmooth();
         p.imageMode(p.CENTER);
+        
+        // Mark canvas as ready even in error case
+        canvasReady = true;
+        console.log("p5.setup completed (fallback), canvas ready:", canvasReady);
       }
     };
 
     // Flag to prevent recursive resize calls
     let isResizing = false;
+    let canvasReady = false; // Track if canvas has been created and is ready
     
     // Internal resize function (doesn't need UIEvent parameter)
     const performResize = () => {
-      // Prevent recursive calls
-      if (isResizing) {
+      // Don't resize if canvas hasn't been created yet
+      if (!canvas || !canvas.elt) {
+        console.log("performResize: Canvas not ready yet, skipping");
         return;
       }
       
+      // Prevent recursive calls
+      if (isResizing) {
+        console.log("performResize: Already resizing, skipping");
+        return;
+      }
+      
+      console.log("performResize: Starting resize");
       isResizing = true;
       
       // In fullscreen, use viewport dimensions; otherwise use container width
@@ -1233,52 +1749,106 @@ export const createSpriteController = (
         (document as any).msFullscreenElement
       );
       
-      if (isFullscreen) {
-        // In fullscreen: use viewport dimensions with 16:9 aspect ratio
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        // Use the dimension that gives us the largest 16:9 canvas that fits
-        const widthBasedHeight = Math.round(viewportWidth * (9 / 16));
-        const heightBasedWidth = Math.round(viewportHeight * (16 / 9));
+      // Calculate canvas dimensions based on aspect ratio setting
+      // The sketch-container is absolutely positioned, so get dimensions from parent (canvas-wrapper)
+      const parentContainer = container.parentElement;
+      let containerWidth = 0;
+      let containerHeight = 0;
+      
+      if (parentContainer) {
+        const rect = parentContainer.getBoundingClientRect();
+        containerWidth = rect.width || parentContainer.clientWidth || 0;
+        containerHeight = rect.height || parentContainer.clientHeight || 0;
         
-        let canvasWidth: number;
-        let canvasHeight: number;
-        
-        if (widthBasedHeight <= viewportHeight) {
-          // Width is the limiting factor
-          canvasWidth = viewportWidth;
-          canvasHeight = widthBasedHeight;
-        } else {
-          // Height is the limiting factor
-          canvasWidth = heightBasedWidth;
-          canvasHeight = viewportHeight;
+        // In fullscreen, use viewport dimensions if container dimensions are invalid
+        if (isFullscreen && (containerWidth === 0 || containerHeight === 0)) {
+          containerWidth = window.innerWidth || 1920;
+          containerHeight = window.innerHeight || 1080;
+          console.log("Fullscreen: Using viewport dimensions", containerWidth, "x", containerHeight);
         }
         
-        p.resizeCanvas(canvasWidth, canvasHeight);
-        return; // Early return
+        // If height is 0 or invalid, calculate from width and aspect ratio
+        if (containerHeight <= 0 && containerWidth > 0) {
+          containerHeight = containerWidth * (9 / 16); // 16:9 aspect ratio
+        }
       } else {
-        // Normal mode: canvas uses 16:9 aspect ratio for projectors
-        // Calculate canvas dimensions based on container width
-        const containerWidth = container.clientWidth || 0;
-        const minCanvasWidth = 320; // Minimum canvas width
+        // Fallback to container itself
+        const rect = container.getBoundingClientRect();
+        containerWidth = rect.width || container.clientWidth || 0;
+        containerHeight = rect.height || container.clientHeight || 0;
         
-        // Calculate canvas width: use container width, clamped to minimum
-        const canvasWidth = Math.max(minCanvasWidth, containerWidth);
-        // Calculate canvas height based on 16:9 aspect ratio
-        const canvasHeight = Math.round(canvasWidth * (9 / 16));
-        
-        // Validate dimensions
-        if (canvasWidth <= 0 || canvasHeight <= 0 || !isFinite(canvasWidth) || !isFinite(canvasHeight)) {
-          console.error("Invalid canvas dimensions:", canvasWidth, canvasHeight);
-          p.resizeCanvas(1280, 720); // Fallback to 16:9 default
-        } else {
-          p.resizeCanvas(canvasWidth, canvasHeight);
+        // In fullscreen, use viewport dimensions if container dimensions are invalid
+        if (isFullscreen && (containerWidth === 0 || containerHeight === 0)) {
+          containerWidth = window.innerWidth || 1920;
+          containerHeight = window.innerHeight || 1080;
+          console.log("Fullscreen: Using viewport dimensions (no parent)", containerWidth, "x", containerHeight);
         }
-        return; // Early return since we've handled resize
       }
       
-      // Legacy square canvas resize (should not be reached in normal mode)
-      p.resizeCanvas(size, size);
+      // Guard against invalid dimensions - container might not be laid out yet
+      if (containerWidth <= 0 || !isFinite(containerWidth)) {
+        // In fullscreen, always use viewport as fallback
+        if (isFullscreen) {
+          containerWidth = window.innerWidth || 1920;
+          containerHeight = window.innerHeight || 1080;
+          console.log("Fullscreen: Forced viewport dimensions", containerWidth, "x", containerHeight);
+        } else {
+          // Don't log warning - this is normal during initial setup
+          // The canvas will resize once the container is properly laid out
+          isResizing = false;
+          return;
+        }
+      }
+      
+      const dimensions = calculateCanvasDimensions(containerWidth, containerHeight, isFullscreen);
+      const canvasWidth = dimensions.width;
+      const canvasHeight = dimensions.height;
+      
+      // Validate dimensions
+      if (canvasWidth <= 0 || canvasHeight <= 0 || !isFinite(canvasWidth) || !isFinite(canvasHeight)) {
+        console.error("performResize: Invalid canvas dimensions:", canvasWidth, canvasHeight, "containerWidth:", containerWidth, "containerHeight:", containerHeight);
+        p.resizeCanvas(1280, 720); // Fallback to 16:9 default
+      } else {
+        console.log("performResize: Resizing canvas to", canvasWidth, "x", canvasHeight, "from container:", containerWidth, "x", containerHeight);
+        p.resizeCanvas(canvasWidth, canvasHeight);
+        
+        // CRITICAL: After resize, ensure canvas element's actual dimensions match container for proper rendering
+        // Canvas elements need their width/height attributes to match display size for proper scaling
+        if (canvas && canvas.elt && container) {
+          const containerRect = container.getBoundingClientRect();
+          const actualContainerWidth = containerRect.width || container.clientWidth || 0;
+          const actualContainerHeight = containerRect.height || container.clientHeight || 0;
+          
+          if (actualContainerWidth > 0 && actualContainerHeight > 0) {
+            // Set canvas element's actual pixel dimensions to match container
+            // This ensures the canvas renders correctly at the container size
+            canvas.elt.width = Math.round(actualContainerWidth);
+            canvas.elt.height = Math.round(actualContainerHeight);
+            console.log("performResize: Canvas element dimensions updated to match container:", canvas.elt.width, "x", canvas.elt.height);
+          }
+        }
+      }
+      
+      // After resize, remove ALL inline styles so CSS can control display size
+      // p5.js sets width/height ATTRIBUTES (not styles) which are needed for rendering
+      // CSS will control the display size via width: 100%, height: 100%
+      if (canvas && canvas.elt) {
+        console.log("performResize: Canvas element size:", canvas.elt.width, "x", canvas.elt.height, "attributes:", {
+          width: canvas.elt.getAttribute('width'),
+          height: canvas.elt.getAttribute('height'),
+          styleWidth: canvas.elt.style.width,
+          styleHeight: canvas.elt.style.height
+        });
+        // Remove ALL inline styles - CSS will handle everything
+        canvas.elt.style.position = '';
+        canvas.elt.style.top = '';
+        canvas.elt.style.left = '';
+        canvas.elt.style.right = '';
+        canvas.elt.style.bottom = '';
+        canvas.elt.style.width = '';
+        canvas.elt.style.height = '';
+        console.log("performResize: Removed all inline styles - CSS will control display size");
+      }
       
       // Reset flag after resize completes
       requestAnimationFrame(() => {
@@ -1286,18 +1856,31 @@ export const createSpriteController = (
       });
     };
 
-    // Wrapper for p5.js windowResized (must accept UIEvent for Zod validation)
+    // Wrapper for p5.js windowResized
     // p5.js validates the function signature at runtime using Zod
     // The function MUST accept UIEvent (required, not optional) to pass Zod validation
     // However, p5.js may call it without an event in some cases (e.g., from resizeCanvas)
-    // When p5.js calls resizeCanvas, it internally calls windowResized without an event,
-    // causing Zod validation errors. We can't prevent this, but we can prevent recursive calls.
-    function windowResizedHandler(_event: UIEvent) {
+    // We create a fake UIEvent if one isn't provided to satisfy Zod validation
+    function windowResizedHandler(event?: UIEvent) {
+      // Create a fake UIEvent if p5.js called without one (to satisfy Zod validation)
+      const uiEvent = event || new UIEvent('resize', { bubbles: false, cancelable: false });
+      
+      console.log("windowResized called, isResizing:", isResizing, "canvasReady:", canvasReady, "hasEvent:", !!event);
+      
+      // Don't resize if canvas isn't ready yet
+      if (!canvasReady || !canvas || !canvas.elt) {
+        console.log("windowResized: Canvas not ready, skipping");
+        return uiEvent;
+      }
+      
       // If we're already resizing (from performResize), don't call performResize again
       // This prevents infinite loops when p5.js calls windowResized from resizeCanvas
       if (!isResizing) {
         performResize();
       }
+      
+      // Return the UIEvent to satisfy Zod (even though p5.js doesn't use the return value)
+      return uiEvent;
     }
     
     // Assign the handler - p5.js will validate the signature
@@ -1305,14 +1888,34 @@ export const createSpriteController = (
     
     // Watch container for size changes (triggers when layout changes cause container to resize)
     // This ensures canvas resizes even when window doesn't resize but container does
+    // CRITICAL: Delay initial observation to prevent race conditions during setup
+    let setupComplete = false;
+    setTimeout(() => {
+      setupComplete = true;
+      console.log("Setup complete, ResizeObserver can now trigger");
+    }, 1000); // Give setup 1 second to complete - canvas needs time to render
+    
     if (typeof ResizeObserver !== 'undefined') {
       const containerResizeObserver = new ResizeObserver(() => {
+        // Don't resize during initial setup - wait for setup to complete
+        if (!setupComplete || !canvasReady) {
+          console.log("ResizeObserver: Skipping resize - setup not complete or canvas not ready");
+          return;
+        }
         // Small delay to ensure layout has settled
         setTimeout(() => {
-          performResize();
+          if (canvasReady && canvas && canvas.elt) {
+            performResize();
+          }
         }, 50);
       });
-      containerResizeObserver.observe(container);
+      // Delay observing to prevent immediate triggers
+      setTimeout(() => {
+        if (container && container.parentNode) {
+          containerResizeObserver.observe(container);
+          console.log("ResizeObserver: Started observing container");
+        }
+      }, 1200); // Start observing after setup completes
       
       // Store observer for cleanup
       if (hasResizeObserver(container)) {
@@ -1327,7 +1930,9 @@ export const createSpriteController = (
     const handleFullscreenChange = () => {
       // Use a longer delay to ensure browser has updated dimensions
       setTimeout(() => {
-        performResize();
+        if (canvasReady && canvas && canvas.elt) {
+          performResize();
+        }
       }, 200);
     };
     
@@ -1337,6 +1942,21 @@ export const createSpriteController = (
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
     p.draw = () => {
+      // Debug: Log first few draw calls to verify canvas is drawing
+      if (!(p as any)._drawCount) {
+        (p as any)._drawCount = 0;
+      }
+      (p as any)._drawCount++;
+      if ((p as any)._drawCount <= 3) {
+        console.log("p5.js draw() called #" + (p as any)._drawCount, "canvas exists:", !!canvas, "canvas.elt:", !!canvas?.elt);
+      }
+      
+      // CRITICAL: If canvas doesn't exist, something is very wrong
+      if (!canvas || !canvas.elt) {
+        console.error("p5.js draw() called but canvas doesn't exist!");
+        return;
+      }
+      
       // Calculate sprite sizing that accounts for canvas aspect ratio
       // For 16:9 canvas, use geometric mean to maintain consistent scale across aspect ratios
       // This ensures sprites scale appropriately for wider canvases while maintaining visual consistency
@@ -1347,7 +1967,41 @@ export const createSpriteController = (
       // CRITICAL: Use getter function to always read current state
       // This ensures we always read from the current state object, even after HMR module reloads
       // The closure captures the getState function, which always returns the current state
-      const currentState = getState();
+      let currentState = getState();
+      
+      // Handle transitions
+      if (transitionState.isTransitioning && transitionState.fromState && transitionState.toState) {
+        const elapsed = Date.now() - transitionState.startTime;
+        const progress = calculateTransitionProgress(elapsed, transitionState.duration);
+        
+        if (progress >= 1) {
+          // Transition complete
+          transitionState.isTransitioning = false;
+          currentState = transitionState.toState;
+          stateRef.current = { ...transitionState.toState };
+          state = stateRef.current;
+          // Recompute sprite with final state
+          prepared = computeSprite(currentState);
+        } else {
+          // Interpolate state during transition
+          currentState = interpolateGeneratorState(
+            transitionState.fromState,
+            transitionState.toState,
+            progress,
+            {
+              ease: true,
+              interpolatePalettes: true,
+              interpolateDiscreteValues: transitionState.type === "smooth",
+            }
+          );
+          
+          // Recompute sprite with interpolated state if needed
+          // For smooth transitions, recompute every frame; for fade, use opacity
+          if (transitionState.type === "smooth") {
+            prepared = computeSprite(currentState, (currentState as any).__interpolatedPalette);
+          }
+        }
+      }
       const motionScale = clamp(currentState.motionIntensity / 100, 0, 1.5);
       const deltaMs = typeof p.deltaTime === "number" ? p.deltaTime : 16.666;
       // Delta time for time-based effects
@@ -1376,12 +2030,13 @@ export const createSpriteController = (
       
       // Canvas hue rotation animation
       if (currentState.canvasHueRotationEnabled) {
-        // Add minimum speed floor of 5% so animation never fully stops
-        const minSpeed = 0.05; // 5% minimum
-        const speedFactor = Math.max(minSpeed, currentState.canvasHueRotationSpeed / 100); // 0.05-1
+        // Add minimum speed floor of 0.1% so animation never fully stops (matches UI min)
+        const minSpeed = 0.001; // 0.1% minimum
+        const speedFactor = Math.max(minSpeed, currentState.canvasHueRotationSpeed / 100); // 0.001-1
         canvasHueRotationTime += deltaTime * speedFactor * (1 / 12); // Scale to ~12s period at 100% speed
         canvasHueRotationTime = canvasHueRotationTime % 12; // Wrap at 12 seconds
       }
+      // Note: Don't reset time when disabled - let it continue from where it left off for smooth re-enabling
       
       // Calculate animated hue shifts with smooth wrapping
       // Use modulo to ensure smooth transitions when wrapping (360° = 0°)
@@ -1481,6 +2136,14 @@ export const createSpriteController = (
       const backgroundBrightness = clamp(currentState.backgroundBrightness, 0, 100);
       const resolveBackgroundPaletteId = () =>
         currentState.backgroundMode === "auto" ? (currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId) : currentState.backgroundMode;
+      
+      // Get base background color (without hue shift) for animated hue rotation
+      const getBaseBackgroundColor = () => {
+        const bgPaletteId = resolveBackgroundPaletteId();
+        const bgPalette = getPalette(bgPaletteId);
+        return bgPalette.colors[0] ?? getPalette(currentState.paletteId).colors[0];
+      };
+      
       const applyCanvasAdjustments = (hex: string) =>
         applyHueAndBrightness(hex, backgroundHueShiftDegrees, backgroundBrightness);
       
@@ -1535,10 +2198,11 @@ export const createSpriteController = (
           return currentState.canvasGradientMode;
         };
         const gradientPalette = getPalette(resolveGradientPaletteId());
+        const baseBgColor = getBaseBackgroundColor();
         const gradientSourceColors =
           gradientPalette.colors.length > 0
             ? gradientPalette.colors.slice(0, 3)
-            : [prepared.background];
+            : [baseBgColor];
         const gradientColors = gradientSourceColors
           .map((color) => applyCanvasAdjustments(color))
           .filter(Boolean);
@@ -1548,7 +2212,7 @@ export const createSpriteController = (
             ? gradientColors
             : gradientColors.length === 1
             ? [...gradientColors, gradientColors[0]]
-            : [prepared.background, prepared.background];
+            : [baseBgColor, baseBgColor].map((color) => applyCanvasAdjustments(color));
 
         usableGradientColors.forEach((color, index) => {
           const stop =
@@ -1558,11 +2222,77 @@ export const createSpriteController = (
           gradient.addColorStop(stop, color);
         });
 
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, p.width, p.height);
+        // Check if black background is enabled (read from localStorage each frame)
+        let useBlackBackground = false;
+        try {
+          const settingsJson = localStorage.getItem("pixli-settings");
+          if (settingsJson) {
+            const settings = JSON.parse(settingsJson);
+            useBlackBackground = settings.canvasBlackBackground === true;
+          }
+        } catch (error) {
+          // Ignore errors, use default
+        }
+        
+        if (useBlackBackground) {
+          ctx.fillStyle = "#000000";
+          ctx.fillRect(0, 0, p.width, p.height);
+        } else {
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, p.width, p.height);
+        }
       } else {
-        // Solid background
-        p.background(prepared.background);
+        // Solid background - apply animated hue shift
+        // Use base color to avoid double-applying static hue shift
+        const baseBackgroundColor = getBaseBackgroundColor();
+        // Calculate background color with animated hue shift each frame
+        const animatedBackground = applyCanvasAdjustments(baseBackgroundColor);
+        
+        // Check if black background is enabled (read from localStorage each frame)
+        let useBlackBackground = false;
+        try {
+          const settingsJson = localStorage.getItem("pixli-settings");
+          if (settingsJson) {
+            const settings = JSON.parse(settingsJson);
+            useBlackBackground = settings.canvasBlackBackground === true;
+          }
+        } catch (error) {
+          // Ignore errors, use default
+        }
+        
+        const finalBackground = useBlackBackground ? "#000000" : animatedBackground;
+        // Use p5.js background() which clears and fills the canvas each frame
+        // This must be called every frame for the animation to work
+        p.background(finalBackground);
+        
+        // Debug: Log first few background calls to verify canvas is being drawn
+        if (!(p as any)._bgCount) {
+          (p as any)._bgCount = 0;
+        }
+        (p as any)._bgCount++;
+        if ((p as any)._bgCount <= 3) {
+          console.log("p.background() called #" + (p as any)._bgCount, "canvas size:", p.width, "x", p.height, "background:", finalBackground);
+        }
+      }
+      
+      // Apply fade transition opacity if transitioning
+      // For fade transitions, we fade the entire canvas during transition
+      let fadeOpacity = 1.0;
+      if (transitionState.isTransitioning && transitionState.type === "fade") {
+        const elapsed = Date.now() - transitionState.startTime;
+        const progress = calculateTransitionProgress(elapsed, transitionState.duration);
+        // Fade out from state, fade in to state
+        // At progress 0: opacity = 1 (fully visible)
+        // At progress 0.5: opacity = 0 (fully transparent, crossfade point)
+        // At progress 1: opacity = 1 (fully visible)
+        fadeOpacity = progress < 0.5 
+          ? 1 - (progress * 2) // Fade out: 1 -> 0
+          : (progress - 0.5) * 2; // Fade in: 0 -> 1
+      }
+      
+      // Set global alpha for fade transitions (will be reset after drawing)
+      if (transitionState.isTransitioning && transitionState.type === "fade") {
+        p.drawingContext.globalAlpha = fadeOpacity;
       }
 
       const blendMap: Record<BlendModeKey, p5.BLEND_MODE> = {
@@ -1900,12 +2630,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 16;
                   const vbHeight = 16;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(asteriskPath);
                   ctx.fill(path);
@@ -1921,12 +2660,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 16;
                   const vbHeight = 16;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(crossPath);
                   ctx.fill(path);
@@ -1959,12 +2707,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 36;
                   const vbHeight = 36;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(heartPath);
                   ctx.fill(path);
@@ -1980,12 +2737,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 24;
                   const vbHeight = 24;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(snowflakePath);
                   ctx.fill(path);
@@ -2001,12 +2767,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 256;
                   const vbHeight = 256;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(smileyPath);
                   ctx.fill(path);
@@ -2022,12 +2797,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 256;
                   const vbHeight = 256;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(treePath);
                   ctx.fill(path);
@@ -2043,12 +2827,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 1920;
                   const vbHeight = 1920;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(xPath);
                   ctx.fill(path);
@@ -2064,12 +2857,21 @@ export const createSpriteController = (
                   const vbY = 0;
                   const vbWidth = 385.756;
                   const vbHeight = 385.756;
-                  const scaleX = shapeSize / vbWidth;
-                  const scaleY = shapeSize / vbHeight;
+                  // CRITICAL: Use uniform scale to preserve aspect ratio
+                  // Calculate scale based on the largest dimension to ensure shape fits
+                  const shapeAspectRatio = vbWidth / vbHeight;
+                  let uniformScale: number;
+                  if (shapeAspectRatio >= 1) {
+                    uniformScale = shapeSize / vbWidth;
+                  } else {
+                    uniformScale = shapeSize / vbHeight;
+                  }
                   
                   ctx.save();
-                  ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                  ctx.scale(scaleX, scaleY);
+                  const scaledWidth = vbWidth * uniformScale;
+                  const scaledHeight = vbHeight * uniformScale;
+                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                  ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(arrowPath);
                   ctx.fill(path);
@@ -2193,12 +2995,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 16;
                 const vbHeight = 16;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(asteriskPath);
                 p5Ctx.fill(path);
@@ -2213,12 +3024,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 16;
                 const vbHeight = 16;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(crossPath);
                 p5Ctx.fill(path);
@@ -2252,12 +3072,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 36;
                 const vbHeight = 36;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(heartPath);
                 p5Ctx.fill(path);
@@ -2272,12 +3101,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 24;
                 const vbHeight = 24;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(snowflakePath);
                 p5Ctx.fill(path);
@@ -2292,12 +3130,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 256;
                 const vbHeight = 256;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(smileyPath);
                 p5Ctx.fill(path);
@@ -2312,12 +3159,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 256;
                 const vbHeight = 256;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(treePath);
                 p5Ctx.fill(path);
@@ -2332,12 +3188,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 1920;
                 const vbHeight = 1920;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(xPath);
                 p5Ctx.fill(path);
@@ -2352,12 +3217,21 @@ export const createSpriteController = (
                 const vbY = 0;
                 const vbWidth = 385.756;
                 const vbHeight = 385.756;
-                const scaleX = shapeSize / vbWidth;
-                const scaleY = shapeSize / vbHeight;
+                // CRITICAL: Use uniform scale to preserve aspect ratio
+                // Calculate scale based on the largest dimension to ensure shape fits
+                const shapeAspectRatio = vbWidth / vbHeight;
+                let uniformScale: number;
+                if (shapeAspectRatio >= 1) {
+                  uniformScale = shapeSize / vbWidth;
+                } else {
+                  uniformScale = shapeSize / vbHeight;
+                }
                 
                 p5Ctx.save();
-                p5Ctx.translate(-shapeSize / 2, -shapeSize / 2);
-                p5Ctx.scale(scaleX, scaleY);
+                const scaledWidth = vbWidth * uniformScale;
+                const scaledHeight = vbHeight * uniformScale;
+                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
+                p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(arrowPath);
                 p5Ctx.fill(path);
@@ -2460,60 +3334,79 @@ export const createSpriteController = (
               ctx.save();
               ctx.globalAlpha = opacityAlpha / 255;
               
-              // SVGs are now processed with tight viewBoxes, so no padding compensation needed
-              // The processed SVG has a viewBox that exactly matches the content bounds
-              // Use the stored aspect ratio from viewBox to prevent square containers
-              // Fallback to natural dimensions if stored ratio isn't available
-              let aspectRatio: number;
-              if ((cachedImg as any).__svgAspectRatio) {
-                // Use stored aspect ratio from viewBox (most accurate)
-                aspectRatio = (cachedImg as any).__svgAspectRatio;
-              } else {
-                // Fallback to natural dimensions
-                const naturalWidth = cachedImg.naturalWidth || cachedImg.width || 1;
-                const naturalHeight = cachedImg.naturalHeight || cachedImg.height || 1;
-                aspectRatio = naturalWidth / naturalHeight;
-              }
-              
-              // Calculate width and height based on aspect ratio
-              // Use svgSize as the base size (largest dimension) and scale proportionally
-              let scaledWidth = svgSize;
-              let scaledHeight = svgSize;
-              
-              if (aspectRatio > 1) {
-                // Wider than tall - width is the base
-                scaledHeight = svgSize / aspectRatio;
-              } else {
-                // Taller than wide (or square) - height is the base
-                scaledWidth = svgSize * aspectRatio;
-              }
-              
-              // Render SVG directly using Path2D to avoid square container issues
-              // This bypasses Image element rasterization which might create square frames
+              // Get sprite's original dimensions and aspect ratio
+              // The sprite's aspect ratio is INDEPENDENT of canvas aspect ratio - it should NEVER change
               const svgPathData = (cachedImg as any).__svgPathData;
               const svgViewBox = (cachedImg as any).__svgViewBox;
               
+              let vbWidth: number;
+              let vbHeight: number;
+              
+              if (svgViewBox) {
+                // Use viewBox dimensions directly - these are the sprite's true dimensions
+                vbWidth = svgViewBox.width;
+                vbHeight = svgViewBox.height;
+              } else {
+                // Fallback to natural image dimensions
+                vbWidth = cachedImg.naturalWidth || cachedImg.width || 1;
+                vbHeight = cachedImg.naturalHeight || cachedImg.height || 1;
+              }
+              
+              // CRITICAL: Sprite aspect ratio is INDEPENDENT of canvas aspect ratio
+              // The sprite's aspect ratio MUST NEVER change, regardless of canvas shape
+              // Calculate uniform scale - ONE scale factor for BOTH dimensions
+              // This ensures the sprite maintains its original proportions
+              const scaleForWidth = svgSize / vbWidth;
+              const scaleForHeight = svgSize / vbHeight;
+              // Use the MINIMUM scale to ensure sprite fits within svgSize
+              // This guarantees uniform scaling - both dimensions scaled by the SAME factor
+              const uniformScale = Math.min(scaleForWidth, scaleForHeight);
+              
+              // Calculate final rendered dimensions using uniform scale
+              // Both dimensions MUST use the SAME scale factor to preserve aspect ratio
+              const finalWidth = vbWidth * uniformScale;
+              const finalHeight = vbHeight * uniformScale;
+              
+              // CRITICAL VERIFICATION: finalWidth / finalHeight MUST equal vbWidth / vbHeight
+              // This mathematical guarantee ensures aspect ratio is preserved
+              // If this assertion fails, there's a bug in the scale calculation
+              const originalAspectRatio = vbWidth / vbHeight;
+              const finalAspectRatio = finalWidth / finalHeight;
+              // Allow tiny floating point differences
+              if (Math.abs(originalAspectRatio - finalAspectRatio) > 0.0001) {
+                console.error(`Aspect ratio mismatch! Original: ${originalAspectRatio}, Final: ${finalAspectRatio}, uniformScale: ${uniformScale}`);
+              }
+              
               if (svgPathData && svgViewBox) {
-                // Get viewBox dimensions for scaling
+                // Get viewBox origin for positioning
                 const vbX = svgViewBox.x || 0;
                 const vbY = svgViewBox.y || 0;
-                const vbWidth = svgViewBox.width;
-                const vbHeight = svgViewBox.height;
-                
-                // Calculate scale factors to fit within scaledWidth/scaledHeight
-                const scaleX = scaledWidth / vbWidth;
-                const scaleY = scaledHeight / vbHeight;
                 
                 // Draw the path directly on canvas
                 ctx.globalCompositeOperation = "source-over";
-                ctx.fillStyle = animatedTileColor; // Use animated color
+                ctx.fillStyle = animatedTileColor;
                 
-                // Transform to center and scale the path
-                // First translate by negative viewBox origin, then scale, then center
+                // CRITICAL: Reset transform matrix to avoid any p5.js coordinate system interference
+                // p5.js transforms (translate, rotate) affect the canvas context, which can cause
+                // non-uniform scaling if not reset. We need a clean identity matrix.
                 ctx.save();
-                ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                ctx.scale(scaleX, scaleY);
-                ctx.translate(-vbX, -vbY); // Offset by viewBox origin
+                // Reset to identity matrix - this ensures no legacy transforms affect our uniform scaling
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                
+                // Now apply transforms in the correct order (they execute in reverse):
+                // 1. Apply p5.js translation (from clampedX, clampedY)
+                ctx.translate(clampedX, clampedY);
+                // 2. Apply p5.js rotation (if any)
+                if (rotationAngle !== 0) {
+                  ctx.rotate(rotationAngle);
+                }
+                // 3. Translate by viewBox origin to align with SVG coordinate system
+                ctx.translate(-vbX, -vbY);
+                // 4. Scale uniformly - SAME value for both X and Y - this preserves aspect ratio
+                // CRITICAL: uniformScale is the SAME for X and Y - this is the ONLY way to preserve aspect ratio
+                ctx.scale(uniformScale, uniformScale);
+                // 5. Center the sprite at origin using UNSCALED dimensions
+                ctx.translate(-vbWidth / 2, -vbHeight / 2);
                 
                 // Create and fill the path
                 const path = new Path2D(svgPathData);
@@ -2522,19 +3415,20 @@ export const createSpriteController = (
                 ctx.restore();
               } else {
                 // Fallback: Draw image if path data not available
+                // Use finalWidth/finalHeight to ensure aspect ratio is preserved
                 ctx.globalCompositeOperation = "source-over";
                 ctx.drawImage(
                   cachedImg, 
-                  -scaledWidth / 2, 
-                  -scaledHeight / 2, 
-                  scaledWidth, 
-                  scaledHeight
+                  -finalWidth / 2, 
+                  -finalHeight / 2, 
+                  finalWidth, 
+                  finalHeight
                 );
                 
                 // Apply tint color using multiply
                 ctx.globalCompositeOperation = "multiply";
                 ctx.fillStyle = animatedTileColor;
-                ctx.fillRect(-scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
+                ctx.fillRect(-finalWidth / 2, -finalHeight / 2, finalWidth, finalHeight);
               }
               
               // Restore composite operation
@@ -2555,6 +3449,11 @@ export const createSpriteController = (
         });
 
       p.pop();
+      
+      // Reset global alpha after drawing (for fade transitions)
+      if (transitionState.isTransitioning && transitionState.type === "fade") {
+        p.drawingContext.globalAlpha = 1.0;
+      }
     });
 
       if (p.frameCount % 24 === 0) {
@@ -2582,10 +3481,32 @@ export const createSpriteController = (
 
   const controller: SpriteController = {
     getState: () => ({ ...stateRef.current }),
-    applyState: (newState: GeneratorState) => {
+    applyState: (newState: GeneratorState, transition: TransitionType = "instant") => {
+      if (transition === "instant") {
+        // Instant transition - immediate state swap
       stateRef.current = { ...newState };
-      state = stateRef.current; // Keep local variable in sync
+        state = stateRef.current;
+        transitionState.isTransitioning = false;
       updateSprite();
+        return;
+      }
+      
+      // Start transition
+      transitionState = {
+        isTransitioning: true,
+        fromState: { ...stateRef.current },
+        toState: { ...newState },
+        startTime: Date.now(),
+        duration: transition === "fade" ? 1000 : 2500, // 1s for fade, 2.5s for smooth
+        type: transition,
+      };
+      
+      // Update target state immediately (for discrete values)
+      stateRef.current = { ...newState };
+      state = stateRef.current;
+      
+      // Don't recompute sprite yet - let draw loop handle interpolation
+      notifyState();
     },
     randomizeAll: () => {
       updateSeed();
@@ -2983,19 +3904,75 @@ export const createSpriteController = (
       applyState({ hueRotationEnabled: enabled }, { recompute: false });
     },
     setHueRotationSpeed: (speed: number) => {
-      applyState({ hueRotationSpeed: clamp(speed, 1, 100) }, { recompute: false });
+      applyState({ hueRotationSpeed: clamp(speed, 0.1, 100) }, { recompute: false });
     },
     setPaletteCycleEnabled: (enabled: boolean) => {
       applyState({ paletteCycleEnabled: enabled }, { recompute: false });
     },
     setPaletteCycleSpeed: (speed: number) => {
-      applyState({ paletteCycleSpeed: clamp(speed, 1, 100) }, { recompute: false });
+      applyState({ paletteCycleSpeed: clamp(speed, 0.1, 100) }, { recompute: false });
     },
     setCanvasHueRotationEnabled: (enabled: boolean) => {
       applyState({ canvasHueRotationEnabled: enabled }, { recompute: false });
     },
     setCanvasHueRotationSpeed: (speed: number) => {
-      applyState({ canvasHueRotationSpeed: clamp(speed, 1, 100) }, { recompute: false });
+      applyState({ canvasHueRotationSpeed: clamp(speed, 0.1, 100) }, { recompute: false });
+    },
+    setAspectRatio: (ratio: "16:9" | "21:9" | "16:10" | "custom") => {
+      // Force 16:9 if somehow "square" is passed (backward compatibility)
+      const safeRatio = ratio === "square" ? "16:9" : ratio;
+      applyState({ aspectRatio: safeRatio }, { recompute: false });
+      
+      // Update CSS variable for container aspect ratio
+      let paddingTopPercent = 56.25; // Default to 16:9
+      switch (safeRatio) {
+        case "16:9":
+          paddingTopPercent = 56.25; // 9/16 * 100
+          break;
+        case "21:9":
+          paddingTopPercent = 42.857; // 9/21 * 100
+          break;
+        case "16:10":
+          paddingTopPercent = 62.5; // 10/16 * 100
+          break;
+        case "custom":
+          const custom = stateRef.current.customAspectRatio;
+          paddingTopPercent = (custom.height / custom.width) * 100;
+          break;
+        default:
+          // Always default to 16:9 (square removed)
+          paddingTopPercent = 56.25;
+          break;
+      }
+      document.documentElement.style.setProperty('--canvas-aspect-ratio', `${paddingTopPercent}%`);
+      
+      // Trigger canvas resize by dispatching a window resize event
+      // This will call performResize through the windowResized handler
+      if (p5Instance) {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        }, 100);
+      }
+    },
+    setCustomAspectRatio: (width: number, height: number) => {
+      const clampedWidth = Math.max(320, Math.min(7680, width));
+      const clampedHeight = Math.max(240, Math.min(4320, height));
+      applyState({ 
+        aspectRatio: "custom",
+        customAspectRatio: { width: clampedWidth, height: clampedHeight }
+      }, { recompute: false });
+      
+      // Update CSS variable for container aspect ratio
+      const paddingTopPercent = (clampedHeight / clampedWidth) * 100;
+      document.documentElement.style.setProperty('--canvas-aspect-ratio', `${paddingTopPercent}%`);
+      
+      // Trigger canvas resize by dispatching a window resize event
+      // This will call performResize through the windowResized handler
+      if (p5Instance) {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        }, 100);
+      }
     },
     applySingleTilePreset: () => {
       updateSeed();
@@ -3069,6 +4046,25 @@ export const createSpriteController = (
         pauseTimeoutId = null;
       }
       
+      // Clean up canvas style MutationObserver if it exists
+      if (p5Instance && (p5Instance as any).canvas && (p5Instance as any).canvas._styleObserver) {
+        ((p5Instance as any).canvas._styleObserver as MutationObserver).disconnect();
+        delete (p5Instance as any).canvas._styleObserver;
+      }
+      
+      // Clean up canvas style MutationObserver and interval if they exist
+      if (p5Instance && (p5Instance as any).canvas && (p5Instance as any).canvas.elt) {
+        const canvasElt = (p5Instance as any).canvas.elt;
+        if (canvasElt._styleObserver) {
+          (canvasElt._styleObserver as MutationObserver).disconnect();
+          delete canvasElt._styleObserver;
+        }
+        if (canvasElt._styleCheckInterval) {
+          clearInterval(canvasElt._styleCheckInterval);
+          delete canvasElt._styleCheckInterval;
+        }
+      }
+      
       // Clean up container ResizeObserver if it exists
       if (hasResizeObserver(container)) {
         container._resizeObserver?.disconnect();
@@ -3082,7 +4078,15 @@ export const createSpriteController = (
           // Small delay to ensure loop stops before removal
           destroyTimeoutId = setTimeout(() => {
             if (p5Instance) {
-              p5Instance.remove();
+              // Clean up style observers
+            if ((p5Instance as any)._pixliStyleCleanup) {
+              try {
+                (p5Instance as any)._pixliStyleCleanup();
+              } catch (e) {
+                // Ignore cleanup errors
+              }
+            }
+            p5Instance.remove();
               p5Instance = null;
             }
             destroyTimeoutId = null;
@@ -3090,6 +4094,14 @@ export const createSpriteController = (
         } catch (e) {
           // If removal fails, try direct removal
           try {
+            // Clean up style observers
+            if ((p5Instance as any)._pixliStyleCleanup) {
+              try {
+                (p5Instance as any)._pixliStyleCleanup();
+              } catch (e) {
+                // Ignore cleanup errors
+              }
+            }
             p5Instance.remove();
           } catch (e2) {
             // Ignore errors during cleanup

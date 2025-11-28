@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { Accordion } from "@/components/retroui/Accordion";
-import { Input } from "@/components/retroui/Input";
-import { Label } from "@/components/retroui/Label";
-import { ButtonGroup } from "@/components/retroui/ButtonGroup";
+import { Accordion } from "@/components/ui/Accordion";
+import { Input } from "@/components/catalyst/input";
+import { Label } from "@/components/ui/Label";
+import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Settings2, Share2, Copy, Check, Download } from "lucide-react";
 import p5 from "p5";
 import { exportCanvas, downloadImage, createThumbnail, getCanvasFromP5, addLogoToCanvas, generateExportFilename } from "@/lib/services";
@@ -770,7 +770,7 @@ export const ExportModal = ({
                         disabled={isSharing || !p5Instance}
                         className="export-action-button"
                       >
-                        <Share2 className="h-4 w-4" />
+                        <Share2 className="h-6 w-6" />
                         {isSharing ? "Sharing..." : "Share"}
                       </Button>
                     )}
@@ -787,12 +787,12 @@ export const ExportModal = ({
                       >
                         {copied ? (
                           <>
-                            <Check className="h-4 w-4" />
+                            <Check className="h-6 w-6" />
                             Copied!
                           </>
                         ) : (
                           <>
-                            <Copy className="h-4 w-4" />
+                            <Copy className="h-6 w-6" />
                             Copy image
                           </>
                         )}
@@ -807,7 +807,7 @@ export const ExportModal = ({
                       disabled={!p5Instance}
                       className="export-action-button"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-6 w-6" />
                       Download
                     </Button>
                   </div>
@@ -975,7 +975,7 @@ export const ExportModal = ({
                   >
                     {isRecording ? "Recording..." : "Export seamless loop"}
                   </Button>
-                  <div className="text-xs text-[var(--text-muted)] mt-2">
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
                     Tip: Exports a seamless loop by syncing animation time to your chosen duration and FPS.
                   </div>
                 </div>

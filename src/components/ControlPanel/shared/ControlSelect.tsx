@@ -7,10 +7,11 @@ import {
   SelectItem,
   SelectLabel,
   SelectValue,
-} from "@/components/retroui/Select";
+} from "@/components/ui/Select";
 import { Lock, Unlock } from "lucide-react";
 import { TooltipIcon } from "./TooltipIcon";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useCallback, useRef, useEffect, useState } from "react";
 
 interface ControlSelectOption {
   value: string;
@@ -29,8 +30,6 @@ interface ControlSelectProps {
   placeholder?: string;
   tooltip?: string;
   currentLabel?: string;
-  onItemSelect?: (value: string) => void;
-  onItemPointerDown?: (value: string) => void;
   locked?: boolean;
   onLockToggle?: () => void;
   prefixButton?: React.ReactNode;
@@ -53,8 +52,6 @@ export function ControlSelect({
   placeholder,
   tooltip,
   currentLabel,
-  onItemSelect,
-  onItemPointerDown,
   locked,
   onLockToggle,
   prefixButton,
@@ -74,6 +71,31 @@ export function ControlSelect({
     options.find((option) => option.value === value)?.label ??
     placeholder ??
     "Select";
+
+  // Track the current value prop to compare against
+  const currentValueRef = useRef<string | null>(value);
+  const onChangeRef = useRef(onChange);
+  
+  // Update refs when props change
+  useEffect(() => {
+    currentValueRef.current = value;
+  }, [value]);
+  
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  // Handler that only calls onChange if the value actually changed from the prop
+  const handleValueChange = useCallback((newValue: string) => {
+    // CRITICAL: Only call onChange if the new value is different from the current prop value
+    // This prevents Radix UI initialization calls from triggering state updates
+    if (newValue !== currentValueRef.current) {
+      // Update ref immediately to prevent duplicate calls
+      currentValueRef.current = newValue;
+      // Call onChange - it will update state, which will update the prop, which will update currentValueRef
+      onChangeRef.current(newValue);
+    }
+  }, []); // Stable callback - never changes
 
   // Separate options with and without categories
   const optionsWithCategories = options.filter((opt) => opt.category);
@@ -132,8 +154,9 @@ export function ControlSelect({
       </div>
       <div className="control-select-with-lock">
         <Select
+          key={`${id}-${value}`}
           value={value ?? undefined}
-          onValueChange={onChange}
+          onValueChange={handleValueChange}
           disabled={disabled || locked}
         >
           <SelectTrigger 
@@ -155,22 +178,6 @@ export function ControlSelect({
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                  onSelect={
-                    onItemSelect ? () => onItemSelect(option.value) : undefined
-                  }
-                  onPointerDown={
-                    onItemPointerDown
-                      ? (event) => {
-                          if (
-                            event.pointerType === "mouse" &&
-                            event.button !== 0
-                          ) {
-                            return;
-                          }
-                          onItemPointerDown(option.value);
-                        }
-                      : undefined
-                  }
                 >
                   {option.label}
                 </SelectItem>
@@ -180,51 +187,30 @@ export function ControlSelect({
               ? // Render with category groups
                 groupedOptions.map(([category, categoryOptions]) => (
                   <SelectGroup key={category}>
-                    <SelectLabel className="control-select-category-label">
+                    <SelectLabel>
                       {category}
                     </SelectLabel>
                     {categoryOptions.map((option) => (
                       <SelectItem
                         key={option.value}
                         value={option.value}
-                        onSelect={
-                          onItemSelect
-                            ? () => onItemSelect(option.value)
-                            : undefined
-                        }
-                        onPointerDown={
-                          onItemPointerDown
-                            ? (event) => {
-                                if (
-                                  event.pointerType === "mouse" &&
-                                  event.button !== 0
-                                ) {
-                                  return;
-                                }
-                                onItemPointerDown(option.value);
-                              }
-                            : undefined
-                        }
-                        className={
-                          option.colors
-                            ? "control-dropdown-item-with-preview"
-                            : undefined
-                        }
                       >
-                        {option.colors && (
-                          <span className="control-select-color-preview">
-                            {option.colors.map((color, idx) => (
-                              <span
-                                key={idx}
-                                className="control-select-color-square"
-                                style={{ backgroundColor: color }}
-                                aria-hidden="true"
-                              />
-                            ))}
+                        <span className="flex items-center gap-2">
+                          {option.colors && (
+                            <>
+                              {option.colors.map((color, idx) => (
+                                <span
+                                  key={idx}
+                                  className="control-select-color-square"
+                                  style={{ backgroundColor: color }}
+                                  aria-hidden="true"
+                                />
+                              ))}
+                            </>
+                          )}
+                          <span className="control-select-item-label">
+                            {option.label}
                           </span>
-                        )}
-                        <span className="control-select-item-label">
-                          {option.label}
                         </span>
                       </SelectItem>
                     ))}
@@ -238,22 +224,6 @@ export function ControlSelect({
                   <SelectItem
                     key={option.value}
                     value={option.value}
-                    onSelect={
-                      onItemSelect ? () => onItemSelect(option.value) : undefined
-                    }
-                    onPointerDown={
-                      onItemPointerDown
-                        ? (event) => {
-                            if (
-                              event.pointerType === "mouse" &&
-                              event.button !== 0
-                            ) {
-                              return;
-                            }
-                            onItemPointerDown(option.value);
-                          }
-                        : undefined
-                    }
                   >
                     {option.label}
                   </SelectItem>
@@ -268,21 +238,18 @@ export function ControlSelect({
           <Button
             type="button"
             size="icon"
-            variant="outline"
+            variant="lock"
+            data-locked={locked}
             onClick={onLockToggle}
             disabled={disabled}
-            className={
-              locked
-                ? "icon-button control-lock-button control-lock-button-locked"
-                : "icon-button control-lock-button"
-            }
+            className="control-lock-button"
             aria-label={locked ? "Unlock" : "Lock"}
             title={locked ? "Unlock this value" : "Lock this value"}
           >
             {locked ? (
-              <Lock className="h-4 w-4" />
+            <Lock className="h-6 w-6" data-slot="icon" />
             ) : (
-              <Unlock className="h-4 w-4" />
+            <Unlock className="h-6 w-6" data-slot="icon" />
             )}
           </Button>
         )}
@@ -290,4 +257,3 @@ export function ControlSelect({
     </div>
   );
 }
-

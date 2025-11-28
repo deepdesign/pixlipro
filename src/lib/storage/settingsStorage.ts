@@ -1,130 +1,142 @@
 /**
  * Settings Storage Utilities
  * 
- * Manages user preferences and settings in localStorage
+ * Handles persistence of application settings in localStorage.
  */
 
-const STORAGE_KEY = "pixli-settings";
-const STORAGE_VERSION = 1;
-
-export interface AppSettings {
-  version: number;
-  reducedMotion: boolean;
-  // Future settings can be added here
-  // defaultExportWidth?: number;
-  // defaultExportHeight?: number;
-  // performanceMode?: "quality" | "performance";
+export interface OSCSettings {
+  enabled: boolean;
+  port: number;
+  listenPort: number;
 }
 
+export interface MIDISettings {
+  enabled: boolean;
+  deviceId: string | null;
+  learnMode: boolean;
+  mappings: {
+    [key: string]: {
+      type: "cc" | "note";
+      channel: number;
+      number: number;
+    };
+  };
+}
+
+export interface DMXSettings {
+  enabled: boolean;
+  universe: number;
+  ipAddress: string;
+  port: number;
+}
+
+export interface IntegrationSettings {
+  osc: OSCSettings;
+  midi: MIDISettings;
+  dmx: DMXSettings;
+}
+
+export interface AppSettings {
+  aspectRatio: "16:9" | "21:9" | "16:10" | "custom"; // Square removed, defaults to 16:9
+  customAspectRatio: { width: number; height: number };
+  dualMonitorEnabled: boolean;
+  remoteControlEnabled: boolean;
+  remoteControlPort: number;
+  canvasBlackBackground: boolean;
+  integrations: IntegrationSettings;
+}
+
+const SETTINGS_KEY = "pixli-settings";
+
 const DEFAULT_SETTINGS: AppSettings = {
-  version: STORAGE_VERSION,
-  reducedMotion: false,
+  aspectRatio: "16:9",
+  customAspectRatio: { width: 1920, height: 1080 },
+  dualMonitorEnabled: false,
+  remoteControlEnabled: false,
+  remoteControlPort: 8080,
+  canvasBlackBackground: false,
+  integrations: {
+    osc: {
+      enabled: false,
+      port: 8000,
+      listenPort: 8000,
+    },
+    midi: {
+      enabled: false,
+      deviceId: null,
+      learnMode: false,
+      mappings: {},
+    },
+    dmx: {
+      enabled: false,
+      universe: 0,
+      ipAddress: "127.0.0.1",
+      port: 6454,
+    },
+  },
 };
 
 /**
- * Get current settings from localStorage
+ * Load settings from localStorage
  */
-export function getSettings(): AppSettings {
-  if (typeof window === "undefined") {
-    return DEFAULT_SETTINGS;
-  }
-
+export function loadSettings(): AppSettings {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return DEFAULT_SETTINGS;
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Migrate "square" to "16:9" (remove square support)
+      if (parsed.aspectRatio === "square") {
+        parsed.aspectRatio = "16:9";
+      }
+      // Merge with defaults to ensure all properties exist
+      return { ...DEFAULT_SETTINGS, ...parsed };
     }
-
-    const parsed = JSON.parse(stored) as AppSettings;
-    
-    // Migrate old versions if needed
-    if (parsed.version !== STORAGE_VERSION) {
-      return DEFAULT_SETTINGS;
-    }
-
-    return { ...DEFAULT_SETTINGS, ...parsed };
   } catch (error) {
     console.error("Failed to load settings:", error);
-    return DEFAULT_SETTINGS;
   }
+  return { ...DEFAULT_SETTINGS };
 }
 
 /**
  * Save settings to localStorage
  */
 export function saveSettings(settings: Partial<AppSettings>): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
   try {
-    const current = getSettings();
-    const updated: AppSettings = {
-      ...current,
-      ...settings,
-      version: STORAGE_VERSION,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    
-    // Apply reduced motion preference immediately
-    if (settings.reducedMotion !== undefined) {
-      const root = document.documentElement;
-      if (settings.reducedMotion) {
-        root.style.setProperty("--motion-reduce", "1");
-      } else {
-        root.style.removeProperty("--motion-reduce");
-      }
-    }
+    const current = loadSettings();
+    const updated = { ...current, ...settings };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
   } catch (error) {
     console.error("Failed to save settings:", error);
   }
 }
 
 /**
- * Get reduced motion preference
+ * Export settings as JSON
  */
-export function getReducedMotion(): boolean {
-  return getSettings().reducedMotion;
+export function exportSettings(): string {
+  const settings = loadSettings();
+  return JSON.stringify(settings, null, 2);
 }
 
 /**
- * Set reduced motion preference
+ * Import settings from JSON
  */
-export function setReducedMotion(enabled: boolean): void {
-  saveSettings({ reducedMotion: enabled });
-}
-
-/**
- * Apply reduced motion preference to document
- */
-function applyReducedMotion(enabled: boolean): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  const root = document.documentElement;
-  if (enabled) {
-    root.style.setProperty("--motion-reduce", "1");
-  } else {
-    root.style.removeProperty("--motion-reduce");
+export function importSettings(json: string): AppSettings {
+  try {
+    const parsed = JSON.parse(json);
+    const settings = { ...DEFAULT_SETTINGS, ...parsed };
+    saveSettings(settings);
+    return settings;
+  } catch (error) {
+    console.error("Failed to import settings:", error);
+    throw new Error("Invalid settings JSON");
   }
 }
 
 /**
- * Initialize settings on load
+ * Initialize settings on app startup
  */
 export function initializeSettings(): void {
-  const settings = getSettings();
-  applyReducedMotion(settings.reducedMotion);
+  // Ensure settings exist in localStorage
+  loadSettings();
 }
-
-/**
- * Reset all settings to defaults
- */
-export function resetSettings(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  localStorage.removeItem(STORAGE_KEY);
-  applyReducedMotion(false);
-}
-

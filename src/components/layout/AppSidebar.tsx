@@ -57,9 +57,6 @@ interface AppSidebarProps {
   onCanvasHueRotationEnabledToggle: (checked: boolean) => void;
   onCanvasHueRotationSpeedChange: (value: number) => void;
   
-  // Custom palette manager
-  onShowCustomPaletteManager: () => void;
-  
   // Layout
   isWideLayout: boolean;
 }
@@ -101,7 +98,6 @@ export const AppSidebar = ({
   onPaletteCycleSpeedChange,
   onCanvasHueRotationEnabledToggle,
   onCanvasHueRotationSpeedChange,
-  onShowCustomPaletteManager,
   isWideLayout,
 }: AppSidebarProps) => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
@@ -118,9 +114,8 @@ export const AppSidebar = ({
   return (
     <aside
       className={`fixed flex top-[var(--header-height)] left-0 h-[calc(100vh-var(--header-height)-var(--footer-height))] transition-all duration-300 ease-in-out z-50 border-r
-        bg-[var(--bg-top)]
-        border-[var(--panel-border)]
-        text-[var(--text-primary)]
+        bg-white border-slate-200 text-slate-900
+        dark:bg-slate-900 dark:border-slate-800 dark:text-white
         ${sidebarWidth === 370 ? "w-[370px]" : "w-[64px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}
@@ -129,7 +124,7 @@ export const AppSidebar = ({
       style={{ zIndex: 50 }}
     >
       {/* Left Column - Icon Navigation */}
-      <div className="flex flex-col w-[64px] border-r border-[var(--panel-border)] bg-[var(--bg-top)]">
+      <div className="flex flex-col w-[64px] border-r border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
         {/* Navigation Icons */}
         <div className="flex flex-col gap-2 px-[10px] pt-8">
           {navigationItems.map((item) => {
@@ -140,10 +135,10 @@ export const AppSidebar = ({
                 type="button"
                 onClick={() => onPanelChange(item.value)}
                 disabled={!ready}
-                className={`w-[44px] h-[44px] rounded-lg flex items-center justify-center transition-colors ${
+                className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button ${
                   activePanel === item.value
                     ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)]"
-                    : "bg-[var(--panel-bg)] text-[var(--text-muted)] hover:bg-[var(--bg-base)]"
+                    : "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
                 }`}
                 title={item.label}
                 aria-label={item.label}
@@ -157,10 +152,10 @@ export const AppSidebar = ({
 
       {/* Right Column - Control Panels */}
       {showRightColumn && (
-        <div className="flex flex-col w-[290px] px-5 overflow-y-auto overflow-x-visible no-scrollbar flex-1 transition-opacity duration-300">
+        <div className="flex flex-col w-[282px] px-5 overflow-y-auto overflow-x-visible no-scrollbar flex-1 transition-opacity duration-300 border-t border-slate-200 dark:border-slate-800">
           {/* Control Panel Content */}
           {spriteState && (
-            <div className="flex-1 pt-8">
+            <div className="flex-1 pt-8 overflow-x-visible">
               {activePanel === "sprites" && (
                 <SpriteControls
                   spriteState={spriteState}
@@ -193,7 +188,6 @@ export const AppSidebar = ({
                   onPaletteOptionSelect={onPaletteOptionSelect}
                   onBlendSelect={onBlendSelect}
                   onBlendAutoToggle={onBlendAutoToggle}
-                  onShowCustomPaletteManager={onShowCustomPaletteManager}
                 />
               )}
               {activePanel === "motion" && !isWideLayout && (

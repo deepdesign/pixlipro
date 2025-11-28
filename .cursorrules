@@ -1,0 +1,47 @@
+This project uses Tailwind CSS 4 as the exclusive styling system.
+
+When generating or modifying any UI component:
+
+1. Use ONLY official Tailwind 4 utility classes.
+2. Follow the visual style and patterns shown on the Tailwind CSS website and documentation.
+3. Do NOT generate inline styles unless explicitly requested.
+4. Do NOT create custom CSS rules unless absolutely necessary.
+5. Do NOT invent class names or use classes from older Tailwind versions.
+6. Use Tailwind's standard design scales:
+   - Spacing: 0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16, etc.
+   - Colours: slate, gray, zinc, neutral, stone, blue, indigo, violet, red, etc.
+   - Radius: rounded, rounded-md, rounded-lg, rounded-xl, rounded-2xl.
+   - Shadows: shadow-sm, shadow, shadow-md, shadow-lg, shadow-xl.
+7. Structure all JSX elements semantically (button, label, input, section, dialog, nav, header, main, etc.).
+8. For interactive components, use Tailwind variants where appropriate:
+   - hover:, focus:, focus-visible:, active:, disabled:
+   - aria-selected:, aria-expanded:, data-[state=open]:
+9. Use flex/grid utilities for layout instead of custom CSS.
+10. When colours, borders or spacing are unclear, default to Tailwind's official examples.
+11. If a component needs variants (size, colour, intent, state), generate them using cva() + twMerge().
+12. Always match the look and feel of components displayed on tailwindcss.com.
+13. Assume this project uses:
+    - Vite
+    - React + TypeScript
+    - tailwind-merge
+    - class-variance-authority
+
+Additional requirements for robust Tailwind usage:
+
+14. Before creating a new component, check existing components in src/components/ and align with their Tailwind patterns and overall visual language.
+15. Design responsively by default. Use Tailwind's responsive breakpoints (sm:, md:, lg:, xl:, 2xl:) where appropriate, and avoid hard-coded widths/heights that break on smaller screens.
+16. All components MUST be ready for light and dark mode. For any background, border or text colour:
+    - Either pair light and dark utilities (for example, bg-slate-50 dark:bg-slate-950, text-slate-900 dark:text-slate-50),
+    - Or use existing semantic theme classes if they are defined in the project.
+    Avoid hard-coded colours or styles that only work in one theme.
+17. Prefer standard Tailwind utilities over arbitrary values. Only use arbitrary values (for example, w-[123px]) when there is no suitable utility and include a short code comment explaining why.
+18. Accessibility is mandatory. Use semantic HTML elements and Tailwind's accessibility utilities (sr-only, focus-visible) together with appropriate aria-* attributes. Ensure keyboard navigation works.
+19. Keep spacing consistent. Follow the spacing rules documented in spacing.md in this repository and reuse common spacing utilities (for example, p-4, p-5, gap-4, gap-6) instead of inventing new arbitrary spacing on every component.
+20. Before adding custom CSS, ask: "Can this be done with Tailwind utilities?" If yes, use utilities. Only add custom CSS for things Tailwind cannot handle cleanly (for example, complex animations or unusual layout edge cases).
+21. Build complex UIs by composing smaller, reusable Tailwind-styled components (Button, Card, Panel, Toolbar, etc.) rather than writing monolithic components with large custom style blocks.
+22. During code review or refactoring:
+    - Remove inline styles (unless explicitly required).
+    - Remove unnecessary custom CSS classes and convert them to Tailwind utilities.
+    - Check that responsive and dark-mode states make sense in both light and dark themes.
+    - Confirm semantic HTML and accessibility attributes are in place.
+23. If unsure about a pattern, prefer solutions that match Tailwind's documentation and examples rather than inventing new visual styles.

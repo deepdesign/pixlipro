@@ -1,32 +1,36 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { readFileSync } from 'node:fs'
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
-import { visualizer } from 'rollup-plugin-visualizer'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import tailwindcss from "@tailwindcss/vite";
+import { visualizer } from "rollup-plugin-visualizer";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Read version from package.json
-const packageJson = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'))
-const version = packageJson.version
+const packageJson = JSON.parse(
+  readFileSync(path.resolve(__dirname, "package.json"), "utf-8"),
+);
+const version = packageJson.version;
 
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
-    // Removed force-full-reload plugin - stateRef pattern handles HMR properly
+    tailwindcss(),
     // Bundle analyzer (only in analyze mode)
-    mode === 'analyze' && visualizer({
-      open: true,
-      filename: 'dist/stats.html',
-      gzipSize: true,
-      brotliSize: true,
-    }),
+    mode === "analyze" &&
+      visualizer({
+        open: true,
+        filename: "dist/stats.html",
+        gzipSize: true,
+        brotliSize: true,
+      }),
   ].filter(Boolean),
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      "@": path.resolve(__dirname, "src"),
     },
   },
   define: {
@@ -34,25 +38,26 @@ export default defineConfig(({ mode }) => ({
   },
   server: {
     port: 5174,
-    // Reverted HMR and server config to defaults - the connection loss might have been caused by our changes
+  },
+  preview: {
+    port: 5174,
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
           // Split vendor libraries into separate chunks
-          'react-vendor': ['react', 'react-dom'],
-          'radix-vendor': [
-            '@radix-ui/react-select',
-            '@radix-ui/react-slider',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-accordion',
+          "react-vendor": ["react", "react-dom"],
+          "radix-vendor": [
+            "@radix-ui/react-select",
+            "@radix-ui/react-slider",
+            "@radix-ui/react-switch",
+            "@radix-ui/react-accordion",
           ],
-          'p5-vendor': ['p5'],
-          'icons-vendor': ['lucide-react'],
+          "p5-vendor": ["p5"],
+          "icons-vendor": ["lucide-react"],
         },
       },
     },
   },
-}))
-
+}));
