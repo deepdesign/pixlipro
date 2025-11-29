@@ -11,8 +11,8 @@ import {
 } from "./data/palettes";
 import { getGradientsForPalette } from "./data/gradients";
 import { calculateGradientLine } from "./lib/utils";
-import { getCollection, getSpriteInCollection, getAllCollections } from "./constants/spriteCollections";
-import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache } from "./lib/services/spriteImageLoader";
+import { getCollection, getSpriteInCollection, getAllCollections, findSpriteByIdentifier, getSpriteIdentifierFromMode } from "./constants/spriteCollections";
+import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache, preloadSpriteImages } from "./lib/services/spriteImageLoader";
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 
 const MIN_TILE_SCALE = 0.12;
@@ -100,7 +100,6 @@ export type SpriteMode =
   | "square"
   | "triangle"
   | "hexagon"
-  | "ring"
   | "diamond"
   | "star"
   | "line"
@@ -109,7 +108,6 @@ export type SpriteMode =
   | "cross"
   | "pixels"
   | "heart"
-  | "snowflake"
   | "smiley"
   | "tree"
   | "x"
@@ -131,6 +129,7 @@ interface ShapeTile {
   rotationBaseMultiplier: number; // Random multiplier for rotationBase (-1 to 1)
   rotationSpeedMultiplier: number; // Random multiplier for rotationSpeed (0.6 to 1.2)
   animationTimeMultiplier: number; // Random multiplier for animation time (0.85 to 1.15, +/- 15%)
+  isOutlined: boolean; // Whether this sprite should be rendered as an outline (used when outlineMixed is true)
 }
 
 interface SvgTile {
@@ -150,6 +149,7 @@ interface SvgTile {
   rotationBaseMultiplier: number; // Random multiplier for rotationBase (-1 to 1)
   rotationSpeedMultiplier: number; // Random multiplier for rotationSpeed (0.6 to 1.2)
   animationTimeMultiplier: number; // Random multiplier for animation time (0.85 to 1.15, +/- 15%)
+  isOutlined: boolean; // Whether this sprite should be rendered as an outline (used when outlineMixed is true)
 }
 
 type PreparedTile = ShapeTile | SvgTile;
@@ -182,7 +182,8 @@ export interface GeneratorState {
   blendModeAuto: boolean;
   previousBlendMode: BlendModeKey;
   layerOpacity: number;
-  spriteMode: SpriteMode;
+  spriteMode: SpriteMode; // DEPRECATED: kept for backward compatibility, use selectedSprites instead
+  selectedSprites: string[]; // Array of sprite identifiers: "shape:star" for shapes or svgPath for SVG sprites
   movementMode: MovementMode;
   backgroundMode: BackgroundMode;
   backgroundHueShift: number;
@@ -218,6 +219,12 @@ export interface GeneratorState {
   // Aspect ratio settings
   aspectRatio: "16:9" | "21:9" | "16:10" | "custom"; // Canvas aspect ratio (square removed, defaults to 16:9)
   customAspectRatio: { width: number; height: number }; // Custom aspect ratio dimensions
+  // Outline settings
+  outlineEnabled: boolean; // Toggle for outline mode (render sprites as strokes instead of fills)
+  outlineStrokeWidth: number; // Stroke width in pixels (range: 1-20)
+  outlineMixed: boolean; // When enabled, randomly mix filled and outlined sprites
+  filledOpacity: number; // Opacity for filled sprites when mixed mode is enabled (0-100)
+  outlinedOpacity: number; // Opacity for outlined sprites when mixed mode is enabled (0-100)
 }
 
 export interface SpriteControllerOptions {
@@ -231,7 +238,6 @@ const shapeModes = [
   "square",
   "triangle",
   "hexagon",
-  "ring",
   "diamond",
   "star",
   "line",
@@ -240,7 +246,6 @@ const shapeModes = [
   "cross",
   "pixels",
   "heart",
-  "snowflake",
   "smiley",
   "tree",
   "x",
@@ -249,6 +254,23 @@ const shapeModes = [
 const spriteModePool: SpriteMode[] = [...shapeModes];
 
 type ShapeMode = (typeof shapeModes)[number];
+
+// Helper to get a random sprite from default collection
+function getRandomDefaultSprite(): string {
+  const defaultCollection = getCollection("default");
+  if (defaultCollection && defaultCollection.sprites.length > 0) {
+    const randomSprite = defaultCollection.sprites[Math.floor(Math.random() * defaultCollection.sprites.length)];
+    if (randomSprite.svgPath) {
+      return randomSprite.svgPath;
+    }
+    // Fallback to shape identifier if no svgPath
+    if (randomSprite.spriteMode) {
+      return `shape:${randomSprite.spriteMode}`;
+    }
+  }
+  // Ultimate fallback
+  return "/sprites/default/star.svg";
+}
 
 export const DEFAULT_STATE: GeneratorState = {
   seed: "DEADBEEF",
@@ -263,7 +285,8 @@ export const DEFAULT_STATE: GeneratorState = {
   blendModeAuto: true,
   previousBlendMode: "NONE",
   layerOpacity: 74,
-  spriteMode: "star",
+  spriteMode: "star", // DEPRECATED: kept for backward compatibility
+  selectedSprites: ["/sprites/default/star.svg"], // Will be randomized on initialization
   movementMode: "drift",
   backgroundMode: "auto",
   backgroundHueShift: 0,
@@ -299,6 +322,12 @@ export const DEFAULT_STATE: GeneratorState = {
   // Aspect ratio defaults
   aspectRatio: "16:9", // Industry standard for projectors
   customAspectRatio: { width: 1920, height: 1080 }, // Default custom dimensions (16:9)
+  // Outline defaults
+  outlineEnabled: false,
+  outlineStrokeWidth: 2, // Default stroke width in pixels
+  outlineMixed: false, // Default: all sprites use same outline state
+  filledOpacity: 74, // Default opacity for filled sprites in mixed mode
+  outlinedOpacity: 74, // Default opacity for outlined sprites in mixed mode
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -524,22 +553,12 @@ const computeMovementOffsets = (
 
   switch (mode) {
     case "pulse": {
-      // Easing function for smooth in-out animation
-      const easeInOut = (t: number): number => {
-        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-      };
-      
-      // Get raw sine wave value (-1 to 1)
+      // Use pure sine wave for smooth, continuous animation without pauses
+      // Sine wave naturally provides smooth acceleration/deceleration
       const rawPulse = Math.sin(phased * 0.08);
       
-      // Normalize to 0-1 range for easing
-      const normalizedPulse = (rawPulse + 1) / 2;
-      
-      // Apply easing for smoother animation
-      const easedPulse = easeInOut(normalizedPulse);
-      
-      // Convert back to -1 to 1 range and apply motion scale
-      const pulse = (easedPulse * 2 - 1) * motionScale;
+      // Apply motion scale directly to sine wave (-1 to 1 range)
+      const pulse = rawPulse * motionScale;
       
       // Apply pulse to scale only (no position changes)
       const scaleMultiplier = clampScale(1 + pulse * 0.55);
@@ -792,31 +811,46 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   const minSpeed = 0.05; // 5% minimum
   const rotationSpeedBase = Math.max(minSpeed, clamp(state.rotationSpeed, 1, 100) / 100);
 
-  // Determine if we're using shape-based or SVG-based collection
-  const collection = getCollection(state.spriteCollectionId || "default");
-  const isShapeBased = collection?.isShapeBased ?? true;
-  
-  // Get the active sprite (shape or SVG)
-  let activeShape: ShapeMode = "rounded";
-  let activeSvgSprite: { id: string; svgPath: string } | null = null;
-  
-  if (isShapeBased) {
-    // Primitive collection - use shape mode
-    const isShapeMode = shapeModes.includes(state.spriteMode as ShapeMode);
-    activeShape = isShapeMode ? (state.spriteMode as ShapeMode) : "rounded";
-  } else {
-    // SVG collection - find the sprite by ID
-    const sprite = getSpriteInCollection(state.spriteCollectionId, state.spriteMode);
-    if (sprite && sprite.svgPath) {
-      activeSvgSprite = { id: sprite.id, svgPath: sprite.svgPath };
-    } else if (collection && collection.sprites.length > 0) {
-      // Fallback to first sprite in collection
-      const firstSprite = collection.sprites[0];
-      if (firstSprite.svgPath) {
-        activeSvgSprite = { id: firstSprite.id, svgPath: firstSprite.svgPath };
+  // Get selected sprites (use new selectedSprites array, fallback to spriteMode for backward compatibility)
+  let selectedSpriteIds = state.selectedSprites || [];
+  if (selectedSpriteIds.length === 0) {
+    // Backward compatibility: convert old spriteMode to new format
+    const collection = getCollection(state.spriteCollectionId || "default");
+    if (collection?.isShapeBased) {
+      selectedSpriteIds = [`shape:${state.spriteMode}`];
+    } else {
+      const sprite = getSpriteInCollection(state.spriteCollectionId || "default", state.spriteMode);
+      if (sprite?.svgPath) {
+        selectedSpriteIds = [sprite.svgPath];
+      } else {
+        selectedSpriteIds = [`shape:${state.spriteMode}`];
       }
     }
   }
+  
+  // Allow empty selection - will result in empty canvas
+  // No fallback needed - empty array is valid
+  
+  // Helper to get sprite info from identifier
+  const getSpriteInfo = (identifier: string): { isShape: boolean; shape?: ShapeMode; svgSprite?: { id: string; svgPath: string } } | null => {
+    if (identifier.startsWith("shape:")) {
+      const shapeMode = identifier.replace("shape:", "") as ShapeMode;
+      if (shapeModes.includes(shapeMode)) {
+        return { isShape: true, shape: shapeMode };
+      }
+      return null;
+    }
+    
+    // It's an svgPath - find the sprite
+    const allCollections = getAllCollections();
+    for (const collection of allCollections) {
+      const sprite = collection.sprites.find(s => s.svgPath === identifier);
+      if (sprite && sprite.svgPath) {
+        return { isShape: false, svgSprite: { id: sprite.id, svgPath: sprite.svgPath } };
+      }
+    }
+    return null;
+  };
 
   // Apply mode-specific scale multiplier to improve canvas coverage
   // Modes with large movement radii (spiral, orbit) benefit from larger sprites
@@ -941,17 +975,72 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       // Gradient assignment is now done during rendering, not during computation
       // This allows toggling gradients without regenerating sprite positions/scales
       
-      if (isShapeBased) {
-        // Shape-based collection (default)
-        // If randomSprites is enabled, assign a random shape to each tile
-        // Otherwise, use the activeShape from spriteMode
-        const tileShape = state.randomSprites
-          ? (shapeModes[Math.floor(rng() * shapeModes.length)] as ShapeMode)
-          : activeShape;
-        
+      // Determine if this tile should be outlined (when mixed mode is enabled)
+      const isOutlined = state.outlineMixed ? positionRng() > 0.5 : false;
+      
+      // If no sprites are selected, skip creating this tile (empty canvas)
+      if (selectedSpriteIds.length === 0) {
+        continue;
+      }
+      
+      // Randomly pick a sprite from selected sprites
+      const selectedSpriteId = selectedSpriteIds[Math.floor(rng() * selectedSpriteIds.length)];
+      const spriteInfo = getSpriteInfo(selectedSpriteId);
+      
+      if (!spriteInfo) {
+        // Fallback: use first selected sprite if available
+        if (selectedSpriteIds.length > 0) {
+          const fallbackId = selectedSpriteIds[0];
+          const fallbackInfo = getSpriteInfo(fallbackId);
+          if (fallbackInfo) {
+            if (fallbackInfo.isShape) {
+              tiles.push({
+                kind: "shape",
+                shape: fallbackInfo.shape || "star",
+                tint,
+                paletteColorIndex,
+                u,
+                v,
+                scale,
+                blendMode: tileBlend,
+                rotationBase,
+                rotationDirection,
+                rotationSpeed: rotationSpeedValue,
+                rotationBaseMultiplier,
+                rotationSpeedMultiplier,
+                animationTimeMultiplier,
+                isOutlined,
+              });
+            } else if (fallbackInfo.svgSprite) {
+              tiles.push({
+                kind: "svg",
+                svgPath: fallbackInfo.svgSprite.svgPath,
+                spriteId: fallbackInfo.svgSprite.id,
+                tint,
+                paletteColorIndex,
+                u,
+                v,
+                scale,
+                blendMode: tileBlend,
+                rotationBase,
+                rotationDirection,
+                rotationSpeed: rotationSpeedValue,
+                rotationBaseMultiplier,
+                rotationSpeedMultiplier,
+                animationTimeMultiplier,
+                isOutlined,
+              });
+            }
+          }
+        }
+        continue;
+      }
+      
+      if (spriteInfo.isShape) {
+        // Shape-based sprite
         tiles.push({
           kind: "shape",
-          shape: tileShape,
+          shape: spriteInfo.shape || "star",
           tint,
           paletteColorIndex,
           u,
@@ -964,41 +1053,28 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           rotationBaseMultiplier,
           rotationSpeedMultiplier,
           animationTimeMultiplier,
+          isOutlined,
         });
-      } else {
-        // SVG-based collection
-        // If randomSprites is enabled, assign a random sprite from collection
-        // Otherwise, use the active SVG sprite
-        let tileSvgSprite = activeSvgSprite;
-        
-        if (state.randomSprites && collection && collection.sprites.length > 0) {
-          // Select a random SVG sprite from the collection
-          const randomIndex = Math.floor(rng() * collection.sprites.length);
-          const randomSprite = collection.sprites[randomIndex];
-          if (randomSprite.svgPath) {
-            tileSvgSprite = { id: randomSprite.id, svgPath: randomSprite.svgPath };
-          }
-        }
-        
-        if (tileSvgSprite) {
-          tiles.push({
-            kind: "svg",
-            svgPath: tileSvgSprite.svgPath,
-            spriteId: tileSvgSprite.id,
-            tint,
-            paletteColorIndex,
-            u,
-            v,
-            scale,
-            blendMode: tileBlend,
-            rotationBase,
-            rotationDirection,
-            rotationSpeed: rotationSpeedValue,
-            rotationBaseMultiplier,
-            rotationSpeedMultiplier,
-            animationTimeMultiplier,
-          });
-        }
+      } else if (spriteInfo.svgSprite) {
+        // SVG-based sprite
+        tiles.push({
+          kind: "svg",
+          svgPath: spriteInfo.svgSprite.svgPath,
+          spriteId: spriteInfo.svgSprite.id,
+          tint,
+          paletteColorIndex,
+          u,
+          v,
+          scale,
+          blendMode: tileBlend,
+          rotationBase,
+          rotationDirection,
+          rotationSpeed: rotationSpeedValue,
+          rotationBaseMultiplier,
+          rotationSpeedMultiplier,
+          animationTimeMultiplier,
+          isOutlined,
+        });
       }
     }
 
@@ -1007,7 +1083,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       tileCount: tileTotal,
       blendMode: layerBlendMode,
       opacity,
-      mode: isShapeBased ? "shape" : "svg",
+      mode: selectedSpriteIds.every(id => id.startsWith("shape:")) ? "shape" : "svg",
       baseSizeRatio,
     });
   }
@@ -1038,7 +1114,8 @@ export interface SpriteController {
   setBlendMode: (mode: BlendModeOption) => void;
   setBlendModeAuto: (value: boolean) => void;
   setLayerOpacity: (value: number) => void;
-  setSpriteMode: (mode: SpriteMode) => void;
+  setSpriteMode: (mode: SpriteMode) => void; // DEPRECATED: kept for backward compatibility
+  toggleSpriteSelection: (spriteIdentifier: string) => void; // Toggle sprite selection (add/remove from selectedSprites)
   setMovementMode: (mode: MovementMode) => void;
   setRotationEnabled: (value: boolean) => void;
   setRotationAmount: (value: number) => void;
@@ -1069,6 +1146,12 @@ export interface SpriteController {
   setCanvasHueRotationSpeed: (speed: number) => void;
   setAspectRatio: (ratio: "16:9" | "21:9" | "16:10" | "custom") => void;
   setCustomAspectRatio: (width: number, height: number) => void;
+  setOutlineEnabled: (enabled: boolean) => void;
+  setOutlineStrokeWidth: (width: number) => void;
+  setOutlineMixed: (enabled: boolean) => void;
+  setFilledOpacity: (value: number) => void;
+  setOutlinedOpacity: (value: number) => void;
+  randomizeOutlineDistribution: () => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
   applyMinimalGridPreset: () => void;
@@ -1125,6 +1208,27 @@ export const createSpriteController = (
     initialAspectRatio = "16:9";
   }
 
+  // Get random sprite for initialization
+  const randomSpriteIdentifier = getRandomDefaultSprite();
+  const defaultCollection = getCollection("default");
+  let initialSpriteMode: SpriteMode = "star"; // Fallback
+  
+  // Find the sprite mode for the selected sprite
+  if (defaultCollection) {
+    const sprite = defaultCollection.sprites.find(s => 
+      s.svgPath === randomSpriteIdentifier || 
+      (randomSpriteIdentifier.startsWith("shape:") && s.spriteMode === randomSpriteIdentifier.replace("shape:", ""))
+    );
+    if (sprite) {
+      // Use spriteMode if available, otherwise use id
+      if (sprite.spriteMode) {
+        initialSpriteMode = sprite.spriteMode;
+      } else if (sprite.id) {
+        initialSpriteMode = sprite.id as SpriteMode;
+      }
+    }
+  }
+  
   // Store state in an object that can be updated
   // This ensures closures always read from the same reference, even after HMR
   const stateRef = { 
@@ -1134,6 +1238,8 @@ export const createSpriteController = (
       previousBlendMode: DEFAULT_STATE.blendMode,
       aspectRatio: initialAspectRatio,
       customAspectRatio: initialCustomAspectRatio,
+      spriteMode: initialSpriteMode, // Set to match selected sprite
+      selectedSprites: [randomSpriteIdentifier], // Random sprite from default collection on initialization
     } as GeneratorState
   };
   let state = stateRef.current;
@@ -2233,8 +2339,18 @@ export const createSpriteController = (
             
             const finalMovement = movement;
             const shapeSize = baseShapeSize * finalMovement.scaleMultiplier;
-            // Use currentState.layerOpacity directly instead of stored layer.opacity for dynamic updates
-            const opacityValue = clamp(currentState.layerOpacity / 100, 0.12, 1);
+            // Determine opacity based on outline state when mixed mode is enabled
+            let opacityValue: number;
+            if (currentState.outlineMixed && currentState.outlineEnabled) {
+              // Use filled/outlined opacity based on tile's outline state
+              const tileOpacity = tile.isOutlined 
+                ? (currentState.outlinedOpacity ?? currentState.layerOpacity)
+                : (currentState.filledOpacity ?? currentState.layerOpacity);
+              opacityValue = clamp(tileOpacity / 100, 0, 1);
+            } else {
+              // Use layerOpacity for non-mixed mode
+              opacityValue = clamp(currentState.layerOpacity / 100, 0.12, 1);
+            }
             const opacityAlpha = Math.round(opacityValue * 255);
 
             // Calculate depth of field blur
@@ -2348,24 +2464,50 @@ export const createSpriteController = (
                     colorObj.setAlpha(opacityAlpha);
                     gradientObj!.addColorStop(stop, colorObj.toString());
                   });
-                  ctx.fillStyle = gradientObj;
                 }
               }
             }
+            
+            // Check if outline mode is enabled (check once, use throughout)
+            // When mixed mode is enabled, use per-tile outline state; otherwise use global state
+            // Only apply outline if outlineEnabled is true
+            const useOutline = currentState.outlineEnabled && (
+              currentState.outlineMixed 
+                ? tile.isOutlined 
+                : true
+            );
+            const strokeWidth = currentState.outlineStrokeWidth;
             
             if (!useGradient || !gradientObj) {
               // Solid color fill
               const fillColor = p.color(animatedTileColor);
               fillColor.setAlpha(opacityAlpha);
-              p.fill(fillColor);
+              if (useOutline) {
+                p.noFill();
+                p.stroke(fillColor);
+                p.strokeWeight(strokeWidth);
+              } else {
+                p.fill(fillColor);
+                p.noStroke();
+              }
+            } else {
+              // Gradient mode - no p5.js fill needed, will use canvas context
+              p.noFill();
+              p.noStroke();
             }
-            
-            p.noStroke();
 
             // Draw shapes using canvas context if gradient, otherwise use p5
             if (useGradient && gradientObj) {
               ctx.save();
               ctx.beginPath();
+              
+              // Set stroke or fill style based on outline mode
+              if (useOutline) {
+                ctx.strokeStyle = gradientObj;
+                ctx.lineWidth = strokeWidth;
+              } else {
+                ctx.fillStyle = gradientObj;
+              }
               
               let path2DFilled = false; // Track if Path2D was filled directly
               
@@ -2402,25 +2544,6 @@ export const createSpriteController = (
                     else ctx.lineTo(x, y);
                   }
                   ctx.closePath();
-                  break;
-                }
-                case "ring": {
-                  const strokeWeight = Math.max(1.5, shapeSize * 0.18);
-                  const wobble =
-                    Math.sin((tileIndex + p.frameCount) * 0.03 + layerIndex) *
-                    0.35;
-                  if (gradientObj) {
-                    ctx.strokeStyle = gradientObj;
-                  } else {
-                    const strokeColor = p.color(animatedTileColor);
-                    strokeColor.setAlpha(opacityAlpha);
-                    ctx.strokeStyle = strokeColor.toString();
-                  }
-                  ctx.lineWidth = strokeWeight;
-                  ctx.rotate(wobble);
-                  ctx.beginPath();
-                  ctx.arc(0, 0, shapeSize / 2, 0, Math.PI * 2);
-                  ctx.stroke();
                   break;
                 }
                 case "diamond": {
@@ -2488,7 +2611,11 @@ export const createSpriteController = (
                   ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(asteriskPath);
-                  ctx.fill(path);
+                  if (useOutline) {
+                    ctx.stroke(path);
+                  } else {
+                    ctx.fill(path);
+                  }
                   ctx.restore();
                   path2DFilled = true;
                   break;
@@ -2518,7 +2645,11 @@ export const createSpriteController = (
                   ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(crossPath);
-                  ctx.fill(path);
+                  if (useOutline) {
+                    ctx.stroke(path);
+                  } else {
+                    ctx.fill(path);
+                  }
                   ctx.restore();
                   path2DFilled = true;
                   break;
@@ -2565,37 +2696,11 @@ export const createSpriteController = (
                   ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(heartPath);
-                  ctx.fill(path);
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                case "snowflake": {
-                  // Snowflake shape - use SVG path with Path2D
-                  // Original viewBox: 0 0 24 24
-                  const snowflakePath = "M21.16,16.13l-2-1.15.89-.24a1,1,0,1,0-.52-1.93l-2.82.76L14,12l2.71-1.57,2.82.76.26,0a1,1,0,0,0,.26-2L19.16,9l2-1.15a1,1,0,0,0-1-1.74L18,7.37l.3-1.11a1,1,0,1,0-1.93-.52l-.82,3L13,10.27V7.14l2.07-2.07a1,1,0,0,0,0-1.41,1,1,0,0,0-1.42,0L13,4.31V2a1,1,0,0,0-2,0V4.47l-.81-.81a1,1,0,0,0-1.42,0,1,1,0,0,0,0,1.41L11,7.3v3L8.43,8.78l-.82-3a1,1,0,1,0-1.93.52L6,7.37,3.84,6.13a1,1,0,0,0-1,1.74L4.84,9,4,9.26a1,1,0,0,0,.26,2l.26,0,2.82-.76L10,12,7.29,13.57l-2.82-.76A1,1,0,1,0,4,14.74l.89.24-2,1.15a1,1,0,0,0,1,1.74L6,16.63l-.3,1.11A1,1,0,0,0,6.39,19a1.15,1.15,0,0,0,.26,0,1,1,0,0,0,1-.74l.82-3L11,13.73v3.13L8.93,18.93a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.3,1,1,0,0,0,.71-.3l.65-.65V22a1,1,0,0,0,2,0V19.53l.81.81a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.41L13,16.7v-3l2.57,1.49.82,3a1,1,0,0,0,1,.74,1.15,1.15,0,0,0,.26,0,1,1,0,0,0,.71-1.23L18,16.63l2.14,1.24a1,1,0,1,0,1-1.74Z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 24;
-                  const vbHeight = 24;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
+                  if (useOutline) {
+                    ctx.stroke(path);
                   } else {
-                    uniformScale = shapeSize / vbHeight;
+                    ctx.fill(path);
                   }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(snowflakePath);
-                  ctx.fill(path);
                   ctx.restore();
                   path2DFilled = true;
                   break;
@@ -2625,7 +2730,11 @@ export const createSpriteController = (
                   ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(smileyPath);
-                  ctx.fill(path);
+                  if (useOutline) {
+                    ctx.stroke(path);
+                  } else {
+                    ctx.fill(path);
+                  }
                   ctx.restore();
                   path2DFilled = true;
                   break;
@@ -2655,7 +2764,11 @@ export const createSpriteController = (
                   ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(treePath);
-                  ctx.fill(path);
+                  if (useOutline) {
+                    ctx.stroke(path);
+                  } else {
+                    ctx.fill(path);
+                  }
                   ctx.restore();
                   path2DFilled = true;
                   break;
@@ -2685,7 +2798,11 @@ export const createSpriteController = (
                   ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(xPath);
-                  ctx.fill(path);
+                  if (useOutline) {
+                    ctx.stroke(path);
+                  } else {
+                    ctx.fill(path);
+                  }
                   ctx.restore();
                   path2DFilled = true;
                   break;
@@ -2715,7 +2832,11 @@ export const createSpriteController = (
                   ctx.scale(uniformScale, uniformScale);
                   ctx.translate(-vbX, -vbY);
                   const path = new Path2D(arrowPath);
-                  ctx.fill(path);
+                  if (useOutline) {
+                    ctx.stroke(path);
+                  } else {
+                    ctx.fill(path);
+                  }
                   ctx.restore();
                   path2DFilled = true;
                   break;
@@ -2724,19 +2845,41 @@ export const createSpriteController = (
                   ctx.arc(0, 0, shapeSize / 2, 0, Math.PI * 2);
               }
               
-              // Only fill if we didn't fill Path2D directly
+              // Only fill/stroke if we didn't fill/stroke Path2D directly
               if (!path2DFilled) {
-              ctx.fill();
+                if (useOutline) {
+                  ctx.stroke();
+                } else {
+                  ctx.fill();
+                }
               }
               ctx.restore();
             } else {
               // Use p5.js for solid colors - but we can still use Path2D via canvas context
               // Access canvas context from p5.js
               const p5Ctx = p.drawingContext as CanvasRenderingContext2D;
-              // Set fill style for Path2D shapes
+              
+              // Check if outline mode is enabled
+              // When mixed mode is enabled, use per-tile outline state; otherwise use global state
+              const useOutline = currentState.outlineMixed 
+                ? tile.isOutlined 
+                : currentState.outlineEnabled;
+              const strokeWidth = currentState.outlineStrokeWidth;
+              
+              // Set fill or stroke style based on outline mode
               const fillColor = p.color(animatedTileColor);
               fillColor.setAlpha(opacityAlpha);
-              p5Ctx.fillStyle = fillColor.toString();
+              if (useOutline) {
+                p.noFill();
+                p.stroke(fillColor);
+                p.strokeWeight(strokeWidth);
+                p5Ctx.strokeStyle = fillColor.toString();
+                p5Ctx.lineWidth = strokeWidth;
+              } else {
+                p.fill(fillColor);
+                p.noStroke();
+                p5Ctx.fillStyle = fillColor.toString();
+              }
               let path2DFilled = false;
               
               switch (tile.shape) {
@@ -2774,21 +2917,6 @@ export const createSpriteController = (
                   p.vertex(Math.cos(angle) * radius, Math.sin(angle) * radius);
                 }
                 p.endShape(p.CLOSE);
-                break;
-              }
-              case "ring": {
-                const strokeWeight = Math.max(1.5, shapeSize * 0.18);
-                const wobble =
-                  Math.sin((tileIndex + p.frameCount) * 0.03 + layerIndex) *
-                  0.35;
-                p.noFill();
-                const strokeColor = p.color(animatedTileColor);
-                strokeColor.setAlpha(opacityAlpha);
-                p.stroke(strokeColor);
-                p.strokeWeight(strokeWeight);
-                p.rotate(wobble);
-                p.circle(0, 0, shapeSize);
-                p.noStroke();
                 break;
               }
               case "diamond": {
@@ -2853,7 +2981,11 @@ export const createSpriteController = (
                 p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(asteriskPath);
-                p5Ctx.fill(path);
+                if (useOutline) {
+                  p5Ctx.stroke(path);
+                } else {
+                  p5Ctx.fill(path);
+                }
                 p5Ctx.restore();
                 path2DFilled = true;
                 break;
@@ -2882,7 +3014,11 @@ export const createSpriteController = (
                 p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(crossPath);
-                p5Ctx.fill(path);
+                if (useOutline) {
+                  p5Ctx.stroke(path);
+                } else {
+                  p5Ctx.fill(path);
+                }
                 p5Ctx.restore();
                 path2DFilled = true;
                 break;
@@ -2930,36 +3066,11 @@ export const createSpriteController = (
                 p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(heartPath);
-                p5Ctx.fill(path);
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              case "snowflake": {
-                // Snowflake shape - use SVG path with Path2D (same as Canvas 2D)
-                const snowflakePath = "M21.16,16.13l-2-1.15.89-.24a1,1,0,1,0-.52-1.93l-2.82.76L14,12l2.71-1.57,2.82.76.26,0a1,1,0,0,0,.26-2L19.16,9l2-1.15a1,1,0,0,0-1-1.74L18,7.37l.3-1.11a1,1,0,1,0-1.93-.52l-.82,3L13,10.27V7.14l2.07-2.07a1,1,0,0,0,0-1.41,1,1,0,0,0-1.42,0L13,4.31V2a1,1,0,0,0-2,0V4.47l-.81-.81a1,1,0,0,0-1.42,0,1,1,0,0,0,0,1.41L11,7.3v3L8.43,8.78l-.82-3a1,1,0,1,0-1.93.52L6,7.37,3.84,6.13a1,1,0,0,0-1,1.74L4.84,9,4,9.26a1,1,0,0,0,.26,2l.26,0,2.82-.76L10,12,7.29,13.57l-2.82-.76A1,1,0,1,0,4,14.74l.89.24-2,1.15a1,1,0,0,0,1,1.74L6,16.63l-.3,1.11A1,1,0,0,0,6.39,19a1.15,1.15,0,0,0,.26,0,1,1,0,0,0,1-.74l.82-3L11,13.73v3.13L8.93,18.93a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.3,1,1,0,0,0,.71-.3l.65-.65V22a1,1,0,0,0,2,0V19.53l.81.81a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.41L13,16.7v-3l2.57,1.49.82,3a1,1,0,0,0,1,.74,1.15,1.15,0,0,0,.26,0,1,1,0,0,0,.71-1.23L18,16.63l2.14,1.24a1,1,0,1,0,1-1.74Z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 24;
-                const vbHeight = 24;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
+                if (useOutline) {
+                  p5Ctx.stroke(path);
                 } else {
-                  uniformScale = shapeSize / vbHeight;
+                  p5Ctx.fill(path);
                 }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(snowflakePath);
-                p5Ctx.fill(path);
                 p5Ctx.restore();
                 path2DFilled = true;
                 break;
@@ -2988,7 +3099,11 @@ export const createSpriteController = (
                 p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(smileyPath);
-                p5Ctx.fill(path);
+                if (useOutline) {
+                  p5Ctx.stroke(path);
+                } else {
+                  p5Ctx.fill(path);
+                }
                 p5Ctx.restore();
                 path2DFilled = true;
                 break;
@@ -3017,7 +3132,11 @@ export const createSpriteController = (
                 p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(treePath);
-                p5Ctx.fill(path);
+                if (useOutline) {
+                  p5Ctx.stroke(path);
+                } else {
+                  p5Ctx.fill(path);
+                }
                 p5Ctx.restore();
                 path2DFilled = true;
                 break;
@@ -3046,7 +3165,11 @@ export const createSpriteController = (
                 p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(xPath);
-                p5Ctx.fill(path);
+                if (useOutline) {
+                  p5Ctx.stroke(path);
+                } else {
+                  p5Ctx.fill(path);
+                }
                 p5Ctx.restore();
                 path2DFilled = true;
                 break;
@@ -3075,13 +3198,22 @@ export const createSpriteController = (
                 p5Ctx.scale(uniformScale, uniformScale);
                 p5Ctx.translate(-vbX, -vbY);
                 const path = new Path2D(arrowPath);
-                p5Ctx.fill(path);
+                if (useOutline) {
+                  p5Ctx.stroke(path);
+                } else {
+                  p5Ctx.fill(path);
+                }
                 p5Ctx.restore();
                 path2DFilled = true;
                 break;
               }
               default:
                 p.circle(0, 0, shapeSize);
+              }
+              
+              // Reset stroke if outline was used
+              if (useOutline) {
+                p.noStroke();
               }
             }
 
@@ -3109,7 +3241,18 @@ export const createSpriteController = (
             
             const finalMovement = movement;
             const svgSize = baseSvgSize * finalMovement.scaleMultiplier;
-            const opacityValue = clamp(currentState.layerOpacity / 100, 0.12, 1);
+            // Determine opacity based on outline state when mixed mode is enabled
+            let opacityValue: number;
+            if (currentState.outlineMixed && currentState.outlineEnabled) {
+              // Use filled/outlined opacity based on tile's outline state
+              const tileOpacity = tile.isOutlined 
+                ? (currentState.outlinedOpacity ?? currentState.layerOpacity)
+                : (currentState.filledOpacity ?? currentState.layerOpacity);
+              opacityValue = clamp(tileOpacity / 100, 0, 1);
+            } else {
+              // Use layerOpacity for non-mixed mode
+              opacityValue = clamp(currentState.layerOpacity / 100, 0.12, 1);
+            }
             const opacityAlpha = Math.round(opacityValue * 255);
 
             // Calculate depth of field blur
@@ -3193,6 +3336,9 @@ export const createSpriteController = (
                 vbHeight = cachedImg.naturalHeight || cachedImg.height || 1;
               }
               
+              // Special handling for line sprite: make it 10x longer but same thickness on canvas
+              const isLineSprite = tile.spriteId === "line";
+              
               // CRITICAL: Sprite aspect ratio is INDEPENDENT of canvas aspect ratio
               // The sprite's aspect ratio MUST NEVER change, regardless of canvas shape
               // Calculate uniform scale - ONE scale factor for BOTH dimensions
@@ -3201,21 +3347,33 @@ export const createSpriteController = (
               const scaleForHeight = svgSize / vbHeight;
               // Use the MINIMUM scale to ensure sprite fits within svgSize
               // This guarantees uniform scaling - both dimensions scaled by the SAME factor
-              const uniformScale = Math.min(scaleForWidth, scaleForHeight);
+              let uniformScale = Math.min(scaleForWidth, scaleForHeight);
               
-              // Calculate final rendered dimensions using uniform scale
-              // Both dimensions MUST use the SAME scale factor to preserve aspect ratio
-              const finalWidth = vbWidth * uniformScale;
-              const finalHeight = vbHeight * uniformScale;
+              // For line sprite, we need non-uniform scaling: 10x width, 1x height
+              let scaleX = uniformScale;
+              let scaleY = uniformScale;
+              if (isLineSprite) {
+                // Make line 10x longer (width) but keep same thickness (height)
+                scaleX = uniformScale * 10;
+                scaleY = uniformScale;
+              }
+              
+              // Calculate final rendered dimensions
+              // For line sprite, use non-uniform scale; otherwise use uniform scale
+              const finalWidth = vbWidth * scaleX;
+              const finalHeight = vbHeight * scaleY;
               
               // CRITICAL VERIFICATION: finalWidth / finalHeight MUST equal vbWidth / vbHeight
               // This mathematical guarantee ensures aspect ratio is preserved
               // If this assertion fails, there's a bug in the scale calculation
-              const originalAspectRatio = vbWidth / vbHeight;
-              const finalAspectRatio = finalWidth / finalHeight;
-              // Allow tiny floating point differences
-              if (Math.abs(originalAspectRatio - finalAspectRatio) > 0.0001) {
-                console.error(`Aspect ratio mismatch! Original: ${originalAspectRatio}, Final: ${finalAspectRatio}, uniformScale: ${uniformScale}`);
+              // (Skip this check for line sprite since it intentionally changes aspect ratio)
+              if (!isLineSprite) {
+                const originalAspectRatio = vbWidth / vbHeight;
+                const finalAspectRatio = finalWidth / finalHeight;
+                // Allow tiny floating point differences
+                if (Math.abs(originalAspectRatio - finalAspectRatio) > 0.0001) {
+                  console.error(`Aspect ratio mismatch! Original: ${originalAspectRatio}, Final: ${finalAspectRatio}, uniformScale: ${uniformScale}`);
+                }
               }
               
               if (svgPathData && svgViewBox) {
@@ -3223,9 +3381,27 @@ export const createSpriteController = (
                 const vbX = svgViewBox.x || 0;
                 const vbY = svgViewBox.y || 0;
                 
+                // Check if outline mode is enabled
+                // When mixed mode is enabled, use per-tile outline state; otherwise use global state
+                // Only apply outline if outlineEnabled is true
+                const useOutline = currentState.outlineEnabled && (
+                  currentState.outlineMixed 
+                    ? tile.isOutlined 
+                    : true
+                );
+                const strokeWidth = currentState.outlineStrokeWidth;
+                
                 // Draw the path directly on canvas
                 ctx.globalCompositeOperation = "source-over";
-                ctx.fillStyle = animatedTileColor;
+                // Apply opacity to color (globalAlpha is already set, but also add to color for consistency)
+                const colorWithAlpha = p.color(animatedTileColor);
+                colorWithAlpha.setAlpha(opacityAlpha);
+                if (useOutline) {
+                  ctx.strokeStyle = colorWithAlpha.toString();
+                  ctx.lineWidth = strokeWidth;
+                } else {
+                  ctx.fillStyle = colorWithAlpha.toString();
+                }
                 
                 // CRITICAL: Reset transform matrix to avoid any p5.js coordinate system interference
                 // p5.js transforms (translate, rotate) affect the canvas context, which can cause
@@ -3243,20 +3419,24 @@ export const createSpriteController = (
                 }
                 // 3. Translate by viewBox origin to align with SVG coordinate system
                 ctx.translate(-vbX, -vbY);
-                // 4. Scale uniformly - SAME value for both X and Y - this preserves aspect ratio
-                // CRITICAL: uniformScale is the SAME for X and Y - this is the ONLY way to preserve aspect ratio
-                ctx.scale(uniformScale, uniformScale);
+                // 4. Scale - use non-uniform scale for line sprite (10x width, 1x height), uniform for others
+                // CRITICAL: For line sprite, we intentionally use non-uniform scale to make it 10x longer
+                ctx.scale(scaleX, scaleY);
                 // 5. Center the sprite at origin using UNSCALED dimensions
                 ctx.translate(-vbWidth / 2, -vbHeight / 2);
                 
-                // Create and fill the path
+                // Create and fill/stroke the path
                 const path = new Path2D(svgPathData);
-                ctx.fill(path);
+                if (useOutline) {
+                  ctx.stroke(path);
+                } else {
+                  ctx.fill(path);
+                }
                 
                 ctx.restore();
               } else {
                 // Fallback: Draw image if path data not available
-                // Use finalWidth/finalHeight to ensure aspect ratio is preserved
+                // Use finalWidth/finalHeight (non-uniform for line sprite)
                 ctx.globalCompositeOperation = "source-over";
                 ctx.drawImage(
                   cachedImg, 
@@ -3313,6 +3493,25 @@ export const createSpriteController = (
     // Update state in the ref object - this ensures all closures see the update
     stateRef.current = { ...stateRef.current, ...partial };
     state = stateRef.current; // Keep local variable in sync
+    
+    // Migration: Initialize selectedSprites from spriteMode if missing
+    if (!state.selectedSprites || state.selectedSprites.length === 0) {
+      const collection = getCollection(state.spriteCollectionId || "default");
+      let identifier: string;
+      if (collection?.isShapeBased) {
+        identifier = `shape:${state.spriteMode}`;
+      } else {
+        const sprite = getSpriteInCollection(state.spriteCollectionId || "default", state.spriteMode);
+        if (sprite?.svgPath) {
+          identifier = sprite.svgPath;
+        } else {
+          identifier = `shape:${state.spriteMode}`;
+        }
+      }
+      stateRef.current.selectedSprites = [identifier];
+      state = stateRef.current;
+    }
+    
     if (recompute) {
       updateSprite();
     } else {
@@ -3357,9 +3556,33 @@ export const createSpriteController = (
       const preserveRotationAmount = stateRef.current.rotationAmount;
       const preserveRotationSpeed = stateRef.current.rotationSpeed;
       
-      const nextMode =
-        spriteModePool[Math.floor(Math.random() * spriteModePool.length)];
+      // Select a random sprite from default collection
+      const randomSpriteIdentifier = getRandomDefaultSprite();
+      const defaultCollection = getCollection("default");
+      let nextMode: SpriteMode = "star"; // Fallback
+      
+      // Find the sprite mode for the selected sprite
+      if (defaultCollection) {
+        const sprite = defaultCollection.sprites.find(s => 
+          s.svgPath === randomSpriteIdentifier || 
+          (randomSpriteIdentifier.startsWith("shape:") && s.spriteMode === randomSpriteIdentifier.replace("shape:", ""))
+        );
+        if (sprite) {
+          // Use spriteMode if available, otherwise use id
+          if (sprite.spriteMode) {
+            nextMode = sprite.spriteMode;
+          } else if (sprite.id) {
+            nextMode = sprite.id as SpriteMode;
+          }
+        }
+      }
+      
       stateRef.current.spriteMode = nextMode;
+      stateRef.current.selectedSprites = [randomSpriteIdentifier];
+      // Also update spriteCollectionId to default if not already set
+      if (stateRef.current.spriteCollectionId !== "default") {
+        stateRef.current.spriteCollectionId = "default";
+      }
       stateRef.current.paletteId = getRandomPalette().id;
       stateRef.current.scalePercent = randomInt(220, MAX_DENSITY_PERCENT_UI - 60); // Use max minus small buffer
       stateRef.current.scaleBase = randomInt(52, 88);
@@ -3571,6 +3794,33 @@ export const createSpriteController = (
       // For SVG collections, validate the sprite exists in the collection
       const sprite = getSpriteInCollection(collectionId, mode);
       if (sprite) {
+        // Preload the sprite image before applying state change to avoid lag/stutter
+        const spritePath = sprite.svgPath;
+        if (spritePath) {
+          // Check if image is already cached
+          if (!getCachedSpriteImage(spritePath)) {
+            // Start preloading immediately (non-blocking)
+            // For large/complex SVGs, this might take a moment, but it's better than blocking
+            loadSpriteImage(spritePath).catch(error => {
+              console.warn(`Failed to preload sprite: ${spritePath}`, error);
+            });
+          }
+          
+          // Always preload all sprites in the collection when switching individual sprites
+          // This ensures smooth switching between sprites, especially for large collections like snowflakes
+          if (collection.sprites.length > 0) {
+            const pathsToPreload = collection.sprites
+              .filter(s => s.svgPath && !getCachedSpriteImage(s.svgPath!))
+              .map(s => s.svgPath!);
+            if (pathsToPreload.length > 0) {
+              // Preload in background - don't wait for it
+              preloadSpriteImages(pathsToPreload).catch(error => {
+                console.warn("Failed to preload some sprites", error);
+              });
+            }
+          }
+        }
+        
         // Sprite found in current collection - update mode
         applyState({ spriteMode: mode });
         return;
@@ -3582,6 +3832,14 @@ export const createSpriteController = (
         if (!coll.isShapeBased) {
           const foundSprite = getSpriteInCollection(coll.id, mode);
           if (foundSprite) {
+            // Preload the sprite image before switching collections
+            const spritePath = foundSprite.svgPath;
+            if (spritePath && !getCachedSpriteImage(spritePath)) {
+              loadSpriteImage(spritePath).catch(error => {
+                console.warn(`Failed to preload sprite: ${spritePath}`, error);
+              });
+            }
+            
             // Found it in another collection - switch to that collection and mode
             applyState({ spriteCollectionId: coll.id, spriteMode: mode });
             return;
@@ -3592,6 +3850,22 @@ export const createSpriteController = (
       // Sprite not found anywhere - try to update mode anyway (might be a race condition)
       // The renderer will fall back to the first sprite in the collection if invalid
       applyState({ spriteMode: mode });
+    },
+    toggleSpriteSelection: (spriteIdentifier: string) => {
+      const currentState = stateRef.current;
+      const selectedSprites = currentState.selectedSprites || [];
+      
+      // Check if sprite is already selected
+      const index = selectedSprites.indexOf(spriteIdentifier);
+      if (index >= 0) {
+        // Sprite is selected - remove it (allow empty selection for empty canvas)
+        const newSelected = [...selectedSprites];
+        newSelected.splice(index, 1);
+        applyState({ selectedSprites: newSelected });
+      } else {
+        // Sprite is not selected - add it
+        applyState({ selectedSprites: [...selectedSprites, spriteIdentifier] });
+      }
     },
     setMovementMode: (mode: MovementMode) => {
       // Movement mode is applied during rendering, no regeneration needed
@@ -3704,6 +3978,39 @@ export const createSpriteController = (
       // Blur strength is applied during rendering, no regeneration needed
       applyState({ depthOfFieldStrength: clamp(value, 0, 100) }, { recompute: false });
     },
+    setOutlineEnabled: (enabled: boolean) => {
+      // Outline mode is applied during rendering, no regeneration needed
+      applyState({ outlineEnabled: enabled }, { recompute: false });
+    },
+    setOutlineStrokeWidth: (width: number) => {
+      // Stroke width is applied during rendering, no regeneration needed
+      applyState({ outlineStrokeWidth: clamp(width, 1, 20) }, { recompute: false });
+    },
+    setOutlineMixed: (enabled: boolean) => {
+      // Mixed mode requires regeneration to assign random outline states to tiles
+      applyState({ outlineMixed: enabled });
+    },
+    setFilledOpacity: (value: number) => {
+      // Opacity is applied during rendering, no regeneration needed
+      applyState({ filledOpacity: clamp(value, 0, 100) }, { recompute: false });
+    },
+    setOutlinedOpacity: (value: number) => {
+      // Opacity is applied during rendering, no regeneration needed
+      applyState({ outlinedOpacity: clamp(value, 0, 100) }, { recompute: false });
+    },
+    randomizeOutlineDistribution: () => {
+      if (!stateRef.current.outlineMixed) {
+        // If mixed mode is disabled, enable it and regenerate
+        applyState({ outlineMixed: true });
+        return;
+      }
+      // Regenerate sprites with new seed component to get new random outline distribution
+      const currentState = stateRef.current;
+      applyState({
+        ...currentState,
+        seed: `${currentState.seed}-outline-${Date.now()}`,
+      });
+    },
     setSpriteCollection: (collectionId: string) => {
       const collection = getCollection(collectionId);
       if (collection) {
@@ -3717,26 +4024,63 @@ export const createSpriteController = (
           s.id === currentSpriteId || s.spriteMode === currentSpriteId
         );
         
-        if (!spriteInCollection && collection.sprites.length > 0) {
-          // Switch to first sprite in collection
-          const firstSprite = collection.sprites[0];
-          if (collection.isShapeBased && firstSprite.spriteMode) {
-            applyState({ 
-              spriteCollectionId: collectionId,
-              spriteMode: firstSprite.spriteMode 
-            });
-          } else if (!collection.isShapeBased && firstSprite.id) {
-            // For SVG collections, use the sprite ID as the mode
-            applyState({ 
-              spriteCollectionId: collectionId,
-              spriteMode: firstSprite.id as SpriteMode
-            });
+        if (collection.isShapeBased) {
+          // Shape-based collection - no preloading needed
+          if (!spriteInCollection && collection.sprites.length > 0) {
+            const firstSprite = collection.sprites[0];
+            if (firstSprite.spriteMode) {
+              applyState({ 
+                spriteCollectionId: collectionId,
+                spriteMode: firstSprite.spriteMode 
+              });
+            } else {
+              applyState({ spriteCollectionId: collectionId });
+            }
           } else {
-            // Fallback: just update collection ID
             applyState({ spriteCollectionId: collectionId });
           }
+          return;
+        }
+        
+        // SVG collection - determine which sprite to use
+        const spriteToUse = spriteInCollection || (collection.sprites.length > 0 ? collection.sprites[0] : null);
+        
+        if (spriteToUse && spriteToUse.svgPath) {
+          // CRITICAL: Preload ALL sprites in the collection immediately when switching collections
+          // This prevents lag/stutter when selecting individual sprites later
+          // Large/complex SVGs (like snowflakes) take time to process, so preload everything upfront
+          const pathsToPreload = collection.sprites
+            .filter(s => s.svgPath && !getCachedSpriteImage(s.svgPath!))
+            .map(s => s.svgPath!);
+          
+          if (pathsToPreload.length > 0) {
+            // Start preloading all sprites in background (non-blocking)
+            preloadSpriteImages(pathsToPreload).catch(error => {
+              console.warn("Failed to preload some sprites", error);
+            });
+          }
+          
+          // Also ensure the sprite we're switching to is prioritized
+          const spritePath = spriteToUse.svgPath;
+          if (!getCachedSpriteImage(spritePath)) {
+            loadSpriteImage(spritePath).catch(error => {
+              console.warn(`Failed to preload sprite: ${spritePath}`, error);
+            });
+          }
+          
+          // Apply state change
+          if (spriteInCollection) {
+            // Keep current sprite, just update collection ID
+            applyState({ spriteCollectionId: collectionId });
+          } else {
+            // Switch to first sprite in collection
+            applyState({ 
+              spriteCollectionId: collectionId,
+              spriteMode: spriteToUse.id as SpriteMode
+            });
+          }
         } else {
-          // Keep current sprite, just update collection
+          // Fallback: just update collection ID
           applyState({ spriteCollectionId: collectionId });
         }
       }

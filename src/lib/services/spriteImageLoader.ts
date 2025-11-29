@@ -253,6 +253,87 @@ async function processSvgContent(svgText: string): Promise<string> {
   processedSvg = processedSvg.replace(/<\/path>/gi, '');
   }
   
+  // Convert shape elements (<rect>, <circle>, etc.) to <path> elements
+  // This ensures all shapes can be extracted as path data for Path2D rendering
+  // This prevents frames/borders from appearing when shapes are rendered as images
+  
+  // Convert <rect> to <path>
+  processedSvg = processedSvg.replace(/<rect([^>]*)\/?>/gi, (match, attrs) => {
+    // Extract attributes
+    const xMatch = attrs.match(/x=["']?([0-9.-]+)["']?/i);
+    const yMatch = attrs.match(/y=["']?([0-9.-]+)["']?/i);
+    const widthMatch = attrs.match(/width=["']?([0-9.-]+)["']?/i);
+    const heightMatch = attrs.match(/height=["']?([0-9.-]+)["']?/i);
+    const rxMatch = attrs.match(/rx=["']?([0-9.-]+)["']?/i);
+    const ryMatch = attrs.match(/ry=["']?([0-9.-]+)["']?/i);
+    
+    if (!widthMatch || !heightMatch) return match; // Invalid rect
+    
+    const x = xMatch ? parseFloat(xMatch[1]) : 0;
+    const y = yMatch ? parseFloat(yMatch[1]) : 0;
+    const width = parseFloat(widthMatch[1]);
+    const height = parseFloat(heightMatch[1]);
+    const rx = rxMatch ? parseFloat(rxMatch[1]) : 0;
+    const ry = ryMatch ? parseFloat(ryMatch[1]) : rx || 0;
+    
+    // Convert rect to path
+    let pathData: string;
+    if (rx > 0 || ry > 0) {
+      // Rounded rectangle
+      const r = Math.min(rx, ry, width / 2, height / 2);
+      pathData = `M ${x + r} ${y} L ${x + width - r} ${y} Q ${x + width} ${y} ${x + width} ${y + r} L ${x + width} ${y + height - r} Q ${x + width} ${y + height} ${x + width - r} ${y + height} L ${x + r} ${y + height} Q ${x} ${y + height} ${x} ${y + height - r} L ${x} ${y + r} Q ${x} ${y} ${x + r} ${y} Z`;
+    } else {
+      // Regular rectangle
+      pathData = `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${y + height} Z`;
+    }
+    
+    return `<path d="${pathData}" fill="#ffffff"/>`;
+  });
+  
+  // Convert <circle> to <path>
+  processedSvg = processedSvg.replace(/<circle([^>]*)\/?>/gi, (match, attrs) => {
+    // Extract attributes
+    const cxMatch = attrs.match(/cx=["']?([0-9.-]+)["']?/i);
+    const cyMatch = attrs.match(/cy=["']?([0-9.-]+)["']?/i);
+    const rMatch = attrs.match(/r=["']?([0-9.-]+)["']?/i);
+    
+    if (!rMatch) return match; // Invalid circle
+    
+    const cx = cxMatch ? parseFloat(cxMatch[1]) : 0;
+    const cy = cyMatch ? parseFloat(cyMatch[1]) : 0;
+    const r = parseFloat(rMatch[1]);
+    
+    // Convert circle to path using arc commands
+    // Circle path: M cx,cy-r A r,r 0 0,1 cx+r,cy A r,r 0 0,1 cx,cy+r A r,r 0 0,1 cx-r,cy A r,r 0 0,1 cx,cy-r Z
+    const pathData = `M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx + r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy + r} A ${r} ${r} 0 0 1 ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx} ${cy - r} Z`;
+    
+    return `<path d="${pathData}" fill="#ffffff"/>`;
+  });
+  
+  // Convert <ellipse> to <path>
+  processedSvg = processedSvg.replace(/<ellipse([^>]*)\/?>/gi, (match, attrs) => {
+    const cxMatch = attrs.match(/cx=["']?([0-9.-]+)["']?/i);
+    const cyMatch = attrs.match(/cy=["']?([0-9.-]+)["']?/i);
+    const rxMatch = attrs.match(/rx=["']?([0-9.-]+)["']?/i);
+    const ryMatch = attrs.match(/ry=["']?([0-9.-]+)["']?/i);
+    
+    if (!rxMatch || !ryMatch) return match;
+    
+    const cx = cxMatch ? parseFloat(cxMatch[1]) : 0;
+    const cy = cyMatch ? parseFloat(cyMatch[1]) : 0;
+    const rx = parseFloat(rxMatch[1]);
+    const ry = parseFloat(ryMatch[1]);
+    
+    const pathData = `M ${cx} ${cy - ry} A ${rx} ${ry} 0 0 1 ${cx + rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx} ${cy + ry} A ${rx} ${ry} 0 0 1 ${cx - rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx} ${cy - ry} Z`;
+    
+    return `<path d="${pathData}" fill="#ffffff"/>`;
+  });
+  
+  // Remove the original shape closing tags
+  processedSvg = processedSvg.replace(/<\/rect>/gi, '');
+  processedSvg = processedSvg.replace(/<\/circle>/gi, '');
+  processedSvg = processedSvg.replace(/<\/ellipse>/gi, '');
+  
   // Extract path data from all paths and wrap in clean template
   // The viewBox itself (0 0 30 30) creates a transparent "canvas" that might appear as a frame
   // We'll extract just the path data and create a clean SVG without the viewBox padding
@@ -393,31 +474,58 @@ async function processSvgContent(svgText: string): Promise<string> {
 }
 
 /**
+ * Add cache-busting query parameter in development mode
+ * This ensures SVG updates are immediately reflected without manual cache clearing
+ */
+function addCacheBusting(svgPath: string): string {
+  if (import.meta.env.DEV) {
+    // Add timestamp to force reload in development
+    const separator = svgPath.includes('?') ? '&' : '?';
+    return `${svgPath}${separator}_t=${Date.now()}`;
+  }
+  return svgPath;
+}
+
+/**
  * Load an SVG image from a path
  * Images are cached after first load for better performance
  * SVGs are processed to remove background rectangles/frames
+ * 
+ * In development mode, caching is disabled and cache-busting is enabled
+ * to ensure SVG file updates are immediately reflected.
  * 
  * @param svgPath - Path to the SVG file (e.g., "/sprites/christmas/snowflake.svg")
  * @returns Promise that resolves to the loaded HTMLImageElement
  */
 export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement> {
-  // Check cache first
+  // In development mode, bypass cache entirely for immediate updates
+  if (!import.meta.env.DEV) {
+    // Check cache first (production mode)
   if (imageCache.has(svgPath)) {
     const cached = imageCache.get(svgPath);
     if (cached) {
       return cached;
     }
   }
+  }
+  
+  // Add cache-busting query parameter in development
+  const fetchPath = import.meta.env.DEV ? addCacheBusting(svgPath) : svgPath;
 
-  // Check if already loading
-  if (loadingPromises.has(svgPath)) {
+  // Check if already loading (only in production to avoid race conditions)
+  if (loadingPromises.has(svgPath) && !import.meta.env.DEV) {
     return loadingPromises.get(svgPath)!;
+  }
+  
+  // In development, clear any existing loading promise to force fresh load
+  if (import.meta.env.DEV && loadingPromises.has(svgPath)) {
+    loadingPromises.delete(svgPath);
   }
 
   // Start loading
   const loadPromise = new Promise<HTMLImageElement>((resolve, reject) => {
-    // Fetch and process SVG to remove frames
-    fetch(svgPath)
+    // Fetch and process SVG to remove frames (use cache-busted path in dev)
+    fetch(fetchPath)
       .then(response => {
         if (!response.ok) {
           throw new Error(`Failed to fetch SVG: ${response.statusText}`);

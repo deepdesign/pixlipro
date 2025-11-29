@@ -6,6 +6,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import tailwindcss from "@tailwindcss/vite";
 import { visualizer } from "rollup-plugin-visualizer";
+import spriteCollectionsPlugin from "./vite-plugin-sprite-collections";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -19,6 +20,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
+    // Auto-generate sprite collections when files change
+    spriteCollectionsPlugin(),
     // Bundle analyzer (only in analyze mode)
     mode === "analyze" &&
       visualizer({

@@ -110,6 +110,11 @@ async function generateCollections() {
         continue;
       }
 
+      // Skip "default" folder - it's handled separately in spriteCollections.ts
+      if (item === 'default') {
+        continue;
+      }
+
       // Read SVG files in this collection folder
       const files = await readdir(itemPath);
       const svgFiles = files.filter(file => 

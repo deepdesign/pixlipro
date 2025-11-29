@@ -37,8 +37,11 @@ Pixli Pro is a professional-grade generative art application built for nightclub
 - **Depth of Field** – Optional blur effects for depth perception
 
 ### 🎯 Sprite Collection
-- **Geometric Shapes** – Tiles, circles, hexagons, rings, diamonds, stars, scanlines, pixels, and more
+- **Geometric Shapes** – Tiles, circles, hexagons, diamonds, stars, scanlines, pixels, and more
 - **SVG Sprite Support** – Load custom SVG sprites from collections
+- **Multi-Select Toggle** – Click sprite buttons to toggle selection on/off. Select multiple sprites for random distribution
+- **Empty Canvas** – Deselect all sprites to create an empty canvas
+- **Automatic Collection Discovery** – Add folders to `public/sprites/` and sprites are automatically discovered and added
 - **Random Sprite Mode** – Toggle to randomize sprite shapes across the canvas
 - **Instant Preview** – Icon buttons for each sprite mode with live previews
 
@@ -55,6 +58,8 @@ Pixli Pro is a professional-grade generative art application built for nightclub
 - **Rotation** – Independent rotation offsets and animated spin with per-sprite variance
 - **Motion Intensity** – Master speed dial normalized across all motion modes
 - **Layer Opacity** – Per-layer opacity control
+- **Outline Mode** – Render sprites as strokes with adjustable width
+- **Mixed Outline/Filled** – Randomly mix outlined and filled sprites with separate opacity controls
 
 ### 🎨 Theme System
 - **11 Colorway Accents** – Sunburst, Neon Grid, Nebula, Ember Glow, Lagoon Tide, Rose Quartz, Battleship, Electric Cyan, Lime Zest, Deep Indigo, Metallic Gold
@@ -223,12 +228,16 @@ Pixli Pro includes a powerful custom palette management system:
 ## 🎛 Controls Overview
 
 ### Sprites Tab
-- **Sprite Selection** – Choose from geometric shapes or SVG sprites
+- **Sprite Selection** – Choose from geometric shapes or SVG sprites (multi-select toggle)
 - **Tile Density** – Control how many sprites appear (0–100%)
 - **Scale Base** – Set the base size of sprites
 - **Scale Spread** – Control size variation
 - **Rotation** – Static rotation offsets
 - **Rotation Amount** – Maximum rotation angle
+- **Outline Mode** – Render sprites as strokes instead of fills
+- **Outline Stroke Width** – Adjust stroke width (1–20px)
+- **Mixed Outline/Filled** – Randomly mix outlined and filled sprites
+- **Filled/Outlined Opacity** – Separate opacity controls when mixed mode is enabled
 
 ### Colours Tab
 - **Sprite Palette** – Select color palette for sprites

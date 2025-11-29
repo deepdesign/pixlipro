@@ -33,6 +33,10 @@ interface AppSidebarProps {
   onModeChange: (mode: SpriteMode) => void;
   onRotationToggle: (checked: boolean) => void;
   onRotationAmountChange: (value: number) => void;
+  onOutlineToggle: (checked: boolean) => void;
+  onOutlineStrokeWidthChange: (value: number) => void;
+  onOutlineMixedToggle: (checked: boolean) => void;
+  onRandomizeOutlineDistribution: () => void;
   
   // Palette
   currentPaletteId: string;
@@ -88,6 +92,10 @@ export const AppSidebar = ({
   onModeChange,
   onRotationToggle,
   onRotationAmountChange,
+  onOutlineToggle,
+  onOutlineStrokeWidthChange,
+  onOutlineMixedToggle,
+  onRandomizeOutlineDistribution,
   currentPaletteId,
   currentPaletteName,
   paletteOptions,
@@ -237,6 +245,10 @@ export const AppSidebar = ({
                   onModeChange={onModeChange}
                   onRotationToggle={onRotationToggle}
                   onRotationAmountChange={onRotationAmountChange}
+                  onOutlineToggle={onOutlineToggle}
+                  onOutlineStrokeWidthChange={onOutlineStrokeWidthChange}
+                  onOutlineMixedToggle={onOutlineMixedToggle}
+                  onRandomizeOutlineDistribution={onRandomizeOutlineDistribution}
                 />
               )}
               {activePanel === "colours" && (

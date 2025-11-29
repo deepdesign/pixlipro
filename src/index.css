@@ -3127,10 +3127,24 @@ button[aria-label*="refresh"] {
 .control-select-with-lock {
   @apply flex items-center;
   gap: theme("spacing.2"); /* section.control.select.lock.gap.desktop */
+  width: 100%; /* Ensure container takes full width */
 }
 
 .control-select-with-lock > :first-child {
-  flex: 1;
+  flex: 1 1 0%; /* Grow, shrink, and base size of 0% */
+  min-width: 0; /* Allow flex item to shrink below content size */
+  width: 100%; /* Force full width */
+  max-width: 100%; /* Prevent overflow */
+  display: block; /* Ensure it's a block element */
+}
+
+/* Ensure SelectTrigger and its container take full width */
+.control-select-with-lock > :first-child > button,
+.control-select-with-lock [data-radix-select-trigger],
+.control-select-with-lock button[role="combobox"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
 }
 
 /* Icon button base styles - layout and behavior only */
@@ -3857,11 +3871,15 @@ button.bg-primary.button-selected:active {
 
 /* Individual color squares (8x8px) */
 .control-select-color-square {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border: 1px solid var(--select-border);
-  flex-shrink: 0;
+  display: block !important;
+  width: 8px !important;
+  height: 8px !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  line-height: 0 !important;
+  font-size: 0 !important;
 }
 
 /* Item label for items with previews */
@@ -4073,10 +4091,29 @@ button.bg-primary.button-selected:active {
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
-  z-index: 35;
+  z-index: 9999;
   /* Prevent tooltip from being clipped */
   word-wrap: break-word;
   overflow-wrap: break-word;
+  /* Ensure tooltip can escape container boundaries */
+  pointer-events: none;
+}
+
+/* Ensure tooltip containers allow overflow */
+.control-field,
+.section,
+.retro-tooltip,
+.field-heading,
+.field-heading-left {
+  overflow: visible !important;
+}
+
+/* Ensure sidebar and panel containers allow tooltip overflow */
+aside[class*="sidebar"],
+[class*="control-panel"],
+[class*="app-sidebar"] {
+  overflow-y: auto !important;
+  overflow-x: visible !important;
 }
 
 .tooltip-content::after {
@@ -4093,8 +4130,10 @@ button.bg-primary.button-selected:active {
   box-shadow: 2px 2px 0 var(--card-shadow);
 }
 
-.tooltip-trigger:hover .tooltip-content,
-.tooltip-trigger:focus-within .tooltip-content {
+.retro-tooltip:hover .tooltip-content,
+.retro-tooltip:focus-within .tooltip-content,
+.tooltip-trigger:hover + .tooltip-content,
+.tooltip-trigger:focus-visible + .tooltip-content {
   opacity: 1;
   visibility: visible;
   transform: translate(-50%, 0);

@@ -11,7 +11,7 @@ import {
 import { Lock, Unlock } from "lucide-react";
 import { TooltipIcon } from "./TooltipIcon";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { useCallback, useRef, useEffect, useState } from "react";
+import React, { useCallback, useRef, useEffect, useState } from "react";
 
 interface ControlSelectOption {
   value: string;
@@ -153,21 +153,22 @@ export function ControlSelect({
         ) : null}
       </div>
       <div className="control-select-with-lock">
-        <Select
-          key={`${id}-${value}`}
-          value={value ?? undefined}
-          onValueChange={handleValueChange}
-          disabled={disabled || locked}
-        >
-          <SelectTrigger 
-            aria-labelledby={`${id}-label`}
-            aria-describedby={tooltipId ? `${tooltipId}` : undefined}
-            aria-disabled={disabled || locked}
+        <div className="flex-1 w-full min-w-0">
+          <Select
+            key={`${id}-${value}`}
+            value={value ?? undefined}
+            onValueChange={handleValueChange}
+            disabled={disabled || locked}
           >
-            <SelectValue placeholder={placeholder ?? "Select"}>
-              {resolvedLabel}
-            </SelectValue>
-          </SelectTrigger>
+            <SelectTrigger 
+              aria-labelledby={`${id}-label`}
+              aria-describedby={tooltipId ? `${tooltipId}` : undefined}
+              aria-disabled={disabled || locked}
+            >
+              <SelectValue placeholder={placeholder ?? "Select"}>
+                {resolvedLabel}
+              </SelectValue>
+            </SelectTrigger>
           <SelectContent
             modal={isMobile && isModalSelect}
             className={isMobile && isModalSelect ? "select-mobile-modal" : undefined}
@@ -195,18 +196,39 @@ export function ControlSelect({
                         key={option.value}
                         value={option.value}
                       >
-                        <span className="flex items-center gap-2">
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, padding: 0 }}>
                           {option.colors && (
-                            <>
+                            <span 
+                              style={{ 
+                                display: 'flex',
+                                alignItems: 'center',
+                                margin: 0, 
+                                padding: 0, 
+                                lineHeight: 0,
+                                fontSize: 0,
+                                gap: 0
+                              }}
+                            >
                               {option.colors.map((color, idx) => (
                                 <span
                                   key={idx}
                                   className="control-select-color-square"
-                                  style={{ backgroundColor: color }}
+                                  style={{ 
+                                    backgroundColor: color, 
+                                    margin: 0, 
+                                    padding: 0,
+                                    display: 'block',
+                                    width: '8px',
+                                    height: '8px',
+                                    flexShrink: 0,
+                                    lineHeight: 0,
+                                    fontSize: 0,
+                                    marginRight: idx < option.colors!.length - 1 ? '1px' : '0px'
+                                  }}
                                   aria-hidden="true"
                                 />
                               ))}
-                            </>
+                            </span>
                           )}
                           <span className="control-select-item-label">
                             {option.label}
@@ -232,6 +254,7 @@ export function ControlSelect({
             )}
           </SelectContent>
         </Select>
+        </div>
         {prefixButton}
         {suffixButton}
         {onLockToggle && (

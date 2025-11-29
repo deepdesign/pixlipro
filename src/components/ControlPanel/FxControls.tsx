@@ -106,7 +106,9 @@ export function FxControls({
           currentLabel={currentPaletteName}
           locked={lockedSpritePalette}
           onLockToggle={() => onLockSpritePalette(!lockedSpritePalette)}
-          prefixButton={
+        />
+        <div className="control-field">
+          <div className="switch-row">
             <Button
               ref={refreshPaletteButtonRef}
               type="button"
@@ -121,12 +123,21 @@ export function FxControls({
               disabled={!ready || lockedSpritePalette}
               aria-label="Refresh palette application"
               title="Re-apply the selected palette randomly across sprites"
-              className="flex-shrink-0"
             >
               <RefreshCw className="h-6 w-6" data-slot="icon" />
             </Button>
-          }
-        />
+            <div className="field-heading-left">
+              <span className="field-label" id="refresh-palette-label">
+                Re-apply palette
+              </span>
+              <TooltipIcon
+                id="refresh-palette-tip"
+                text="Re-apply the selected palette randomly across sprites without changing their positions or shapes."
+                label="Re-apply palette"
+              />
+            </div>
+          </div>
+        </div>
         {onOpenSettings && (
           <div className="control-field">
             <button
@@ -188,10 +199,36 @@ export function FxControls({
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
         <h3 className="section-title">Blend &amp; opacity</h3>
+        {spriteState.outlineMixed ? (
+          <>
+            <ControlSlider
+              id="filled-opacity-range"
+              label="Filled opacity"
+              min={0}
+              max={100}
+              value={Math.round(spriteState.filledOpacity)}
+              displayValue={`${Math.round(spriteState.filledOpacity)}%`}
+              onChange={(value) => controller?.setFilledOpacity(value)}
+              disabled={!ready}
+              tooltip="Sets the transparency for filled sprites when mixed mode is enabled."
+            />
+            <ControlSlider
+              id="outlined-opacity-range"
+              label="Outlined opacity"
+              min={0}
+              max={100}
+              value={Math.round(spriteState.outlinedOpacity)}
+              displayValue={`${Math.round(spriteState.outlinedOpacity)}%`}
+              onChange={(value) => controller?.setOutlinedOpacity(value)}
+              disabled={!ready}
+              tooltip="Sets the transparency for outlined sprites when mixed mode is enabled."
+            />
+          </>
+        ) : (
         <ControlSlider
           id="opacity-range"
           label="Layer opacity"
-          min={15}
+            min={0}
           max={100}
           value={Math.round(spriteState.layerOpacity)}
           displayValue={`${Math.round(spriteState.layerOpacity)}%`}
@@ -199,6 +236,7 @@ export function FxControls({
           disabled={!ready}
           tooltip="Sets the base transparency for each rendered layer before blending."
         />
+        )}
         <ControlSelect
           id="blend-mode"
           label="Blend mode"
@@ -235,6 +273,11 @@ export function FxControls({
               aria-labelledby={blendAutoLabelId}
               disabled={!ready}
             />
+          </div>
+        </div>
+        {spriteState.blendModeAuto && (
+          <div className="control-field">
+            <div className="switch-row">
             <Button
               ref={randomizeBlendButtonRef}
               type="button"
@@ -246,14 +289,25 @@ export function FxControls({
                 }
                 controller?.randomizeBlendMode();
               }}
-              disabled={!ready || !spriteState.blendModeAuto}
+                disabled={!ready}
               aria-label="Randomise sprite blend modes"
               title="Randomise sprite blend modes"
             >
               <RefreshCw className="h-6 w-6" />
             </Button>
+              <div className="field-heading-left">
+                <span className="field-label" id="randomize-blend-label">
+                  Re-apply sprite blends
+                </span>
+                <TooltipIcon
+                  id="randomize-blend-tip"
+                  text="Re-apply sprite blend modes randomly across sprites"
+                  label="Re-apply sprite blends"
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="section section--spaced">

@@ -632,6 +632,22 @@ const App = () => {
     controllerRef.current?.setRotationSpeed(value);
   }, []);
 
+  const handleOutlineToggle = useCallback((checked: boolean) => {
+    controllerRef.current?.setOutlineEnabled(checked);
+  }, []);
+
+  const handleOutlineStrokeWidthChange = useCallback((value: number) => {
+    controllerRef.current?.setOutlineStrokeWidth(value);
+  }, []);
+
+  const handleOutlineMixedToggle = useCallback((checked: boolean) => {
+    controllerRef.current?.setOutlineMixed(checked);
+  }, []);
+
+  const handleRandomizeOutlineDistribution = useCallback(() => {
+    controllerRef.current?.randomizeOutlineDistribution();
+  }, []);
+
   const handleHueRotationEnabledToggle = useCallback(
     (enabled: boolean) => {
       controllerRef.current?.setHueRotationEnabled(enabled);
@@ -1064,6 +1080,10 @@ const App = () => {
     onModeChange: handleModeChange,
     onRotationToggle: handleRotationToggle,
     onRotationAmountChange: handleRotationAmountChange,
+    onOutlineToggle: handleOutlineToggle,
+    onOutlineStrokeWidthChange: handleOutlineStrokeWidthChange,
+    onOutlineMixedToggle: handleOutlineMixedToggle,
+    onRandomizeOutlineDistribution: handleRandomizeOutlineDistribution,
     currentPaletteId: currentPalette.id,
     currentPaletteName: currentPalette.name,
     paletteOptions: PALETTE_OPTIONS,

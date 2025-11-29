@@ -21,7 +21,12 @@ export function ShapeIcon({ shape, size = 24, svgPath, "data-slot": dataSlot }: 
   // Load SVG if svgPath is provided
   useEffect(() => {
     if (svgPath) {
-      fetch(svgPath)
+      // Add cache-busting in development mode to ensure SVG updates are immediately visible
+      const fetchPath = import.meta.env.DEV 
+        ? `${svgPath}${svgPath.includes('?') ? '&' : '?'}_t=${Date.now()}`
+        : svgPath;
+      
+      fetch(fetchPath)
         .then((res) => res.text())
         .then((text) => setSvgContent(text))
         .catch(() => setSvgError(true));
@@ -79,12 +84,27 @@ export function ShapeIcon({ shape, size = 24, svgPath, "data-slot": dataSlot }: 
     innerContent = innerContent.replace(/<\/rect>/gi, '');
     
     // Replace fill colors with currentColor for theming (white/black based on theme)
-    // This makes SVG icons follow the theme like primitive icons do
+    // Ensure all elements are filled, not stroked (for icon buttons)
     let processedContent = innerContent
+      // First, replace any fill="none" with fill="currentColor" to ensure filled rendering
+      .replace(/fill="none"/gi, 'fill="currentColor"')
+      .replace(/fill:none/gi, 'fill:currentColor')
+      // Replace any existing fill colors with currentColor
       .replace(/fill="[^"]*"/g, 'fill="currentColor"')
       .replace(/fill:[^;"]+/g, 'fill:currentColor')
-      .replace(/stroke="[^"]*"/g, 'stroke="currentColor"')
-      .replace(/stroke:[^;"]+/g, 'stroke:currentColor');
+      // Remove or disable strokes to ensure filled rendering
+      .replace(/stroke="[^"]*"/g, 'stroke="none"')
+      .replace(/stroke:[^;"]+/g, 'stroke:none')
+      // Ensure any shape elements without fill get fill="currentColor"
+      // Handle both self-closing tags (<rect .../>) and opening tags (<rect ...>)
+      .replace(/<(rect|path|circle|polygon|polyline|ellipse|line)([^>]*?)(\/?>)/gi, (match, tagName, attributes, closing) => {
+        // Check if fill attribute already exists
+        if (!/fill\s*=/i.test(attributes)) {
+          // Add fill="currentColor" before the closing part
+          return `<${tagName}${attributes} fill="currentColor"${closing}`;
+        }
+        return match;
+      });
     
     return (
       <svg
@@ -165,17 +185,6 @@ export function ShapeIcon({ shape, size = 24, svgPath, "data-slot": dataSlot }: 
         return <polygon points={points.join(" ")} fill="currentColor" />;
       }
 
-      case "ring":
-        return (
-          <circle
-            cx={center}
-            cy={center}
-            r={radius}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={3}
-          />
-        );
 
       case "diamond": {
         const diamondSize = 9; // Make diamond bigger
@@ -297,16 +306,6 @@ export function ShapeIcon({ shape, size = 24, svgPath, "data-slot": dataSlot }: 
               fill="currentColor"
             />
           </g>
-        );
-      }
-
-      case "snowflake": {
-        // Snowflake shape - viewBox 0 0 24 24
-        return (
-          <path
-            d="M21.16,16.13l-2-1.15.89-.24a1,1,0,1,0-.52-1.93l-2.82.76L14,12l2.71-1.57,2.82.76.26,0a1,1,0,0,0,.26-2L19.16,9l2-1.15a1,1,0,0,0-1-1.74L18,7.37l.3-1.11a1,1,0,1,0-1.93-.52l-.82,3L13,10.27V7.14l2.07-2.07a1,1,0,0,0,0-1.41,1,1,0,0,0-1.42,0L13,4.31V2a1,1,0,0,0-2,0V4.47l-.81-.81a1,1,0,0,0-1.42,0,1,1,0,0,0,0,1.41L11,7.3v3L8.43,8.78l-.82-3a1,1,0,1,0-1.93.52L6,7.37,3.84,6.13a1,1,0,0,0-1,1.74L4.84,9,4,9.26a1,1,0,0,0,.26,2l.26,0,2.82-.76L10,12,7.29,13.57l-2.82-.76A1,1,0,1,0,4,14.74l.89.24-2,1.15a1,1,0,0,0,1,1.74L6,16.63l-.3,1.11A1,1,0,0,0,6.39,19a1.15,1.15,0,0,0,.26,0,1,1,0,0,0,1-.74l.82-3L11,13.73v3.13L8.93,18.93a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.3,1,1,0,0,0,.71-.3l.65-.65V22a1,1,0,0,0,2,0V19.53l.81.81a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.41L13,16.7v-3l2.57,1.49.82,3a1,1,0,0,0,1,.74,1.15,1.15,0,0,0,.26,0,1,1,0,0,0,.71-1.23L18,16.63l2.14,1.24a1,1,0,1,0,1-1.74Z"
-            fill="currentColor"
-          />
         );
       }
 

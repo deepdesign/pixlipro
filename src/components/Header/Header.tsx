@@ -37,7 +37,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-800 min-h-[64px] flex flex-col">
-      <Navbar className="px-4 py-4 pb-0 flex-1 items-end">
+      <Navbar className="px-4 py-4 pb-4 flex-1 items-end">
         {/* Left section: Sidebar toggle (desktop) and Logo */}
         <NavbarSection>
           {sidebarContext && !isMobile && (
@@ -84,14 +84,14 @@ export function Header({
         {/* Center section: Navigation items */}
         {onNavigate && (
           <NavbarSection className="self-end ml-auto">
-            <nav className="flex items-end gap-1 -mb-px">
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1 shadow-sm">
               <button
                 type="button"
                 onClick={() => onNavigate("create")}
-                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   currentPage === "create"
-                    ? "text-blue-600 dark:text-white border-blue-600 dark:border-[var(--accent-primary)]"
-                    : "text-gray-600 dark:text-white border-transparent hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <Sparkles className="h-4 w-4" />
@@ -100,10 +100,10 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onNavigate("palettes")}
-                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   currentPage === "palettes"
-                    ? "text-blue-600 dark:text-white border-blue-600 dark:border-[var(--accent-primary)]"
-                    : "text-gray-600 dark:text-white border-transparent hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <Palette className="h-4 w-4" />
@@ -112,10 +112,10 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onNavigate("presets")}
-                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   currentPage === "presets"
-                    ? "text-blue-600 dark:text-white border-blue-600 dark:border-[var(--accent-primary)]"
-                    : "text-gray-600 dark:text-white border-transparent hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <Bookmark className="h-4 w-4" />
@@ -124,16 +124,16 @@ export function Header({
               <button
                 type="button"
                 onClick={() => onNavigate("sequences")}
-                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   currentPage === "sequences"
-                    ? "text-blue-600 dark:text-white border-blue-600 dark:border-[var(--accent-primary)]"
-                    : "text-gray-600 dark:text-white border-transparent hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <List className="h-4 w-4" />
                 <span className="hidden sm:inline">Sequences</span>
               </button>
-            </nav>
+            </div>
           </NavbarSection>
         )}
 
