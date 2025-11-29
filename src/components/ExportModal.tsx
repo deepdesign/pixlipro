@@ -152,7 +152,31 @@ export const ExportModal = ({
   }, []);
 
   // Get simplified aspect ratio as string (e.g., "1:1", "16:9")
+  // Returns common aspect ratio names when they match (e.g., "16:9" instead of "1.78:1")
   const getSimplifiedRatio = useCallback((w: number, h: number): string => {
+    // Common aspect ratios with their decimal equivalents (within tolerance)
+    const commonRatios: Array<{ name: string; ratio: number }> = [
+      { name: "16:9", ratio: 16 / 9 },      // ~1.7778
+      { name: "21:9", ratio: 21 / 9 },      // ~2.3333
+      { name: "16:10", ratio: 16 / 10 },   // 1.6
+      { name: "4:3", ratio: 4 / 3 },        // ~1.3333
+      { name: "3:2", ratio: 3 / 2 },        // 1.5
+      { name: "1:1", ratio: 1 / 1 },        // 1.0
+      { name: "9:16", ratio: 9 / 16 },      // ~0.5625 (portrait)
+      { name: "2:3", ratio: 2 / 3 },        // ~0.6667 (portrait)
+    ];
+    
+    const currentRatio = w / h;
+    const tolerance = 0.01; // 1% tolerance for matching
+    
+    // Check if current ratio matches any common ratio
+    for (const { name, ratio } of commonRatios) {
+      if (Math.abs(currentRatio - ratio) < tolerance) {
+        return name;
+      }
+    }
+    
+    // If no match, calculate simplified ratio as before
     const divisor = gcd(w, h);
     const simplifiedW = w / divisor;
     const simplifiedH = h / divisor;
@@ -663,7 +687,7 @@ export const ExportModal = ({
 
                 {/* Advanced Options Accordion */}
                 <Accordion type="single" collapsible className="export-accordion mb-4">
-                  <Accordion.Item value="advanced">
+                  <Accordion.Item value="advanced" className="export-accordion-item">
                     <Accordion.Header>
                       <Settings2 className="export-accordion-icon" />
                       <span>Advanced options</span>
@@ -770,7 +794,7 @@ export const ExportModal = ({
                         disabled={isSharing || !p5Instance}
                         className="export-action-button"
                       >
-                        <Share2 className="h-6 w-6" />
+                        <Share2 className="h-4 w-4" />
                         {isSharing ? "Sharing..." : "Share"}
                       </Button>
                     )}
@@ -787,12 +811,12 @@ export const ExportModal = ({
                       >
                         {copied ? (
                           <>
-                            <Check className="h-6 w-6" />
+                            <Check className="h-4 w-4" />
                             Copied!
                           </>
                         ) : (
                           <>
-                            <Copy className="h-6 w-6" />
+                            <Copy className="h-4 w-4" />
                             Copy image
                           </>
                         )}
@@ -807,7 +831,7 @@ export const ExportModal = ({
                       disabled={!p5Instance}
                       className="export-action-button"
                     >
-                      <Download className="h-6 w-6" />
+                      <Download className="h-4 w-4" />
                       Download
                     </Button>
                   </div>

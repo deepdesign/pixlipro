@@ -5,6 +5,7 @@ interface ShapeIconProps {
   shape: SpriteMode;
   size?: number;
   svgPath?: string; // Optional SVG path for custom sprite icons
+  svgContent?: string; // Optional SVG content (for custom sprites from localStorage)
   "data-slot"?: string; // For Catalyst icon button pattern
 }
 
@@ -14,13 +15,21 @@ interface ShapeIconProps {
  * Renders SVG icons for different sprite shapes.
  * Used in the sprite selection buttons to provide visual previews.
  */
-export function ShapeIcon({ shape, size = 24, svgPath, "data-slot": dataSlot }: ShapeIconProps) {
-  const [svgContent, setSvgContent] = useState<string | null>(null);
+export function ShapeIcon({ shape, size = 24, svgPath, svgContent: providedSvgContent, "data-slot": dataSlot }: ShapeIconProps) {
+  const [svgContent, setSvgContent] = useState<string | null>(providedSvgContent || null);
   const [svgError, setSvgError] = useState(false);
 
-  // Load SVG if svgPath is provided
+  // If SVG content is provided directly, use it (for custom sprites)
   useEffect(() => {
-    if (svgPath) {
+    if (providedSvgContent) {
+      setSvgContent(providedSvgContent);
+      setSvgError(false);
+    }
+  }, [providedSvgContent]);
+
+  // Load SVG if svgPath is provided (for file-based sprites)
+  useEffect(() => {
+    if (svgPath && !providedSvgContent) {
       // Add cache-busting in development mode to ensure SVG updates are immediately visible
       const fetchPath = import.meta.env.DEV 
         ? `${svgPath}${svgPath.includes('?') ? '&' : '?'}_t=${Date.now()}`
@@ -31,7 +40,7 @@ export function ShapeIcon({ shape, size = 24, svgPath, "data-slot": dataSlot }: 
         .then((text) => setSvgContent(text))
         .catch(() => setSvgError(true));
     }
-  }, [svgPath]);
+  }, [svgPath, providedSvgContent]);
 
   // If SVG path is provided and loaded, render the SVG directly
   if (svgPath && svgContent && !svgError) {

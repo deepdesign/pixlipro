@@ -36,6 +36,7 @@ interface AppSidebarProps {
   onOutlineToggle: (checked: boolean) => void;
   onOutlineStrokeWidthChange: (value: number) => void;
   onOutlineMixedToggle: (checked: boolean) => void;
+  onOutlineBalanceChange: (value: number) => void;
   onRandomizeOutlineDistribution: () => void;
   
   // Palette
@@ -69,8 +70,8 @@ interface AppSidebarProps {
   themeMode?: "system" | "light" | "dark";
   onThemeModeChange?: (mode: "system" | "light" | "dark") => void;
   onOpenSettings?: () => void;
-  onNavigate?: (page: "create" | "palettes" | "presets" | "sequences" | "settings") => void;
-  currentPage?: "create" | "palettes" | "presets" | "sequences" | "settings" | null;
+  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings") => void;
+  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | null;
 }
 
 export const AppSidebar = ({
@@ -95,6 +96,7 @@ export const AppSidebar = ({
   onOutlineToggle,
   onOutlineStrokeWidthChange,
   onOutlineMixedToggle,
+  onOutlineBalanceChange,
   onRandomizeOutlineDistribution,
   currentPaletteId,
   currentPaletteName,
@@ -248,6 +250,7 @@ export const AppSidebar = ({
                   onOutlineToggle={onOutlineToggle}
                   onOutlineStrokeWidthChange={onOutlineStrokeWidthChange}
                   onOutlineMixedToggle={onOutlineMixedToggle}
+                  onOutlineBalanceChange={onOutlineBalanceChange}
                   onRandomizeOutlineDistribution={onRandomizeOutlineDistribution}
                 />
               )}

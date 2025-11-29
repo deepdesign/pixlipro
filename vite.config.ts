@@ -34,10 +34,22 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      // Polyfill for Node.js 'os' module that SVGO tries to use
+      "os": path.resolve(__dirname, "src/lib/polyfills/os.js"),
     },
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      // Handle CommonJS modules used by SVGO (like boolbase)
+      mainFields: ['module', 'main'],
+    },
+    // Force include CommonJS dependencies that SVGO uses
+    include: ['boolbase', 'css-tree', 'csso'],
   },
   define: {
     __APP_VERSION__: JSON.stringify(version),
+    // Polyfill for Node.js modules that SVGO might try to use
+    'process.platform': JSON.stringify('browser'),
   },
   server: {
     port: 5174,

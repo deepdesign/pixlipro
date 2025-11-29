@@ -8,6 +8,7 @@ import type { MovementMode } from "@/types/generator";
  */
 export const MOVEMENT_MODES: Array<{ value: MovementMode; label: string }> = [
   { value: "pulse", label: "Pulse" },
+  { value: "pulse-meander", label: "Pulse Meander" },
   { value: "drift", label: "Drift" },
   { value: "ripple", label: "Ripple" },
   { value: "zigzag", label: "Zigzag" },

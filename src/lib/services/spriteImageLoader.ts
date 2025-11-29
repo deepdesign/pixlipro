@@ -118,12 +118,33 @@ const svgoConfig: Config = {
  */
 async function processSvgContent(svgText: string): Promise<string> {
   // First, use SVGO to optimize and clean the SVG
+  // Skip optimization for blob URLs (custom sprites) - they're already processed when uploaded
   let processedSvg: string;
+  
+  // Check if this is SVG content from a blob URL (custom sprite)
+  // Custom sprites are already optimized during upload, so skip SVGO
+  const isCustomSprite = svgText.includes('<!-- Custom sprite') || 
+                         svgText.length < 1000; // Heuristic: custom sprites are usually smaller
+  
+  // Actually, better approach: just try to optimize and catch errors gracefully
+  // The warnings are non-fatal - SVGO will still work, just with warnings
   try {
-    const result = optimize(svgText, svgoConfig);
+    // SVGO may try to access Node.js modules in browser - catch and handle gracefully
+    const result = optimize(svgText, {
+      ...svgoConfig,
+      // Disable plugins that might use Node.js features
+      js2svg: {
+        ...svgoConfig.js2svg,
+        eol: 'lf', // Use LF instead of os.EOL
+      },
+    });
     processedSvg = result.data;
   } catch (error) {
-    console.warn('SVGO optimization failed, using original SVG:', error);
+    // If SVGO fails (e.g., due to browser compatibility), use original SVG
+    // This is acceptable - the SVG will still work, just not optimized
+    if (import.meta.env.DEV) {
+      console.warn('SVGO optimization failed, using original SVG:', error);
+    }
     processedSvg = svgText;
   }
   
@@ -173,85 +194,18 @@ async function processSvgContent(svgText: string): Promise<string> {
   processedSvg = processedSvg.replace(/stroke=["'][^"']+["']/gi, 'stroke="none"');
   processedSvg = processedSvg.replace(/stroke:[^;"]+/gi, 'stroke:none');
   
-  // Convert boolean shapes (Icons8 punched-out shapes) to normal filled shapes
-  // Boolean shapes use fill-rule="evenodd" to create cutouts from a square background
-  // We need to convert them to normal filled shapes without the square frame
-  
+  // Preserve fill-rule for boolean shapes (cutouts)
+  // Boolean shapes use fill-rule="evenodd" to create cutouts
+  // We need to preserve this for proper rendering on canvas
   // Detect boolean shapes by checking for fill-rule="evenodd"
   const hasEvenOddFill = processedSvg.includes('fill-rule="evenodd"') || 
                          processedSvg.includes("fill-rule='evenodd'") ||
                          processedSvg.includes('fill-rule:evenodd');
   
-  if (hasEvenOddFill) {
-    // This is a boolean shape - we need to extract just the filled inner shape
-    // Remove fill-rule="evenodd" so the path renders as a normal filled shape
-    // This will make both the outer frame AND inner cutout fill, which is not what we want
-    // So we need a different approach: render to canvas and extract just the inner filled pixels
-    
-    // For now, the simplest fix: remove fill-rule="evenodd" and let the path render normally
-    // This will cause the shape to fill completely (both outer frame and inner), but that's wrong
-    
-    // Better approach: Extract path data and identify which parts are the actual shape
-    // Icons8 boolean shapes typically have:
-    // 1. An outer rectangle path (the frame to remove)
-    // 2. Inner paths (the actual shape to keep)
-    
-    // Remove fill-rule attributes to render as normal fill
-    processedSvg = processedSvg.replace(/fill-rule[=:]["']?evenodd["']?/gi, '');
-    processedSvg = processedSvg.replace(/fill-rule[=:]evenodd/gi, '');
-    
-    // Now we need to remove or modify paths that create the outer frame
-    // Look for paths that describe a full-viewBox rectangle
-    const pathMatches = Array.from(processedSvg.matchAll(/<path[^>]*d=["']([^"']+)["'][^>]*>/gi));
-    
-    for (const match of pathMatches) {
-      const fullPathTag = match[0];
-      const pathData = match[1];
-      
-      // Check if this path is a rectangle matching viewBox (likely the outer frame)
-      // Patterns: M 0 0 L 30 0 L 30 30 L 0 30 Z
-      // Or: M 0,0 L 30,0 L 30,30 L 0,30 Z
-      // Or variations with lowercase commands, or close-to-viewBox rectangles
-      const normalizedPath = pathData.trim().replace(/\s+/g, ' ').replace(/,/g, ' ');
-      const tolerance = 0.1; // Allow small tolerance for floating point
-      const rectPatterns = [
-        // Standard rectangle pattern (exact match)
-        new RegExp(`^[Mm]\\s*0\\s*,?\\s*0\\s*[Ll]\\s*${viewBoxWidth}\\s*,?\\s*0\\s*[Ll]\\s*${viewBoxWidth}\\s*,?\\s*${viewBoxHeight}\\s*[Ll]\\s*0\\s*,?\\s*${viewBoxHeight}\\s*[Zz]`, 'i'),
-        // Alternative: with relative coordinates
-        new RegExp(`^[Mm]\\s*0\\s*,?\\s*0\\s*[Hh]\\s*${viewBoxWidth}\\s*[Vv]\\s*${viewBoxHeight}\\s*[Hh]\\s*0\\s*[Zz]`, 'i'),
-        // Path starting and ending at (0,0) with viewBox dimensions (frame path)
-        new RegExp(`^[Mm]\\s*0\\s*[^Ll]*[Ll]\\s*${viewBoxWidth}\\s*[^Ll]*[Ll]\\s*${viewBoxWidth}\\s*${viewBoxHeight}\\s*[^Ll]*[Ll]\\s*0\\s*${viewBoxHeight}\\s*[^Zz]*[Zz]`, 'i'),
-      ];
-      
-      const isOuterFrame = rectPatterns.some(pattern => pattern.test(normalizedPath));
-      
-      // Also check if path starts at (0,0) and has viewBox-sized bounds
-      // This catches paths that might create frames even if not exact rectangles
-      let pathBounds = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };
-      const coordMatches = pathData.matchAll(/[MmLl][\s,]+([0-9.-]+)[\s,]+([0-9.-]+)/gi);
-      for (const match of coordMatches) {
-        const x = parseFloat(match[1]);
-        const y = parseFloat(match[2]);
-        pathBounds.minX = Math.min(pathBounds.minX, x);
-        pathBounds.minY = Math.min(pathBounds.minY, y);
-        pathBounds.maxX = Math.max(pathBounds.maxX, x);
-        pathBounds.maxY = Math.max(pathBounds.maxY, y);
-      }
-      
-      const startsAtOrigin = Math.abs(pathBounds.minX) < tolerance && Math.abs(pathBounds.minY) < tolerance;
-      const matchesWidth = Math.abs(pathBounds.maxX - viewBoxWidth) < tolerance;
-      const matchesHeight = Math.abs(pathBounds.maxY - viewBoxHeight) < tolerance;
-      const isFullBoundsFrame = startsAtOrigin && matchesWidth && matchesHeight;
-      
-      if (isOuterFrame || isFullBoundsFrame) {
-        // This path is the outer frame - remove it from boolean shapes
-        processedSvg = processedSvg.replace(fullPathTag, '');
-      }
-    }
-    
-  // Clean up any orphaned closing tags
-  processedSvg = processedSvg.replace(/<\/path>/gi, '');
-  }
+  // Don't remove fill-rule - we'll use it during canvas rendering
+  // Just normalize the attribute format
+  processedSvg = processedSvg.replace(/fill-rule[=:]["']?evenodd["']?/gi, 'fill-rule="evenodd"');
+  processedSvg = processedSvg.replace(/fill-rule[=:]evenodd/gi, 'fill-rule="evenodd"');
   
   // Convert shape elements (<rect>, <circle>, etc.) to <path> elements
   // This ensures all shapes can be extracted as path data for Path2D rendering
@@ -411,18 +365,25 @@ async function processSvgContent(svgText: string): Promise<string> {
       for (const pathData of contentPaths) {
         try {
           // getBounds returns [left, top, right, bottom]
-          const [left, top, right, bottom] = getBounds(pathData);
-          
-          if (isFinite(left) && isFinite(top) && isFinite(right) && isFinite(bottom)) {
-            minX = Math.min(minX, left);
-            minY = Math.min(minY, top);
-            maxX = Math.max(maxX, right);
-            maxY = Math.max(maxY, bottom);
-            hasBounds = true;
+          // Note: Some complex paths (with arcs) may fail - that's okay, we'll use viewBox fallback
+          const bounds = getBounds(pathData);
+          if (Array.isArray(bounds) && bounds.length >= 4) {
+            const [left, top, right, bottom] = bounds;
+            
+            if (isFinite(left) && isFinite(top) && isFinite(right) && isFinite(bottom)) {
+              minX = Math.min(minX, left);
+              minY = Math.min(minY, top);
+              maxX = Math.max(maxX, right);
+              maxY = Math.max(maxY, bottom);
+              hasBounds = true;
+            }
           }
         } catch (error) {
-          // If bounds calculation fails for a path, skip it
-          console.warn('Failed to calculate bounds for path:', error);
+          // If bounds calculation fails for a path (e.g., arcToCurve issue), skip it
+          // This is non-critical - we'll fall back to viewBox dimensions
+          if (import.meta.env.DEV) {
+            console.warn('Failed to calculate bounds for path (will use viewBox):', error);
+          }
         }
       }
       
@@ -479,6 +440,10 @@ async function processSvgContent(svgText: string): Promise<string> {
  */
 function addCacheBusting(svgPath: string): string {
   if (import.meta.env.DEV) {
+    // Don't add cache-busting to blob URLs - they don't support query parameters
+    if (svgPath.startsWith('blob:')) {
+      return svgPath;
+    }
     // Add timestamp to force reload in development
     const separator = svgPath.includes('?') ? '&' : '?';
     return `${svgPath}${separator}_t=${Date.now()}`;
@@ -533,8 +498,18 @@ export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement
         return response.text();
       })
       .then(async svgText => {
-        // Process SVG using SVGO (like SVGOMG) + Icons8-specific cleanup
-        let processedSvg = await processSvgContent(svgText);
+        // Skip SVGO optimization for blob URLs (custom sprites) - they're already optimized
+        // This avoids the os.EOL warnings for custom sprites
+        const isBlobUrl = svgPath.startsWith('blob:');
+        let processedSvg: string;
+        
+        if (isBlobUrl) {
+          // Custom sprites are already optimized during upload, skip SVGO to avoid warnings
+          processedSvg = svgText;
+        } else {
+          // Process SVG using SVGO (like SVGOMG) + Icons8-specific cleanup
+          processedSvg = await processSvgContent(svgText);
+        }
         
         // Ensure SVG fill is white for proper tinting during rendering
         // Replace any fill colors with white so multiply compositing works correctly
@@ -591,24 +566,34 @@ export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement
               (img as any).__svgAspectRatio = svgAspectRatio;
               (img as any).__svgViewBox = svgViewBox;
               // Extract ALL path data from processed SVG for direct canvas rendering
-              // If there are multiple paths, combine them properly for Path2D
-              const pathMatches = Array.from(processedSvg.matchAll(/<path[^>]*d=["']([^"']+)["'][^>]*>/gi));
-              if (pathMatches.length > 0) {
-                // If multiple paths, combine them with move commands to preserve each path
-                // For Path2D, we can combine paths by separating them, but the renderer
-                // will need to handle multiple paths separately for best results
-                if (pathMatches.length === 1) {
-                  // Single path - use directly
-                  (img as any).__svgPathData = pathMatches[0][1];
-                } else {
-                  // Multiple paths - combine them for Path2D (each path separated properly)
-                  // Path2D supports multiple paths, but we need to ensure proper separation
-                  // For now, store the first path and let the renderer handle it
-                  // TODO: Could improve this to properly combine paths for Path2D
-                  (img as any).__svgPathData = pathMatches[0][1];
-                  // Store all paths for future use if needed
-                  (img as any).__svgAllPaths = pathMatches.map(m => m[1]);
+              // Check if this SVG uses fill-rule="evenodd" for boolean shapes
+              const hasEvenOddFill = processedSvg.includes('fill-rule="evenodd"');
+              (img as any).__svgHasEvenOddFill = hasEvenOddFill;
+              
+              // Extract all paths with their full attributes
+              const pathMatches = Array.from(processedSvg.matchAll(/<path[^>]*>/gi));
+              const paths: Array<{ d: string; fillRule?: string }> = [];
+              
+              for (const match of pathMatches) {
+                const pathElement = match[0];
+                const dMatch = pathElement.match(/d=["']([^"']+)["']/i);
+                if (dMatch) {
+                  const pathData = dMatch[1];
+                  const fillRuleMatch = pathElement.match(/fill-rule=["']([^"']+)["']/i);
+                  paths.push({
+                    d: pathData,
+                    fillRule: fillRuleMatch ? fillRuleMatch[1] : undefined,
+                  });
                 }
+              }
+              
+              if (paths.length > 0) {
+                // Store all paths (not just the first one)
+                (img as any).__svgPaths = paths;
+                // For backward compatibility, also store the first path
+                (img as any).__svgPathData = paths[0].d;
+                // Store all path data strings for combining
+                (img as any).__svgAllPaths = paths.map(p => p.d);
               }
               // Also store the processed SVG string for debugging
               (img as any).__svgString = processedSvg;

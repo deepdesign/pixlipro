@@ -52,7 +52,9 @@ export function ControlSlider({
   // Thumb width is 18px (1.125rem), so half-width is 9px
   // Account for thumb center position: fill should extend to thumb center
   // The thumb is positioned at percentage, so fill extends to that percentage
-  // No adjustment needed - native range input positions thumb center at percentage
+  // At very small values, remove right border radius to avoid showing rounded end
+  // Only show right radius when fill is substantial (>= 8%) to ensure smooth visual appearance
+  const showRightRadius = percentage >= 8;
 
   return (
     <div className="control-field">
@@ -81,10 +83,21 @@ export function ControlSlider({
           {/* Filled range - positioned inside track, extends to thumb center */}
           <div 
             className={cn(
-              "absolute h-full rounded-sm left-0 top-0",
+              "absolute h-full left-0 top-0",
               "bg-[var(--accent-primary)]"
             )}
-            style={{ width: `${percentage}%` }}
+            style={{ 
+              width: `${percentage}%`,
+              borderTopLeftRadius: '0.25rem', // More rounded left end to match the channel/track (rounded-md)
+              borderBottomLeftRadius: '0.25rem', // More rounded left end to match the channel/track (rounded-md)
+              ...(showRightRadius ? {
+                borderTopRightRadius: '0.125rem', // rounded-sm right when fill is substantial
+                borderBottomRightRadius: '0.125rem', // rounded-sm right when fill is substantial
+              } : {
+                borderTopRightRadius: '0', // no rounding on right at low values
+                borderBottomRightRadius: '0', // no rounding on right at low values
+              })
+            }}
           />
         </div>
         {/* Native range input for interaction */}

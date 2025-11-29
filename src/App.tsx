@@ -22,6 +22,7 @@ import { MobileRemote } from "./pages/MobileRemote";
 import { SequencesPage } from "./pages/SequencesPage";
 import { PresetsPage } from "./pages/PresetsPage";
 import { PalettesPage } from "./pages/PalettesPage";
+import { SpritesPage } from "./pages/SpritesPage";
 import { useDualMonitor } from "./hooks/useDualMonitor";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useOSC } from "./hooks/useOSC";
@@ -98,7 +99,7 @@ const App = () => {
   const isMobileRemote = window.location.pathname === "/remote";
   
   // Navigation state
-  const [currentPage, setCurrentPage] = useState<"create" | "palettes" | "presets" | "sequences" | "settings" | null>(null);
+  const [currentPage, setCurrentPage] = useState<"create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | null>(null);
   
   // Settings state (kept for backward compatibility)
   const [showSettingsPage, setShowSettingsPage] = useState(false);
@@ -644,6 +645,10 @@ const App = () => {
     controllerRef.current?.setOutlineMixed(checked);
   }, []);
 
+  const handleOutlineBalanceChange = useCallback((value: number) => {
+    controllerRef.current?.setOutlineBalance(value);
+  }, []);
+
   const handleRandomizeOutlineDistribution = useCallback(() => {
     controllerRef.current?.randomizeOutlineDistribution();
   }, []);
@@ -916,103 +921,104 @@ const App = () => {
   }
 
   const renderDisplayContent = () => {
-    // Show pages based on current navigation
-    if (currentPage === "palettes") {
-      return (
-        <PalettesPage />
-      );
-    }
+    const isCanvasPage = !currentPage || currentPage === "create";
     
-    if (currentPage === "presets") {
-      return (
-        <PresetsPage
-          currentState={spriteState}
-          onLoadPreset={handleLoadPreset}
-        />
-      );
-    }
-    
-    if (currentPage === "sequences") {
-      return (
-        <SequencesPage
-          currentState={spriteState}
-          onLoadPreset={handleLoadPreset}
-        />
-      );
-    }
-    
-    // Show Settings page if open
-    if (showSettingsPage || currentPage === "settings") {
-      return (
-        <SettingsPage 
-          onClose={() => {
-            setShowSettingsPage(false);
-            setCurrentPage("create");
-            handleNavigate("create");
-          }}
-          onAspectRatioChange={(aspectRatio, custom) => {
-            if (controller) {
-              if (aspectRatio === "custom" && custom) {
-                controller.setCustomAspectRatio(custom.width, custom.height);
-              } else {
-                controller.setAspectRatio(aspectRatio);
-              }
-            }
-          }}
-          onLoadPreset={handleLoadPreset}
-          currentState={spriteState}
-          frameRate={frameRate}
-          ready={ready}
-          webSocketState={{
-            connected: webSocket.isConnected,
-            connecting: webSocket.isConnecting,
-            error: webSocket.error,
-            clients: webSocket.clients,
-          }}
-        />
-      );
-    }
-    
-    // Default: show canvas
-    // MINIMAL APPROACH: Match ProjectorPage structure - it works there!
     return (
-    <div className="canvas-card-shell" ref={canvasCardShellRef}>
-      {/* MINIMAL: Simple container - let CSS handle aspect ratio via padding-top trick */}
-      <div className="w-full relative" style={{ paddingTop: '56.25%' }}>
-        <div
-          className="sketch-container absolute inset-0"
-          ref={sketchContainerRef}
-          aria-live="polite"
-        />
-      </div>
-      {/* StatusBar below canvas */}
-      {!isFullscreen && (
-        <StatusBar
-          spriteState={spriteState}
-          frameRate={frameRate}
-          ready={ready}
-          isFullscreen={isFullscreen}
-          hudVisible={hudVisible}
-          onMouseEnter={handleHUDMouseEnter}
-          onMouseLeave={handleHUDMouseLeave}
-          onRandomiseAll={handleRandomiseAll}
-          onShowPresets={() => setShowPresetManager(true)}
-          onShowExport={() => setShowExportModal(true)}
-          onFullscreenToggle={handleFullscreenToggle}
-          onFullscreenClose={handleFullscreenClose}
-          onOpenProjector={() => {
-            dualMonitor.openProjectorWindow();
-          }}
-          isProjectorMode={isProjectorMode}
-          formatBlendMode={formatBlendMode}
-          formatMovementMode={formatMovementMode}
-          currentModeLabel={currentModeLabel}
-          currentPaletteName={currentPalette.name}
-          statusBarRef={statusBarRef}
-        />
-      )}
-    </div>
-  );
+      <>
+        {/* Canvas - always mounted but hidden when on other pages */}
+        <div 
+          className={`canvas-card-shell ${isCanvasPage ? '' : 'hidden'}`}
+          ref={canvasCardShellRef}
+        >
+          {/* MINIMAL: Simple container - let CSS handle aspect ratio via padding-top trick */}
+          <div className="w-full relative" style={{ paddingTop: '56.25%' }}>
+            <div
+              className="sketch-container absolute inset-0"
+              ref={sketchContainerRef}
+              aria-live="polite"
+            />
+          </div>
+          {/* StatusBar below canvas */}
+          {!isFullscreen && (
+            <StatusBar
+              spriteState={spriteState}
+              frameRate={frameRate}
+              ready={ready}
+              isFullscreen={isFullscreen}
+              hudVisible={hudVisible}
+              onMouseEnter={handleHUDMouseEnter}
+              onMouseLeave={handleHUDMouseLeave}
+              onRandomiseAll={handleRandomiseAll}
+              onShowPresets={() => setShowPresetManager(true)}
+              onShowExport={() => setShowExportModal(true)}
+              onFullscreenToggle={handleFullscreenToggle}
+              onFullscreenClose={handleFullscreenClose}
+              onOpenProjector={() => {
+                dualMonitor.openProjectorWindow();
+              }}
+              isProjectorMode={isProjectorMode}
+              formatBlendMode={formatBlendMode}
+              formatMovementMode={formatMovementMode}
+              currentModeLabel={currentModeLabel}
+              currentPaletteName={currentPalette.name}
+              statusBarRef={statusBarRef}
+            />
+          )}
+        </div>
+
+        {/* Pages - shown when not on canvas */}
+        {currentPage === "palettes" && (
+          <PalettesPage />
+        )}
+        
+        {currentPage === "sprites" && (
+          <SpritesPage />
+        )}
+        
+        {currentPage === "presets" && (
+          <PresetsPage
+            currentState={spriteState}
+            onLoadPreset={handleLoadPreset}
+          />
+        )}
+        
+        {currentPage === "sequences" && (
+          <SequencesPage
+            currentState={spriteState}
+            onLoadPreset={handleLoadPreset}
+          />
+        )}
+        
+        {(showSettingsPage || currentPage === "settings") && (
+          <SettingsPage 
+            onClose={() => {
+              setShowSettingsPage(false);
+              setCurrentPage("create");
+              handleNavigate("create");
+            }}
+            onAspectRatioChange={(aspectRatio, custom) => {
+              if (controller) {
+                if (aspectRatio === "custom" && custom) {
+                  controller.setCustomAspectRatio(custom.width, custom.height);
+                } else {
+                  controller.setAspectRatio(aspectRatio);
+                }
+              }
+            }}
+            onLoadPreset={handleLoadPreset}
+            currentState={spriteState}
+            frameRate={frameRate}
+            ready={ready}
+            webSocketState={{
+              connected: webSocket.isConnected,
+              connecting: webSocket.isConnecting,
+              error: webSocket.error,
+              clients: webSocket.clients,
+            }}
+          />
+        )}
+      </>
+    );
   };
 
 
@@ -1045,7 +1051,7 @@ const App = () => {
   }, []);
 
   // Handle navigation
-  const handleNavigate = (page: "create" | "palettes" | "presets" | "sequences" | "settings") => {
+  const handleNavigate = (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings") => {
     setCurrentPage(page);
     if (page === "settings") {
       setShowSettingsPage(true);
@@ -1083,6 +1089,7 @@ const App = () => {
     onOutlineToggle: handleOutlineToggle,
     onOutlineStrokeWidthChange: handleOutlineStrokeWidthChange,
     onOutlineMixedToggle: handleOutlineMixedToggle,
+    onOutlineBalanceChange: handleOutlineBalanceChange,
     onRandomizeOutlineDistribution: handleRandomizeOutlineDistribution,
     currentPaletteId: currentPalette.id,
     currentPaletteName: currentPalette.name,
@@ -1114,6 +1121,8 @@ const App = () => {
     const path = window.location.pathname;
     if (path === "/palettes") {
       setCurrentPage("palettes");
+    } else if (path === "/sprites") {
+      setCurrentPage("sprites");
     } else if (path === "/presets") {
       setCurrentPage("presets");
     } else if (path === "/sequences") {
@@ -1147,7 +1156,7 @@ const App = () => {
         />
       </div>
 
-    <AppLayout sidebarProps={sidebarProps} hideSidebar={showSettingsPage || currentPage === "palettes" || currentPage === "presets" || currentPage === "sequences"}>
+    <AppLayout sidebarProps={sidebarProps} hideSidebar={showSettingsPage || currentPage === "palettes" || currentPage === "presets" || currentPage === "sequences" || currentPage === "sprites"}>
       <div className="app-shell">
 
       <div className={`app-frame app-frame--compact app-frame--main${isSmallCanvas ? " app-frame--stacked" : ""}`}>

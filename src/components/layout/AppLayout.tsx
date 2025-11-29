@@ -21,7 +21,7 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideS
         </div>
       )}
       <div
-        className={`flex-1 min-w-0 transition-all duration-300 ease-in-out border-t border-slate-200 dark:border-slate-800 ${
+        className={`flex-1 min-w-0 border-t border-slate-200 dark:border-slate-800 ${
           hideSidebar 
             ? "lg:ml-0" 
             : isExpanded || isHovered 

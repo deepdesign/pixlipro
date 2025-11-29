@@ -27,6 +27,7 @@ const randomInt = (min: number, max: number) =>
 
 const movementModes = [
   "pulse",
+  "pulse-meander",
   "drift",
   "ripple",
   "zigzag",
@@ -51,6 +52,7 @@ const MOVEMENT_SPEED_MULTIPLIERS: Record<MovementMode, number> = {
   spiral: 7.3,      // ~7.3x slower (~60% of previous max speed)
   zigzag: 2.2,      // ~2.2x slower (0.06 vs 0.13)
   pulse: 2.7,       // ~2.7x slower (~60% of previous max speed)
+  "pulse-meander": 2.7, // Same as pulse for consistency
   linear: 8.0,      // ~8x slower - increased to further reduce max motion speed
   isometric: 8.0,   // ~8x slower - significantly increased to reduce max motion speed
   triangular: 8.0,  // ~8x slower - triangular edge movement
@@ -67,6 +69,7 @@ const MOVEMENT_SCALE_MULTIPLIERS: Record<MovementMode, number> = {
   triangular: 1.0,  // No adjustment
   drift: 1.0,       // No adjustment
   pulse: 1.0,       // No adjustment
+  "pulse-meander": 1.0, // No adjustment
   zigzag: 1.0,      // No adjustment
   linear: 1.0,      // No adjustment
   isometric: 1.0,   // No adjustment
@@ -82,6 +85,7 @@ const MOVEMENT_TILE_COUNT_MULTIPLIERS: Record<MovementMode, number> = {
   triangular: 1.0,  // No adjustment
   drift: 1.0,       // No adjustment
   pulse: 1.0,       // No adjustment
+  "pulse-meander": 1.0, // No adjustment
   zigzag: 1.0,      // No adjustment
   linear: 1.0,      // No adjustment
   isometric: 1.0,   // No adjustment
@@ -223,8 +227,10 @@ export interface GeneratorState {
   outlineEnabled: boolean; // Toggle for outline mode (render sprites as strokes instead of fills)
   outlineStrokeWidth: number; // Stroke width in pixels (range: 1-20)
   outlineMixed: boolean; // When enabled, randomly mix filled and outlined sprites
+  outlineBalance: number; // Balance between outlined and filled sprites (0-100, 0=all filled, 50=50/50, 100=all outlined)
   filledOpacity: number; // Opacity for filled sprites when mixed mode is enabled (0-100)
   outlinedOpacity: number; // Opacity for outlined sprites when mixed mode is enabled (0-100)
+  colorSeedSuffix: string; // Suffix for color RNG to allow re-applying palette without regenerating sprites
 }
 
 export interface SpriteControllerOptions {
@@ -326,8 +332,10 @@ export const DEFAULT_STATE: GeneratorState = {
   outlineEnabled: false,
   outlineStrokeWidth: 2, // Default stroke width in pixels
   outlineMixed: false, // Default: all sprites use same outline state
+  outlineBalance: 50, // Default: 50/50 split between outlined and filled
   filledOpacity: 74, // Default opacity for filled sprites in mixed mode
   outlinedOpacity: 74, // Default opacity for outlined sprites in mixed mode
+  colorSeedSuffix: "", // Suffix for color RNG to allow re-applying palette without regenerating sprites
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -566,6 +574,24 @@ const computeMovementOffsets = (
       // Keep sprites in place - no x,y movement
       return { offsetX: 0, offsetY: 0, scaleMultiplier };
     }
+    case "pulse-meander": {
+      // Combine pulse scale animation with meandering movement
+      // Use pure sine wave for smooth, continuous pulse animation
+      const rawPulse = Math.sin(phased * 0.08);
+      
+      // Apply motion scale directly to sine wave (-1 to 1 range)
+      const pulse = rawPulse * motionScale;
+      
+      // Apply pulse to scale
+      const scaleMultiplier = clampScale(1 + pulse * 0.55);
+      
+      // Add meandering movement - increased multipliers for more pronounced wandering
+      // Use different frequencies for X and Y to create organic, wandering motion
+      const meanderX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.55;
+      const meanderY = Math.cos(phased * 0.024 + phase * 0.12) * baseUnit * motionScale * 0.6;
+      
+      return { offsetX: meanderX, offsetY: meanderY, scaleMultiplier };
+    }
     case "drift": {
       const driftX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.45;
       const driftY = Math.cos(phased * 0.024 + phase * 0.12) * baseUnit * motionScale * 0.5;
@@ -774,8 +800,9 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   // Allow variance up to 1.5 (150% internal value) for more color variation
   const variance = clamp(state.paletteVariance / 100, 0, 1.5);
 
-  const colorRng = createMulberry32(hashSeed(`${state.seed}-color`));
+  const colorRng = createMulberry32(hashSeed(`${state.seed}-color${state.colorSeedSuffix || ""}`));
   const positionRng = createMulberry32(hashSeed(`${state.seed}-position`));
+  const spriteSelectionRng = createMulberry32(hashSeed(`${state.seed}-sprite-selection`));
   // Apply global hue shift to palette colors (0-100 maps to 0-360 degrees)
   // Note: If hueRotationEnabled, static hue shift will be applied during rendering instead
   // to avoid double-shifting and ensure smooth animation
@@ -811,10 +838,15 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   const minSpeed = 0.05; // 5% minimum
   const rotationSpeedBase = Math.max(minSpeed, clamp(state.rotationSpeed, 1, 100) / 100);
 
-  // Get selected sprites (use new selectedSprites array, fallback to spriteMode for backward compatibility)
-  let selectedSpriteIds = state.selectedSprites || [];
-  if (selectedSpriteIds.length === 0) {
-    // Backward compatibility: convert old spriteMode to new format
+  // Get selected sprites (use new selectedSprites array, fallback to spriteMode for backward compatibility only if not explicitly empty)
+  let selectedSpriteIds: string[] = [];
+  
+  // Check if selectedSprites exists in state (distinguish between undefined/null vs empty array)
+  if (state.selectedSprites !== undefined && state.selectedSprites !== null) {
+    // Use the actual array (which may be empty - that's valid for empty canvas)
+    selectedSpriteIds = state.selectedSprites;
+  } else {
+    // Backward compatibility: if selectedSprites doesn't exist (old state), convert from spriteMode
     const collection = getCollection(state.spriteCollectionId || "default");
     if (collection?.isShapeBased) {
       selectedSpriteIds = [`shape:${state.spriteMode}`];
@@ -829,7 +861,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   }
   
   // Allow empty selection - will result in empty canvas
-  // No fallback needed - empty array is valid
+  // Empty array means no sprites will be rendered
   
   // Helper to get sprite info from identifier
   const getSpriteInfo = (identifier: string): { isShape: boolean; shape?: ShapeMode; svgSprite?: { id: string; svgPath: string } } | null => {
@@ -841,7 +873,37 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       return null;
     }
     
-    // It's an svgPath - find the sprite
+    // Check if it's a custom sprite identifier (format: "custom:collectionId:spriteId")
+    if (identifier.startsWith("custom:")) {
+      const parts = identifier.split(":");
+      if (parts.length === 3) {
+        const [, collectionId, spriteId] = parts;
+        const collection = getCollection(collectionId);
+        if (!collection) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Collection not found for custom sprite: ${collectionId}`);
+          }
+          return null;
+        }
+        const sprite = collection.sprites.find(s => s.id === spriteId);
+        if (!sprite) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Sprite not found in collection: collectionId=${collectionId}, spriteId=${spriteId}, available sprites:`, collection.sprites.map(s => s.id));
+          }
+          return null;
+        }
+        if (!sprite.svgPath) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`Sprite has no svgPath: collectionId=${collectionId}, spriteId=${spriteId}`);
+          }
+          return null;
+        }
+        return { isShape: false, svgSprite: { id: sprite.id, svgPath: sprite.svgPath } };
+      }
+      return null;
+    }
+    
+    // It's an svgPath (file-based sprite) - find the sprite
     const allCollections = getAllCollections();
     for (const collection of allCollections) {
       const sprite = collection.sprites.find(s => s.svgPath === identifier);
@@ -976,64 +1038,93 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       // This allows toggling gradients without regenerating sprite positions/scales
       
       // Determine if this tile should be outlined (when mixed mode is enabled)
-      const isOutlined = state.outlineMixed ? positionRng() > 0.5 : false;
+      // Determine if this tile should be outlined (when mixed mode is enabled)
+      // Use outlineBalance to control the ratio (0-100, where 0=all filled, 50=50/50, 100=all outlined)
+      // Convert percentage to threshold: 0% = 0.0 (all filled), 50% = 0.5 (50/50), 100% = 1.0 (all outlined)
+      const outlineThreshold = (state.outlineBalance ?? 50) / 100;
+      const isOutlined = state.outlineMixed ? positionRng() < outlineThreshold : false;
       
       // If no sprites are selected, skip creating this tile (empty canvas)
       if (selectedSpriteIds.length === 0) {
         continue;
       }
       
-      // Randomly pick a sprite from selected sprites
-      const selectedSpriteId = selectedSpriteIds[Math.floor(rng() * selectedSpriteIds.length)];
+      // Randomly pick a sprite from selected sprites using dedicated RNG for uniform distribution
+      const selectedSpriteId = selectedSpriteIds[Math.floor(spriteSelectionRng() * selectedSpriteIds.length)];
       const spriteInfo = getSpriteInfo(selectedSpriteId);
       
       if (!spriteInfo) {
-        // Fallback: use first selected sprite if available
-        if (selectedSpriteIds.length > 0) {
-          const fallbackId = selectedSpriteIds[0];
-          const fallbackInfo = getSpriteInfo(fallbackId);
+        // Log warning for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Sprite not found for identifier: ${selectedSpriteId}. Available sprites:`, selectedSpriteIds);
+        }
+        // Fallback: try to find any valid sprite from selected sprites
+        let fallbackInfo = null;
+        for (const fallbackId of selectedSpriteIds) {
+          fallbackInfo = getSpriteInfo(fallbackId);
           if (fallbackInfo) {
-            if (fallbackInfo.isShape) {
-              tiles.push({
-                kind: "shape",
-                shape: fallbackInfo.shape || "star",
-                tint,
-                paletteColorIndex,
-                u,
-                v,
-                scale,
-                blendMode: tileBlend,
-                rotationBase,
-                rotationDirection,
-                rotationSpeed: rotationSpeedValue,
-                rotationBaseMultiplier,
-                rotationSpeedMultiplier,
-                animationTimeMultiplier,
-                isOutlined,
-              });
-            } else if (fallbackInfo.svgSprite) {
-              tiles.push({
-                kind: "svg",
-                svgPath: fallbackInfo.svgSprite.svgPath,
-                spriteId: fallbackInfo.svgSprite.id,
-                tint,
-                paletteColorIndex,
-                u,
-                v,
-                scale,
-                blendMode: tileBlend,
-                rotationBase,
-                rotationDirection,
-                rotationSpeed: rotationSpeedValue,
-                rotationBaseMultiplier,
-                rotationSpeedMultiplier,
-                animationTimeMultiplier,
-                isOutlined,
-              });
+            break; // Found a valid sprite, use it
+          }
+        }
+        
+        // If still no valid sprite found, try to get any sprite from the collection
+        if (!fallbackInfo && state.spriteCollectionId) {
+          const collection = getCollection(state.spriteCollectionId);
+          if (collection && collection.sprites.length > 0) {
+            const firstSprite = collection.sprites[0];
+            if (firstSprite.svgPath) {
+              fallbackInfo = { isShape: false, svgSprite: { id: firstSprite.id, svgPath: firstSprite.svgPath } };
+            } else if (firstSprite.spriteMode) {
+              fallbackInfo = { isShape: true, shape: firstSprite.spriteMode as ShapeMode };
             }
           }
         }
-        continue;
+        
+        // Ultimate fallback: use star shape
+        if (!fallbackInfo) {
+          fallbackInfo = { isShape: true, shape: "star" as ShapeMode };
+        }
+        
+        // Create tile with fallback sprite
+        if (fallbackInfo.isShape) {
+          tiles.push({
+            kind: "shape",
+            shape: fallbackInfo.shape || "star",
+            tint,
+            paletteColorIndex,
+            u,
+            v,
+            scale,
+            blendMode: tileBlend,
+            rotationBase,
+            rotationDirection,
+            rotationSpeed: rotationSpeedValue,
+            rotationBaseMultiplier,
+            rotationSpeedMultiplier,
+            animationTimeMultiplier,
+            isOutlined,
+          });
+        } else if (fallbackInfo.svgSprite) {
+          tiles.push({
+            kind: "svg",
+            svgPath: fallbackInfo.svgSprite.svgPath,
+            spriteId: fallbackInfo.svgSprite.id,
+            tint,
+            paletteColorIndex,
+            u,
+            v,
+            scale,
+            blendMode: tileBlend,
+            rotationBase,
+            rotationDirection,
+            rotationSpeed: rotationSpeedValue,
+            rotationBaseMultiplier,
+            rotationSpeedMultiplier,
+            animationTimeMultiplier,
+            isOutlined,
+          });
+        }
+        continue; // Skip to next iteration after creating fallback tile
       }
       
       if (spriteInfo.isShape) {
@@ -1149,6 +1240,7 @@ export interface SpriteController {
   setOutlineEnabled: (enabled: boolean) => void;
   setOutlineStrokeWidth: (width: number) => void;
   setOutlineMixed: (enabled: boolean) => void;
+  setOutlineBalance: (value: number) => void;
   setFilledOpacity: (value: number) => void;
   setOutlinedOpacity: (value: number) => void;
   randomizeOutlineDistribution: () => void;
@@ -2113,7 +2205,7 @@ export const createSpriteController = (
           const paletteColor = activePalette.colors[tile.paletteColorIndex % activePalette.colors.length];
           // Apply variance deterministically (same seed-based RNG as in computeSprite)
           const variance = clamp(currentState.paletteVariance / 100, 0, 1.5);
-          const colorRng = createMulberry32(hashSeed(`${currentState.seed}-color-${tile.u}-${tile.v}`));
+          const colorRng = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}`));
           color = jitterColor(paletteColor, variance, colorRng);
           // Don't apply static hue shift here if hue rotation is enabled (will be applied below)
           if (!currentState.hueRotationEnabled) {
@@ -2439,7 +2531,7 @@ export const createSpriteController = (
                     // Apply hue shift first
                     const hueShiftedColor = shiftHue(color, hueShiftDegrees);
                     // Then apply variance using deterministic RNG based on tile position and color index
-                    const varianceRng = createMulberry32(hashSeed(`${currentState.seed}-color-${tile.u}-${tile.v}-${colorIndex}`));
+                    const varianceRng = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}-${colorIndex}`));
                     return jitterColor(hueShiftedColor, variance, varianceRng);
                   });
                   
@@ -3399,6 +3491,12 @@ export const createSpriteController = (
                 if (useOutline) {
                   ctx.strokeStyle = colorWithAlpha.toString();
                   ctx.lineWidth = strokeWidth;
+                  // For line sprite, use "butt" line cap to prevent thick caps at the ends
+                  // This ensures the stroke width is consistent along the entire line
+                  if (isLineSprite) {
+                    ctx.lineCap = "butt";
+                    ctx.lineJoin = "miter";
+                  }
                 } else {
                   ctx.fillStyle = colorWithAlpha.toString();
                 }
@@ -3426,11 +3524,50 @@ export const createSpriteController = (
                 ctx.translate(-vbWidth / 2, -vbHeight / 2);
                 
                 // Create and fill/stroke the path
-                const path = new Path2D(svgPathData);
-                if (useOutline) {
-                  ctx.stroke(path);
+                // Check if this sprite uses fill-rule="evenodd" for boolean shapes
+                const hasEvenOddFill = (cachedImg as any).__svgHasEvenOddFill;
+                const svgPaths = (cachedImg as any).__svgPaths;
+                
+                if (svgPaths && svgPaths.length > 0) {
+                  // Multiple paths - render with proper fill rule for boolean shapes
+                  if (hasEvenOddFill) {
+                    // For boolean shapes with evenodd, combine all paths into one
+                    // Path2D supports multiple subpaths when combined with move commands
+                    // Combine all path data strings into a single path
+                    const combinedPathData = svgPaths.map((p: { d: string; fillRule?: string }) => p.d).join(' ');
+                    const combinedPath = new Path2D(combinedPathData);
+                    
+                    if (useOutline) {
+                      ctx.stroke(combinedPath);
+                    } else {
+                      // Use fillRule parameter for evenodd (boolean shapes with cutouts)
+                      ctx.fill(combinedPath, 'evenodd');
+                    }
+                  } else {
+                    // Normal paths - render each separately
+                    for (const pathInfo of svgPaths) {
+                      const path = new Path2D(pathInfo.d);
+                      if (useOutline) {
+                        ctx.stroke(path);
+                      } else {
+                        ctx.fill(path);
+                      }
+                    }
+                  }
                 } else {
-                  ctx.fill(path);
+                  // Single path or fallback
+                  const path = new Path2D(svgPathData);
+                  
+                  if (useOutline) {
+                    ctx.stroke(path);
+                  } else {
+                    // Use fillRule parameter for boolean shapes
+                    if (hasEvenOddFill) {
+                      ctx.fill(path, 'evenodd');
+                    } else {
+                      ctx.fill(path);
+                    }
+                  }
                 }
                 
                 ctx.restore();
@@ -3494,8 +3631,9 @@ export const createSpriteController = (
     stateRef.current = { ...stateRef.current, ...partial };
     state = stateRef.current; // Keep local variable in sync
     
-    // Migration: Initialize selectedSprites from spriteMode if missing
-    if (!state.selectedSprites || state.selectedSprites.length === 0) {
+    // Migration: Initialize selectedSprites from spriteMode if missing (but not if explicitly empty)
+    // Only migrate if selectedSprites is undefined/null (old state format), not if it's an empty array
+    if (state.selectedSprites === undefined || state.selectedSprites === null) {
       const collection = getCollection(state.spriteCollectionId || "default");
       let identifier: string;
       if (collection?.isShapeBased) {
@@ -3511,6 +3649,7 @@ export const createSpriteController = (
       stateRef.current.selectedSprites = [identifier];
       state = stateRef.current;
     }
+    // If selectedSprites is an empty array, leave it empty (allows empty canvas)
     
     if (recompute) {
       updateSprite();
@@ -3622,13 +3761,11 @@ export const createSpriteController = (
       updateSprite();
     },
     refreshPaletteApplication: () => {
-      // Re-apply the current palette randomly across sprites
-      // This keeps the same palette but randomizes which colors are assigned to which sprites
-      // We need to regenerate the sprite with a new seed to randomize color assignments
-      // The color RNG is based on `${seed}-color`, so updating the seed will change color assignments
-      updateSeed();
-      state = stateRef.current; // Keep local variable in sync
-      updateSprite();
+      // Re-apply the current palette randomly across sprites without regenerating them
+      // This keeps the same sprite positions, sizes, and shapes but randomizes which colors are assigned
+      // We update only the colorSeedSuffix to change color assignments without affecting positions
+      const newColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      applyState({ colorSeedSuffix: newColorSeedSuffix }, { recompute: true });
     },
     randomizeScale: () => {
       stateRef.current.scaleBase = randomInt(50, 88);
@@ -3853,7 +3990,24 @@ export const createSpriteController = (
     },
     toggleSpriteSelection: (spriteIdentifier: string) => {
       const currentState = stateRef.current;
-      const selectedSprites = currentState.selectedSprites || [];
+      // Use empty array as fallback, but preserve explicit empty arrays
+      const selectedSprites = currentState.selectedSprites ?? [];
+      
+      // If this is a custom sprite, ensure the collection ID is set correctly
+      if (spriteIdentifier.startsWith("custom:")) {
+        const parts = spriteIdentifier.split(":");
+        if (parts.length === 3) {
+          const [, collectionId] = parts;
+          // Update collection ID if it's different
+          if (currentState.spriteCollectionId !== collectionId) {
+            applyState({ 
+              spriteCollectionId: collectionId,
+              selectedSprites: [...selectedSprites, spriteIdentifier]
+            });
+            return;
+          }
+        }
+      }
       
       // Check if sprite is already selected
       const index = selectedSprites.indexOf(spriteIdentifier);
@@ -3861,6 +4015,7 @@ export const createSpriteController = (
         // Sprite is selected - remove it (allow empty selection for empty canvas)
         const newSelected = [...selectedSprites];
         newSelected.splice(index, 1);
+        // Explicitly set to empty array if no sprites remain (allows empty canvas)
         applyState({ selectedSprites: newSelected });
       } else {
         // Sprite is not selected - add it
@@ -3988,7 +4143,11 @@ export const createSpriteController = (
     },
     setOutlineMixed: (enabled: boolean) => {
       // Mixed mode requires regeneration to assign random outline states to tiles
-      applyState({ outlineMixed: enabled });
+      applyState({ outlineMixed: enabled }, { recompute: enabled });
+    },
+    setOutlineBalance: (value: number) => {
+      // Balance requires regeneration to reassign outline states based on new ratio
+      applyState({ outlineBalance: clamp(value, 0, 100) }, { recompute: true });
     },
     setFilledOpacity: (value: number) => {
       // Opacity is applied during rendering, no regeneration needed

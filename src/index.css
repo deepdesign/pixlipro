@@ -153,14 +153,14 @@ html {
   font-family: "Space Grotesk", system-ui, sans-serif;
 
   /* Basic dark mode colors (default) - using Tailwind slate shades */
-  --bg-base: #0f172a; /* slate-900 */
-  --bg-top: #0f172a; /* slate-900 - flat, no gradient */
+  --bg-base: #020617; /* slate-950 - darker shade */
+  --bg-top: #020617; /* slate-950 - flat, no gradient */
   --text-primary: #fafafa; /* zinc-50 */
   --text-muted: #a1a1aa; /* zinc-400 */
   --text-subtle: #71717a; /* zinc-500 */
   --heading-color: #e4e4e7; /* zinc-200 */
   --hint-color: #a1a1aa; /* zinc-400 */
-  --panel-bg: #1e293b; /* slate-800 - panels slightly lighter than background */
+  --panel-bg: #0f172a; /* slate-900 - panels slightly lighter than background, darker than before */
   --panel-border: #374151; /* gray-700 - visible borders */
   --panel-shadow: rgba(0, 0, 0, 0.3);
   --card-bg: #1f2937; /* gray-800 */
@@ -1137,7 +1137,7 @@ html[data-theme="light"] body {
 }
 
 html[data-theme="dark"] body {
-  background: #0f172a; /* slate-900 */
+  background: #020617; /* slate-950 - darker shade */
   color: #f8fafc; /* slate-50 */
 }
 
@@ -1393,7 +1393,7 @@ html[data-theme="dark"] body {
   width: 100% !important; /* Force full width */
   max-width: 100% !important; /* Force full width */
   z-index: 60; /* Higher than sidebar (z-50) to ensure border is visible */
-  background-color: var(--bg-top);
+  background-color: var(--panel-bg);
   @apply border-t border-slate-200 dark:border-slate-800; /* Matches status bar and section dividers */
   margin-bottom: 0;
   margin-left: 0 !important;
@@ -1428,7 +1428,7 @@ html[data-theme="dark"] body {
   position: sticky;
   top: 0;
   z-index: 100; /* Higher than sidebar */
-  background-color: var(--bg-top);
+  background-color: var(--panel-bg);
 }
 
 /* Mobile header - override base rule with explicit values - MUST be after base rule */
@@ -4326,6 +4326,7 @@ aside[class*="sidebar"],
   overflow: visible; /* Allow button hover/active animations to extend beyond container */
   padding-left: theme("spacing.5"); /* Left padding using Tailwind spacing token */
   padding-right: theme("spacing.5"); /* Right padding using Tailwind spacing token */
+  background-color: var(--panel-bg); /* Match control column background */
 }
 
 /* Desktop status bar styling */
@@ -4535,6 +4536,19 @@ aside[class*="sidebar"],
   flex-shrink: 0;
 }
 
+/* Sprite card dropdown menu - ensure it's not cut off */
+.sprite-card-container {
+  overflow: visible !important;
+}
+
+.sprite-grid-container {
+  overflow: visible !important;
+}
+
+.sprite-grid-container > div {
+  overflow: visible !important;
+}
+
 .status-bar-icon {
   width: 1rem !important;
   height: 1rem !important;
@@ -4575,6 +4589,7 @@ aside[class*="sidebar"],
   max-width: 100%;
   box-sizing: border-box;
   margin-bottom: 0; /* Ensure no margin adds extra space */
+  background-color: var(--panel-bg); /* Match header background */
 }
 
 .footer-text {
@@ -5000,7 +5015,7 @@ body:has(.app-layout--wide) .app-footer {
   padding: theme("spacing.6");
   position: relative;
   background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
+  border: none;
   border-radius: var(--radius-md);
   color: var(--text-primary);
 }
@@ -5100,6 +5115,31 @@ body:has(.app-layout--wide) .app-footer {
 
 .export-action-button {
   @apply flex items-center justify-center gap-2;
+  transition: all 0.2s ease;
+  border: none !important;
+}
+
+/* One shade lighter than modal background (panel-bg) */
+.export-action-button {
+  background: var(--card-bg) !important; /* Default - one shade lighter */
+}
+
+/* Light mode: one shade lighter than panel-bg */
+html[data-theme="light"] .export-action-button {
+  background: #f4f4f5 !important; /* zinc-100 - one shade lighter */
+}
+
+/* Dark mode: one shade lighter than panel-bg */
+html[data-theme="dark"] .export-action-button {
+  background: #1e293b !important; /* slate-800 - one shade lighter than slate-900 panel-bg */
+}
+
+.export-action-button:hover:not(:disabled) {
+  background-color: rgba(226, 232, 240, 0.8) !important; /* slate-200 with opacity - lighter */
+}
+
+html[data-theme="dark"] .export-action-button:hover:not(:disabled) {
+  background-color: rgba(51, 65, 85, 0.8) !important; /* slate-700 with opacity - lighter than button bg */
 }
 
 .export-error {
@@ -5116,8 +5156,13 @@ body:has(.app-layout--wide) .app-footer {
   @apply flex items-center gap-4;
   padding: theme("spacing.3");
   background: var(--panel-bg);
-  border: 2px solid var(--panel-border);
+  border: none;
   border-radius: var(--radius-sm);
+}
+
+/* Darker slate background in dark mode */
+html[data-theme="dark"] .export-quick-section {
+  background: #020617; /* slate-950 - darker shade */
 }
 
 .export-preview-compact {
@@ -5272,9 +5317,63 @@ body:has(.app-layout--wide) .app-footer {
   width: 100%;
 }
 
+.export-accordion-item {
+  border: 1px solid var(--panel-border) !important;
+  border-radius: 0.375rem !important; /* rounded-md - same as buttons */
+  background: var(--panel-bg) !important;
+  overflow: hidden !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  /* Override default border-b from AccordionItem - remove it completely */
+  border-bottom: 1px solid var(--panel-border) !important;
+  /* Remove default Tailwind border-b classes */
+  border-top: 1px solid var(--panel-border) !important;
+  border-left: 1px solid var(--panel-border) !important;
+  border-right: 1px solid var(--panel-border) !important;
+}
+
+/* Override header padding - reduce top/bottom padding */
+/* Target both the trigger and any nested elements */
+.export-accordion-item [data-radix-accordion-trigger],
+.export-accordion-item button[data-radix-accordion-trigger] {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Override any py-4 classes that might be applied */
+.export-accordion-item [data-radix-accordion-trigger].py-4,
+.export-accordion-item button.py-4 {
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}
+
+/* Override content padding - set bottom padding to match reduced spacing */
+.export-accordion-item [data-radix-accordion-content] > div {
+  padding-top: 0 !important;
+  padding-bottom: 8px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Remove all margins from sections inside accordion */
+.export-accordion-item .section {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Remove margins from field-heading inside accordion */
+.export-accordion-item .field-heading {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
 .export-accordion-icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 

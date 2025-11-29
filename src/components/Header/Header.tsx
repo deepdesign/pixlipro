@@ -2,14 +2,14 @@ import { Button } from "@/components/Button";
 import { PixliLogo } from "./PixliLogo";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useSidebar } from "@/context/SidebarContext";
-import { Menu, X, Sparkles, Bookmark, List, Palette } from "lucide-react";
+import { Menu, X, Sparkles, Bookmark, List, Palette, Shapes } from "lucide-react";
 import { Navbar, NavbarSection } from "@/components/catalyst/navbar";
 interface HeaderProps {
   themeMode: "system" | "light" | "dark";
   onThemeModeChange: (mode: "system" | "light" | "dark") => void;
   onOpenSettings?: () => void;
-  onNavigate?: (page: "create" | "palettes" | "presets" | "sequences" | "settings") => void;
-  currentPage?: "create" | "palettes" | "presets" | "sequences" | "settings" | null;
+  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings") => void;
+  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | null;
 }
 
 export function Header({
@@ -36,7 +36,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-800 min-h-[64px] flex flex-col">
+    <header className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 min-h-[64px] flex flex-col" style={{ backgroundColor: 'var(--panel-bg)' }}>
       <Navbar className="px-4 py-4 pb-4 flex-1 items-end">
         {/* Left section: Sidebar toggle (desktop) and Logo */}
         <NavbarSection>
@@ -95,7 +95,19 @@ export function Header({
                 }`}
               >
                 <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">Create</span>
+                <span className="hidden sm:inline">Canvas</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate("sprites")}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  currentPage === "sprites"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Shapes className="h-4 w-4" />
+                <span className="hidden sm:inline">Sprites</span>
               </button>
               <button
                 type="button"

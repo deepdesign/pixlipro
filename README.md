@@ -31,19 +31,22 @@ Pixli Pro is a professional-grade generative art application built for nightclub
 
 ### 🎨 Advanced Generative Engine
 - **Multi-Layer Sprite System** – Density-driven layering with up to 3 layers
-- **10 Motion Modes** – Drift, pulse, ripple, zigzag, cascade, spiral, comet, linear, isometric, and triangular
+- **11 Motion Modes** – Drift, pulse, pulse meander, ripple, zigzag, cascade, spiral, comet, linear, isometric, and triangular
 - **Independent Animation Timelines** – Sprite hue rotation, palette cycling, and canvas hue rotation operate independently
 - **Blend Modes** – Multiply, screen, hard light, overlay, soft light with per-sprite randomization
 - **Depth of Field** – Optional blur effects for depth perception
 
 ### 🎯 Sprite Collection
 - **Geometric Shapes** – Tiles, circles, hexagons, diamonds, stars, scanlines, pixels, and more
-- **SVG Sprite Support** – Load custom SVG sprites from collections
+- **SVG Sprite Support** – Load custom SVG sprites from collections with boolean operation support (cutouts)
+- **Custom Sprite Management** – Create, rename, and delete custom sprite collections; upload or paste SVG code
+- **SVG Optimization** – Automatic SVG optimization using SVGO for smaller file sizes
 - **Multi-Select Toggle** – Click sprite buttons to toggle selection on/off. Select multiple sprites for random distribution
 - **Empty Canvas** – Deselect all sprites to create an empty canvas
 - **Automatic Collection Discovery** – Add folders to `public/sprites/` and sprites are automatically discovered and added
 - **Random Sprite Mode** – Toggle to randomize sprite shapes across the canvas
 - **Instant Preview** – Icon buttons for each sprite mode with live previews
+- **Default Collection Pinned** – Default collection always appears first in the collection dropdown
 
 ### 🎨 Color & Palette System
 - **20+ Built-in Palettes** – Organized by category (Neon/Cyber, Warm/Fire, Cool/Ocean, Nature, Soft/Pastel, Dark/Mysterious)
@@ -60,6 +63,7 @@ Pixli Pro is a professional-grade generative art application built for nightclub
 - **Layer Opacity** – Per-layer opacity control
 - **Outline Mode** – Render sprites as strokes with adjustable width
 - **Mixed Outline/Filled** – Randomly mix outlined and filled sprites with separate opacity controls
+- **Outline Balance Slider** – Control the percentage of outlined vs filled sprites (0% = all filled, 50% = half/half, 100% = all outlined)
 
 ### 🎨 Theme System
 - **11 Colorway Accents** – Sunburst, Neon Grid, Nebula, Ember Glow, Lagoon Tide, Rose Quartz, Battleship, Electric Cyan, Lime Zest, Deep Indigo, Metallic Gold
@@ -247,7 +251,7 @@ Pixli Pro includes a powerful custom palette management system:
 - **Layer Opacity** – Control overall opacity
 
 ### Motion Tab
-- **Movement Mode** – Select from 10 motion types
+- **Movement Mode** – Select from 11 motion types (including new Pulse Meander mode)
 - **Motion Intensity** – Master speed control
 - **Rotation Animation** – Animated sprite rotation
 - **Hue Rotation** – Rotate sprite colors through color wheel
