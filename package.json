@@ -9,6 +9,7 @@
     "prebuild": "npm run generate:collections",
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:skip-check": "vite build",
     "preview": "vite preview",
     "server:ws": "node server/websocketServer.js",
     "version:patch": "npm version patch --no-git-tag-version",
