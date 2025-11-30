@@ -46,7 +46,7 @@ interface AppSidebarProps {
   paletteOptions: Array<{ value: string; label: string }>;
   canvasPaletteOptions: Array<{ value: string; label: string }>;
   onPaletteSelection: (paletteId: string) => void;
-  onPaletteOptionSelect: (option: { value: string; label: string }) => void;
+  onPaletteOptionSelect: (paletteId: string) => void;
   
   // Blend mode
   onBlendSelect: (mode: BlendModeOption) => void;

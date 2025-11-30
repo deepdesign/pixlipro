@@ -1,7 +1,7 @@
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { Backdrop } from "./Backdrop";
 import { AppSidebar } from "./AppSidebar";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface AppLayoutProps {
   children: ReactNode;

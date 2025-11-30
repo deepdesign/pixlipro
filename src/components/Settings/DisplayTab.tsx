@@ -51,17 +51,18 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
     setCustomHeight(loaded.customAspectRatio.height.toString());
   }, []);
 
-  const handleAspectRatioChange = (value: AppSettings["aspectRatio"]) => {
-    const newSettings = { ...settings, aspectRatio: value };
+  const handleAspectRatioChange = (value: string) => {
+    const aspectRatio = value as AppSettings["aspectRatio"];
+    const newSettings = { ...settings, aspectRatio };
     setSettings(newSettings);
     saveSettings(newSettings);
     
-    if (value === "custom") {
+    if (aspectRatio === "custom") {
       const width = parseInt(customWidth) || 1920;
       const height = parseInt(customHeight) || 1080;
-      onAspectRatioChange?.(value, { width, height });
+      onAspectRatioChange?.(aspectRatio, { width, height });
     } else {
-      onAspectRatioChange?.(value);
+      onAspectRatioChange?.(aspectRatio);
     }
   };
 
@@ -103,7 +104,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
   const currentPreset = ASPECT_RATIO_PRESETS[settings.aspectRatio];
   const recommendedResolution = settings.aspectRatio === "custom" 
     ? `${settings.customAspectRatio.width}×${settings.customAspectRatio.height}`
-    : currentPreset?.resolutions?.[0] || "";
+    : (currentPreset && "resolutions" in currentPreset && currentPreset.resolutions?.[0]) || "";
 
   return (
     <div className="space-y-6">
@@ -138,7 +139,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
                           {preset.description}
                         </p>
-                        {preset.resolutions && (
+                        {"resolutions" in preset && preset.resolutions && (
                           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                             Recommended: {preset.resolutions.join(", ")}
                           </p>
