@@ -1,378 +1,203 @@
-import { useRef } from "react";
-import { Button } from "@/components/Button";
 import { Switch } from "@/components/catalyst/switch-adapter";
-import { RefreshCw } from "lucide-react";
-import { BLEND_MODES } from "@/constants/blend";
-import { ControlSlider, ControlSelect, TooltipIcon } from "./shared";
-import { varianceToUi, uiToVariance, formatBlendMode } from "@/lib/utils";
-import { animatePulse } from "@/lib/utils/animations";
+import { ControlSlider, ControlSelect, TooltipIcon, TextWithTooltip } from "./shared";
 import type {
   GeneratorState,
   SpriteController,
-  BlendModeOption,
-  BackgroundMode,
 } from "@/types/generator";
 
 interface FxControlsProps {
   spriteState: GeneratorState;
   controller: SpriteController | null;
   ready: boolean;
-  currentPaletteId: string;
-  currentPaletteName: string;
-  paletteOptions: Array<{
-    value: string;
-    label: string;
-    category?: string;
-    colors?: string[];
-  }>;
-  canvasPaletteOptions: Array<{
-    value: string;
-    label: string;
-    category?: string;
-    colors?: string[];
-  }>;
-  lockedSpritePalette: boolean;
-  lockedCanvasPalette: boolean;
-  lockedBlendMode: boolean;
-  onLockSpritePalette: (locked: boolean) => void;
-  onLockCanvasPalette: (locked: boolean) => void;
-  onLockBlendMode: (locked: boolean) => void;
-  onPaletteSelection: (paletteId: string) => void;
-  onPaletteOptionSelect: (paletteId: string) => void;
-  onBlendSelect: (mode: BlendModeOption) => void;
-  onBlendAutoToggle: (checked: boolean) => void;
-  onOpenSettings?: () => void;
 }
 
 /**
  * FxControls Component
  * 
- * Renders controls for palette selection, variance, canvas background,
- * blend modes, and opacity. This is the "Colours" tab content.
+ * Renders controls for visual effects including Depth of Field, Bloom, and Noise/Grain.
  */
 export function FxControls({
   spriteState,
   controller,
   ready,
-  currentPaletteId,
-  currentPaletteName,
-  paletteOptions,
-  canvasPaletteOptions,
-  lockedSpritePalette,
-  lockedCanvasPalette,
-  lockedBlendMode,
-  onLockSpritePalette,
-  onLockCanvasPalette,
-  onLockBlendMode,
-  onPaletteSelection,
-  onPaletteOptionSelect,
-  onBlendSelect,
-  onBlendAutoToggle,
-  onOpenSettings,
 }: FxControlsProps) {
-  const blendAutoLabelId = "blend-auto-label";
-  const refreshPaletteButtonRef = useRef<HTMLButtonElement>(null);
-  const randomizeBlendButtonRef = useRef<HTMLButtonElement>(null);
-  const isCanvasGradient = spriteState.canvasFillMode === "gradient";
-  const currentCanvasLabel =
-    canvasPaletteOptions.find(
-      (option) => option.value === spriteState.backgroundMode,
-    )?.label ?? canvasPaletteOptions[0]?.label;
-
-  const handleCanvasPaletteChange = (value: string) => {
-    if (!controller) {
-      return;
-    }
-    if (isCanvasGradient) {
-      controller.setBackgroundMode(value as BackgroundMode);
-      controller.setCanvasGradientMode(value as BackgroundMode);
-    } else {
-      controller.setBackgroundMode(value as BackgroundMode);
-    }
-  };
-
   return (
     <>
+      <h2 className="panel-heading">FX</h2>
+      {/* Depth of Field Section */}
       <div className="section">
-        <h3 className="section-title">Palette &amp; variance</h3>
-        <ControlSelect
-          id="palette-presets"
-          label="Sprite palette"
-          value={currentPaletteId}
-          onChange={onPaletteSelection}
-          disabled={!ready}
-          options={paletteOptions}
-          tooltip="Select the core palette used for tinting sprites before variance is applied."
-          currentLabel={currentPaletteName}
-          locked={lockedSpritePalette}
-          onLockToggle={() => onLockSpritePalette(!lockedSpritePalette)}
-        />
-        <div className="control-field">
-          <div className="switch-row">
-            <Button
-              ref={refreshPaletteButtonRef}
-              type="button"
-              size="icon"
-              variant="background"
-              onClick={() => {
-                if (refreshPaletteButtonRef.current) {
-                  animatePulse(refreshPaletteButtonRef.current);
-                }
-                controller?.refreshPaletteApplication();
-              }}
-              disabled={!ready || lockedSpritePalette}
-              aria-label="Refresh palette application"
-              title="Re-apply the selected palette randomly across sprites"
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="dof-tip"
+              text="Blur sprites based on their distance from the focus point, creating a depth effect."
             >
-              <RefreshCw className="h-6 w-6" data-slot="icon" />
-            </Button>
-            <div className="field-heading-left">
-              <span className="field-label" id="refresh-palette-label">
-                Re-apply palette
-              </span>
-              <TooltipIcon
-                id="refresh-palette-tip"
-                text="Re-apply the selected palette randomly across sprites without changing their positions or shapes."
-                label="Re-apply palette"
-              />
-            </div>
+              <h3 className="section-title">Depth of Field</h3>
+            </TextWithTooltip>
           </div>
+          <Switch
+            checked={spriteState.depthOfFieldEnabled}
+            onCheckedChange={(checked) =>
+              controller?.setDepthOfFieldEnabled(checked)
+            }
+            disabled={!ready}
+            aria-label="Enable depth of field"
+          />
         </div>
-        {onOpenSettings && (
-          <div className="control-field">
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 underline-offset-4 hover:underline transition-colors"
-            >
-              Create palette
-            </button>
-          </div>
-        )}
-        <div className="control-field">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label">Use gradients</span>
-              <TooltipIcon
-                id="sprite-fill-mode-tip"
-                text="Enable gradient fills for sprites instead of solid colours."
-                label="Use gradients"
-              />
-            </div>
-          </div>
-          <div className="switch-row">
-            <Switch
-              checked={spriteState.spriteFillMode === "gradient"}
-              onCheckedChange={(checked) =>
-                controller?.setSpriteFillMode(checked ? "gradient" : "solid")
-              }
-              disabled={!ready}
-            />
-          </div>
-        </div>
-        <ControlSlider
-          id="palette-range"
-          label="Sprite palette variance"
-          min={0}
-          max={100}
-          value={varianceToUi(spriteState.paletteVariance)}
-          displayValue={`${varianceToUi(spriteState.paletteVariance)}%`}
-          onChange={(value) =>
-            controller?.setPaletteVariance(uiToVariance(value))
-          }
-          disabled={!ready}
-          tooltip="Controls how much each colour can drift away from the base palette swatches."
-        />
-        <ControlSlider
-          id="hue-shift"
-          label="Sprite hue shift"
-          min={0}
-          max={100}
-          value={spriteState.hueShift ?? 0}
-          displayValue={`${spriteState.hueShift ?? 0}%`}
-          onChange={(value) => controller?.setHueShift(value)}
-          disabled={!ready}
-          tooltip="Shifts all palette colours around the colour wheel (0–360°)."
-        />
-      </div>
-
-      <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Blend &amp; opacity</h3>
-        {spriteState.outlineMixed ? (
+        {spriteState.depthOfFieldEnabled && (
           <>
             <ControlSlider
-              id="filled-opacity-range"
-              label="Filled opacity"
+              id="dof-focus"
+              label="Focus point"
               min={0}
               max={100}
-              value={Math.round(spriteState.filledOpacity)}
-              displayValue={`${Math.round(spriteState.filledOpacity)}%`}
-              onChange={(value) => controller?.setFilledOpacity(value)}
+              value={Math.round(spriteState.depthOfFieldFocus)}
+              displayValue={`${Math.round(spriteState.depthOfFieldFocus)}%`}
+              onChange={(value) => controller?.setDepthOfFieldFocus(value)}
               disabled={!ready}
-              tooltip="Sets the transparency for filled sprites when mixed mode is enabled."
+              tooltip="Sets the focus point in the depth range (0% = near, 100% = far)."
             />
             <ControlSlider
-              id="outlined-opacity-range"
-              label="Outlined opacity"
+              id="dof-strength"
+              label="Blur strength"
               min={0}
               max={100}
-              value={Math.round(spriteState.outlinedOpacity)}
-              displayValue={`${Math.round(spriteState.outlinedOpacity)}%`}
-              onChange={(value) => controller?.setOutlinedOpacity(value)}
+              value={Math.round(spriteState.depthOfFieldStrength)}
+              displayValue={`${Math.round(spriteState.depthOfFieldStrength)}%`}
+              onChange={(value) => controller?.setDepthOfFieldStrength(value)}
               disabled={!ready}
-              tooltip="Sets the transparency for outlined sprites when mixed mode is enabled."
+              tooltip="Controls the intensity of the blur effect (0% = no blur, 100% = maximum blur)."
             />
           </>
-        ) : (
-        <ControlSlider
-          id="opacity-range"
-          label="Layer opacity"
-            min={0}
-          max={100}
-          value={Math.round(spriteState.layerOpacity)}
-          displayValue={`${Math.round(spriteState.layerOpacity)}%`}
-          onChange={(value) => controller?.setLayerOpacity(value)}
-          disabled={!ready}
-          tooltip="Sets the base transparency for each rendered layer before blending."
-        />
-        )}
-        <ControlSelect
-          id="blend-mode"
-          label="Blend mode"
-          value={spriteState.blendMode as string}
-          onChange={(value) => onBlendSelect(value as BlendModeOption)}
-          disabled={!ready || spriteState.blendModeAuto}
-          options={BLEND_MODES.map((mode) => ({
-            value: mode,
-            label: formatBlendMode(mode),
-          }))}
-          tooltip="Choose the compositing mode applied when layers draw over each other."
-          currentLabel={formatBlendMode(spriteState.blendMode as BlendModeOption)}
-          locked={lockedBlendMode}
-          onLockToggle={() => onLockBlendMode(!lockedBlendMode)}
-        />
-        <div className="control-field">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id={blendAutoLabelId}>
-                Random sprite blend
-              </span>
-              <TooltipIcon
-                id="blend-auto-tip"
-                text="Give every sprite an individual blend mode"
-                label="Random sprite blend"
-              />
-            </div>
-          </div>
-          <div className="switch-row">
-            <Switch
-              id="blend-auto"
-              checked={spriteState.blendModeAuto}
-              onCheckedChange={onBlendAutoToggle}
-              aria-labelledby={blendAutoLabelId}
-              disabled={!ready}
-            />
-          </div>
-        </div>
-        {spriteState.blendModeAuto && (
-          <div className="control-field">
-            <div className="switch-row">
-            <Button
-              ref={randomizeBlendButtonRef}
-              type="button"
-              size="icon"
-              variant="background"
-              onClick={() => {
-                if (randomizeBlendButtonRef.current) {
-                  animatePulse(randomizeBlendButtonRef.current);
-                }
-                controller?.randomizeBlendMode();
-              }}
-                disabled={!ready}
-              aria-label="Randomise sprite blend modes"
-              title="Randomise sprite blend modes"
-            >
-              <RefreshCw className="h-6 w-6" />
-            </Button>
-              <div className="field-heading-left">
-                <span className="field-label" id="randomize-blend-label">
-                  Re-apply sprite blends
-                </span>
-                <TooltipIcon
-                  id="randomize-blend-tip"
-                  text="Re-apply sprite blend modes randomly across sprites"
-                  label="Re-apply sprite blends"
-                />
-              </div>
-            </div>
-          </div>
         )}
       </div>
 
+      {/* Bloom Section */}
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Canvas</h3>
-        <ControlSelect
-          id={isCanvasGradient ? "canvas-gradient" : "background-mode"}
-          label="Canvas"
-          value={spriteState.backgroundMode}
-          onChange={handleCanvasPaletteChange}
-          disabled={!ready}
-          options={canvasPaletteOptions}
-          tooltip={
-            isCanvasGradient
-              ? "Choose the theme for the canvas gradient background."
-              : "Choose the colour applied behind the canvas."
-          }
-          currentLabel={currentCanvasLabel}
-          locked={lockedCanvasPalette}
-          onLockToggle={() => onLockCanvasPalette(!lockedCanvasPalette)}
-        />
-        <div className="control-field">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label">Use gradients</span>
-              <TooltipIcon
-                id="canvas-fill-mode-tip"
-                text="Enable gradient fills for canvas background instead of solid colour."
-                label="Use gradients"
-              />
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="bloom-tip"
+              text="Add a bright, glowing effect to bright areas of the canvas."
+            >
+              <h3 className="section-title">Bloom</h3>
+            </TextWithTooltip>
           </div>
-          <div className="switch-row">
-            <Switch
-              checked={isCanvasGradient}
-              onCheckedChange={(checked) =>
-                controller?.setCanvasFillMode(checked ? "gradient" : "solid")
+          <Switch
+            checked={spriteState.bloomEnabled}
+            onCheckedChange={(checked) =>
+              controller?.setBloomEnabled(checked)
+            }
+            disabled={!ready}
+            aria-label="Enable bloom"
+          />
+        </div>
+        {spriteState.bloomEnabled && (
+          <>
+            <ControlSlider
+              id="bloom-intensity"
+              label="Intensity"
+              min={0}
+              max={100}
+              value={Math.round(spriteState.bloomIntensity)}
+              displayValue={`${Math.round(spriteState.bloomIntensity)}%`}
+              onChange={(value) => controller?.setBloomIntensity(value)}
+              disabled={!ready}
+              tooltip="Controls the brightness of the bloom effect."
+            />
+            <ControlSlider
+              id="bloom-threshold"
+              label="Threshold"
+              min={0}
+              max={100}
+              value={Math.round(spriteState.bloomThreshold)}
+              displayValue={`${Math.round(spriteState.bloomThreshold)}%`}
+              onChange={(value) => controller?.setBloomThreshold(value)}
+              disabled={!ready}
+              tooltip="Brightness threshold for areas that will bloom."
+            />
+            <ControlSlider
+              id="bloom-radius"
+              label="Radius"
+              min={0}
+              max={100}
+              value={Math.round(spriteState.bloomRadius)}
+              displayValue={`${Math.round(spriteState.bloomRadius)}px`}
+              onChange={(value) => controller?.setBloomRadius(value)}
+              disabled={!ready}
+              tooltip="Size of the bloom effect in pixels."
+            />
+          </>
+        )}
+      </div>
+
+      {/* Noise/Grain Section */}
+      <div className="section section--spaced">
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="noise-tip"
+              text="Add film grain or static noise overlay to the canvas."
+            >
+              <h3 className="section-title">Noise &amp; Grain</h3>
+            </TextWithTooltip>
+          </div>
+          <Switch
+            checked={spriteState.noiseEnabled}
+            onCheckedChange={(checked) =>
+              controller?.setNoiseEnabled(checked)
+            }
+            disabled={!ready}
+            aria-label="Enable noise"
+          />
+        </div>
+        {spriteState.noiseEnabled && (
+          <>
+            <ControlSelect
+              id="noise-type"
+              label="Type"
+              value={spriteState.noiseType}
+              onChange={(value) =>
+                controller?.setNoiseType(value as "grain" | "crt" | "bayer" | "static" | "scanlines")
               }
               disabled={!ready}
+              options={[
+                { value: "grain", label: "Grain" },
+                { value: "crt", label: "CRT" },
+                { value: "bayer", label: "Bayer" },
+                { value: "static", label: "Static" },
+                { value: "scanlines", label: "TV Scanlines" },
+              ]}
+              tooltip="Type of noise effect to apply."
+              currentLabel={
+                spriteState.noiseType === "grain"
+                  ? "Grain"
+                  : spriteState.noiseType === "crt"
+                  ? "CRT"
+                  : spriteState.noiseType === "bayer"
+                  ? "Bayer"
+                  : spriteState.noiseType === "static"
+                  ? "Static"
+                  : "TV Scanlines"
+              }
             />
-          </div>
-        </div>
-        <ControlSlider
-          id="background-hue-shift"
-          label="Canvas hue shift"
-          min={0}
-          max={100}
-          value={Math.round(spriteState.backgroundHueShift ?? 0)}
-          displayValue={`${Math.round(spriteState.backgroundHueShift ?? 0)}%`}
-          onChange={(value) => controller?.setBackgroundHueShift(value)}
-          disabled={!ready}
-          tooltip="Shifts the canvas colours around the colour wheel (0–360°)."
-        />
-        <ControlSlider
-          id="background-brightness"
-          label="Canvas brightness"
-          min={0}
-          max={100}
-          value={Math.round(spriteState.backgroundBrightness ?? 50)}
-          displayValue={`${Math.round(spriteState.backgroundBrightness ?? 50)}%`}
-          onChange={(value) => controller?.setBackgroundBrightness(value)}
-          disabled={!ready}
-          tooltip="Adjusts the canvas brightness (0% = darkest, 100% = brightest)."
-        />
+            <ControlSlider
+              id="noise-strength"
+              label="Strength"
+              min={0}
+              max={100}
+              value={Math.round(spriteState.noiseStrength)}
+              displayValue={`${Math.round(spriteState.noiseStrength)}%`}
+              onChange={(value) => controller?.setNoiseStrength(value)}
+              disabled={!ready}
+              tooltip="Intensity of the noise effect."
+            />
+          </>
+        )}
       </div>
     </>
   );
 }
+

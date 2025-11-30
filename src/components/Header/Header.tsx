@@ -2,14 +2,14 @@ import { Button } from "@/components/Button";
 import { PixliLogo } from "./PixliLogo";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useSidebar } from "@/context/SidebarContext";
-import { Menu, X, Sparkles, Bookmark, List, Palette, Shapes } from "lucide-react";
+import { Menu, X, Sparkles, Bookmark, List, Palette, Shapes, PlayCircle } from "lucide-react";
 import { Navbar, NavbarSection } from "@/components/catalyst/navbar";
 interface HeaderProps {
   themeMode: "system" | "light" | "dark";
   onThemeModeChange: (mode: "system" | "light" | "dark") => void;
   onOpenSettings?: () => void;
-  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings") => void;
-  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | null;
+  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation") => void;
+  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation" | null;
 }
 
 export function Header({
@@ -96,6 +96,18 @@ export function Header({
               >
                 <Sparkles className="h-4 w-4" />
                 <span className="hidden sm:inline">Canvas</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate("animation")}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  currentPage === "animation"
+                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <PlayCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Animation</span>
               </button>
               <button
                 type="button"

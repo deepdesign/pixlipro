@@ -11,7 +11,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/Select";
-import { ControlSlider, ShapeIcon, TooltipIcon } from "./shared";
+import { ControlSlider, ShapeIcon, TooltipIcon, TextWithTooltip } from "./shared";
 import { densityToUi, uiToDensity } from "@/lib/utils";
 import { animatePulse } from "@/lib/utils/animations";
 import type { GeneratorState, SpriteController, SpriteMode } from "@/types/generator";
@@ -104,20 +104,21 @@ export function SpriteControls({
 
   return (
     <>
+      <h2 className="panel-heading">Shape</h2>
       <div className="section">
-        <h3 className="section-title">Shape</h3>
+        <h3 className="section-title">Sprite selection</h3>
         {/* Collection selector */}
         <div className="control-field">
           <div className="field-heading">
             <div className="field-heading-left">
-              <span className="field-label" id="collection-label">
-                Collection
-              </span>
-              <TooltipIcon
+              <TextWithTooltip
                 id="collection-tip"
                 text="Choose which sprite collection to use. Collections are organized in folders."
-                label="Collection"
-              />
+              >
+                <span className="field-label" id="collection-label">
+                  Collection
+                </span>
+              </TextWithTooltip>
             </div>
           </div>
           <div className="control-select-with-lock">
@@ -163,14 +164,14 @@ export function SpriteControls({
         <div className="control-field">
           <div className="field-heading">
             <div className="field-heading-left">
-              <span className="field-label" id="render-mode-label">
-                Select sprites
-              </span>
-              <TooltipIcon
+              <TextWithTooltip
                 id="render-mode-tip"
                 text="Click sprite buttons to toggle selection. Multiple sprites can be selected and will be randomly distributed across the canvas. Click again to deselect."
-                label="Select sprites"
-              />
+              >
+                <span className="field-label" id="render-mode-label">
+                  Select sprites
+                </span>
+              </TextWithTooltip>
             </div>
             {currentModeLabel && (
               <span className="field-value">{currentModeLabel}</span>
@@ -257,14 +258,14 @@ export function SpriteControls({
               <RefreshCw className="h-6 w-6" />
             </Button>
             <div className="field-heading-left">
-              <span className="field-label" id="regenerate-sprites-label">
-                Regenerate
-              </span>
-              <TooltipIcon
+              <TextWithTooltip
                 id="regenerate-sprites-tip"
                 text="Regenerate all sprites on the canvas with new positions and sizes."
-                label="Regenerate"
-              />
+              >
+                <span className="field-label" id="regenerate-sprites-label">
+                  Regenerate
+                </span>
+              </TextWithTooltip>
             </div>
           </div>
         </div>
@@ -272,106 +273,25 @@ export function SpriteControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Outline</h3>
-        <div className="control-field control-field--rotation">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id="outline-toggle-label">
-                Outline sprites
-              </span>
-              <TooltipIcon
-                id="outline-toggle-tip"
-                text="Render sprites as outlines (strokes) instead of filled shapes."
-                label="Outline sprites"
-              />
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="density-scale-tip"
+              text="Control the number and size of sprites on the canvas."
+            >
+              <h3 className="section-title">Density &amp; scale</h3>
+            </TextWithTooltip>
           </div>
-          <div className="switch-row">
-            <Switch
-              id="outline-toggle"
-              checked={spriteState.outlineEnabled}
-              onCheckedChange={onOutlineToggle}
-              disabled={!ready}
-              aria-labelledby="outline-toggle-label"
-            />
-          </div>
+          <Switch
+            checked={spriteState.densityScaleEnabled ?? true}
+            onCheckedChange={(checked) => controller?.setDensityScaleEnabled(checked)}
+            disabled={!ready}
+            aria-label={spriteState.densityScaleEnabled ? "Disable density and scale controls" : "Enable density and scale controls"}
+          />
         </div>
-        {spriteState.outlineEnabled && (
+        {spriteState.densityScaleEnabled !== false && (
           <>
             <ControlSlider
-              id="outline-stroke-width"
-              label="Stroke width"
-              min={1}
-              max={20}
-              value={Math.round(spriteState.outlineStrokeWidth)}
-              displayValue={`${Math.round(spriteState.outlineStrokeWidth)}px`}
-              onChange={onOutlineStrokeWidthChange}
-              disabled={!ready}
-              tooltip="Controls the width of the outline stroke in pixels."
-            />
-            <div className="control-field">
-              <div className="field-heading">
-                <div className="field-heading-left">
-                  <span className="field-label" id="outline-mixed-label">
-                    Mixed
-                  </span>
-                  <TooltipIcon
-                    id="outline-mixed-tip"
-                    text="Randomly mix filled and outlined sprites."
-                    label="Mixed"
-                  />
-                </div>
-              </div>
-              <div className="switch-row">
-                <Switch
-                  id="outline-mixed"
-                  checked={spriteState.outlineMixed}
-                  onCheckedChange={onOutlineMixedToggle}
-                  disabled={!ready}
-                  aria-labelledby="outline-mixed-label"
-                />
-                <Button
-                  ref={randomizeOutlineButtonRef}
-                  type="button"
-                  size="icon"
-                  variant="background"
-                  onClick={() => {
-                    if (randomizeOutlineButtonRef.current) {
-                      animatePulse(randomizeOutlineButtonRef.current);
-                    }
-                    onRandomizeOutlineDistribution();
-                  }}
-                  disabled={!ready || !spriteState.outlineMixed}
-                  aria-label="Randomise outline distribution"
-                  title="Randomise outline distribution"
-                >
-                  <RefreshCw className="h-6 w-6" />
-                </Button>
-              </div>
-              {spriteState.outlineMixed && (
-                <div className="control-field">
-                  <ControlSlider
-                    id="outline-balance"
-                    label="Balance"
-                    min={0}
-                    max={100}
-                    value={spriteState.outlineBalance ?? 50}
-                    displayValue={`${Math.round(spriteState.outlineBalance ?? 50)}%`}
-                    onChange={onOutlineBalanceChange}
-                    disabled={!ready}
-                    tooltip="Controls the percentage of outlined sprites. 0% = all filled, 50% = half outlined/half filled, 100% = all outlined."
-                  />
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Density &amp; scale</h3>
-        <ControlSlider
           id="density-range"
           label="Tile density"
           min={0}
@@ -404,87 +324,131 @@ export function SpriteControls({
           disabled={!ready}
           tooltip="Expands or tightens the difference between the smallest and largest sprites."
         />
-      </div>
-
-      <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Depth</h3>
-        <div className="control-field control-field--rotation">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id="depth-of-field-toggle-label">
-                Depth of field
-              </span>
-              <TooltipIcon
-                id="depth-of-field-toggle-tip"
-                text="Blur sprites based on their distance from a focus plane. Larger sprites (closer) and smaller sprites (farther) get different blur amounts."
-                label="Depth of field"
-              />
-            </div>
-          </div>
-          <div className="switch-row">
-            <Switch
-              id="depth-of-field-toggle"
-              checked={spriteState.depthOfFieldEnabled}
-              onCheckedChange={(checked) => controller?.setDepthOfFieldEnabled(checked)}
-              disabled={!ready}
-              aria-labelledby="depth-of-field-toggle-label"
-            />
-          </div>
-        </div>
-        {spriteState.depthOfFieldEnabled && (
-          <>
-            <ControlSlider
-              id="depth-focus"
-              label="Focus"
-              min={0}
-              max={100}
-              value={Math.round(spriteState.depthOfFieldFocus)}
-              displayValue={`${Math.round(spriteState.depthOfFieldFocus)}%`}
-              onChange={(value) => controller?.setDepthOfFieldFocus(value)}
-              disabled={!ready}
-              tooltip="Adjusts which depth is in focus. Objects at this depth remain sharp."
-            />
-            <ControlSlider
-              id="depth-strength"
-              label="Blur strength"
-              min={0}
-              max={100}
-              value={Math.round(spriteState.depthOfFieldStrength)}
-              displayValue={`${Math.round(spriteState.depthOfFieldStrength)}%`}
-              onChange={(value) => controller?.setDepthOfFieldStrength(value)}
-              disabled={!ready}
-              tooltip="Controls how blurry objects become when out of focus. Does not affect objects on the focus plane."
-            />
           </>
         )}
       </div>
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Rotation</h3>
-        <div className="control-field control-field--rotation">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id="rotation-toggle-label">
-                Rotation offsets
-              </span>
-              <TooltipIcon
-                id="rotation-toggle-tip"
-                text="Allow sprites to inherit a static rotation offset based on the slider below."
-                label="Rotation offsets"
-              />
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="outline-tip"
+              text="Render sprites as outlines (strokes) instead of filled shapes."
+            >
+              <h3 className="section-title">Outline</h3>
+            </TextWithTooltip>
           </div>
-          <div className="switch-row">
-            <Switch
-              id="rotation-toggle"
-              checked={spriteState.rotationEnabled}
-              onCheckedChange={onRotationToggle}
+          <Switch
+            id="outline-toggle"
+            checked={spriteState.outlineEnabled}
+            onCheckedChange={onOutlineToggle}
+            disabled={!ready}
+            aria-label="Enable outline sprites"
+          />
+        </div>
+        {spriteState.outlineEnabled && (
+          <>
+            <ControlSlider
+              id="outline-stroke-width"
+              label="Stroke width"
+              min={1}
+              max={20}
+              value={Math.round(spriteState.outlineStrokeWidth)}
+              displayValue={`${Math.round(spriteState.outlineStrokeWidth)}px`}
+              onChange={onOutlineStrokeWidthChange}
               disabled={!ready}
-              aria-labelledby="rotation-toggle-label"
+              tooltip="Controls the width of the outline stroke in pixels."
             />
+            <div className="mt-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <TextWithTooltip
+                    id="outline-mixed-tip"
+                    text="Randomly mix filled and outlined sprites."
+                  >
+                    <h4 className="section-subheading">Mixed</h4>
+                  </TextWithTooltip>
+                </div>
+                <Switch
+                  id="outline-mixed"
+                  checked={spriteState.outlineMixed}
+                  onCheckedChange={onOutlineMixedToggle}
+                  disabled={!ready}
+                  aria-label="Enable mixed outline mode"
+                />
+              </div>
+              {spriteState.outlineMixed && (
+                <>
+                  <div className="mt-5">
+                    <ControlSlider
+                      id="outline-balance"
+                      label="Balance"
+                      min={0}
+                      max={100}
+                      value={spriteState.outlineBalance ?? 50}
+                      displayValue={`${Math.round(spriteState.outlineBalance ?? 50)}%`}
+                      onChange={onOutlineBalanceChange}
+                      disabled={!ready}
+                      tooltip="Controls the percentage of outlined sprites. 0% = all filled, 50% = half outlined/half filled, 100% = all outlined."
+                    />
+                  </div>
+                  <div className="control-field control-field--spaced-top">
+                    <div className="switch-row">
+                      <Button
+                        ref={randomizeOutlineButtonRef}
+                        type="button"
+                        size="icon"
+                        variant="background"
+                        onClick={() => {
+                          if (randomizeOutlineButtonRef.current) {
+                            animatePulse(randomizeOutlineButtonRef.current);
+                          }
+                          onRandomizeOutlineDistribution();
+                        }}
+                        disabled={!ready || !spriteState.outlineMixed}
+                        aria-label="Redistribute outline"
+                        title="Redistribute outline"
+                      >
+                        <RefreshCw className="h-6 w-6" />
+                      </Button>
+                      <div className="field-heading-left">
+                        <TextWithTooltip
+                          id="randomize-outline-tip"
+                          text="Re-apply the outline distribution randomly across sprites"
+                        >
+                          <span className="field-label" id="randomize-outline-label">
+                            Redistribute
+                          </span>
+                        </TextWithTooltip>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="section section--spaced">
+        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="rotation-tip"
+              text="Allow sprites to inherit a static rotation offset based on the slider below."
+            >
+              <h3 className="section-title">Rotation</h3>
+            </TextWithTooltip>
           </div>
+          <Switch
+            id="rotation-toggle"
+            checked={spriteState.rotationEnabled}
+            onCheckedChange={onRotationToggle}
+            disabled={!ready}
+            aria-label="Enable rotation offsets"
+          />
         </div>
         {spriteState.rotationEnabled && (
           <div className="rotation-slider-wrapper">

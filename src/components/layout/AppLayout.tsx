@@ -13,7 +13,7 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideS
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
 
   return (
-    <div className="flex flex-1 lg:flex-row pb-[var(--footer-height)]">
+    <div className="flex flex-1 lg:flex-row h-full">
       {!hideSidebar && (
         <div className="lg:flex-shrink-0">
           <AppSidebar {...sidebarProps} />
@@ -21,7 +21,7 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideS
         </div>
       )}
       <div
-        className={`flex-1 min-w-0 border-t border-slate-200 dark:border-slate-800 ${
+        className={`flex-1 min-w-0 h-full border-t border-slate-200 dark:border-slate-800 ${
           hideSidebar 
             ? "lg:ml-0" 
             : isExpanded || isHovered 

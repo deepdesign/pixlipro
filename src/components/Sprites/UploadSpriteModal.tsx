@@ -323,7 +323,7 @@ export function UploadSpriteModal({
               <div className="grid grid-cols-2 gap-4">
                 {/* Original Preview */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-900 dark:text-white">
+                  <label className="block text-sm font-medium text-slate-900 dark:text-slate-50">
                     Original
                   </label>
                   <div className="mt-2 aspect-square bg-slate-100 dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 flex items-center justify-center overflow-hidden">
@@ -347,7 +347,7 @@ export function UploadSpriteModal({
                 {/* Optimized Preview */}
                 {optimizeEnabled && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-white">
+                    <label className="block text-sm font-medium text-slate-900 dark:text-slate-50">
                       Optimized
                       {isOptimizing && (
                         <Loader2 className="h-3 w-3 inline-block ml-2 animate-spin" />

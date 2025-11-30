@@ -1,6 +1,6 @@
 import { Switch } from "@/components/catalyst/switch-adapter";
 import { MOVEMENT_MODES, formatMovementMode } from "@/constants/movement";
-import { ControlSlider, ControlSelect, TooltipIcon } from "./shared";
+import { ControlSlider, ControlSelect, TooltipIcon, TextWithTooltip } from "./shared";
 import { speedToUi, uiToSpeed } from "@/lib/utils";
 import type { GeneratorState, SpriteController, MovementMode } from "@/types/generator";
 import { getAllPalettes, getPalette } from "@/data/palettes";
@@ -90,8 +90,9 @@ export function MotionControls({
   }, [spriteState.paletteCycleEnabled, spriteState.paletteId, paletteCycleTime]);
   return (
     <>
+      <h2 className="panel-heading">Motion</h2>
       <div className="section">
-        {showHeading && <h3 className="section-title">Animation</h3>}
+        <h3 className="section-title">Animation type</h3>
         <ControlSelect
           id="movement-mode"
           label="Movement"
@@ -133,29 +134,22 @@ export function MotionControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Rotation</h3>
-        <div className="control-field control-field--rotation">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id="rotation-animate-label">
-                Animate rotation
-              </span>
-              <TooltipIcon
-                id="rotation-animate-tip"
-                text="Toggle continuous spinning when rotation offsets are enabled."
-                label="Animate rotation"
-              />
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="rotation-tip"
+              text="Toggle continuous spinning when rotation offsets are enabled."
+            >
+              <h3 className="section-title">Rotation</h3>
+            </TextWithTooltip>
           </div>
-          <div className="switch-row">
-            <Switch
-              id="rotation-animate"
-              checked={spriteState.rotationAnimated}
-              onCheckedChange={onRotationAnimatedToggle}
-              disabled={!ready}
-              aria-labelledby="rotation-animate-label"
-            />
-          </div>
+          <Switch
+            id="rotation-animate"
+            checked={spriteState.rotationAnimated}
+            onCheckedChange={onRotationAnimatedToggle}
+            disabled={!ready}
+            aria-label="Animate rotation"
+          />
         </div>
         {spriteState.rotationAnimated && (
           <div className="rotation-slider-wrapper">
@@ -176,29 +170,22 @@ export function MotionControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Sprite hue rotation</h3>
-        <div className="control-field control-field--rotation">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id="hue-rotation-animate-label">
-                Animate hue rotation
-              </span>
-              <TooltipIcon
-                id="hue-rotation-animate-tip"
-                text="Continuously rotate sprite colours through the colour wheel."
-                label="Animate hue rotation"
-              />
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="hue-rotation-tip"
+              text="Continuously rotate sprite colours through the colour wheel."
+            >
+              <h3 className="section-title">Sprite hue rotation</h3>
+            </TextWithTooltip>
           </div>
-          <div className="switch-row">
-            <Switch
-              id="hue-rotation-animate"
-              checked={spriteState.hueRotationEnabled}
-              onCheckedChange={onHueRotationEnabledToggle}
-              disabled={!ready}
-              aria-labelledby="hue-rotation-animate-label"
-            />
-          </div>
+          <Switch
+            id="hue-rotation-animate"
+            checked={spriteState.hueRotationEnabled}
+            onCheckedChange={onHueRotationEnabledToggle}
+            disabled={!ready}
+            aria-label="Animate hue rotation"
+          />
         </div>
         {spriteState.hueRotationEnabled && (
           <div className="rotation-slider-wrapper">
@@ -220,29 +207,22 @@ export function MotionControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Palette cycling</h3>
-        <div className="control-field control-field--rotation">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id="palette-cycle-animate-label">
-                Cycle palettes
-              </span>
-              <TooltipIcon
-                id="palette-cycle-animate-tip"
-                text="Smoothly cycle through all available palettes."
-                label="Cycle palettes"
-              />
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="palette-cycle-tip"
+              text="Smoothly cycle through all available palettes."
+            >
+              <h3 className="section-title">Palette cycling</h3>
+            </TextWithTooltip>
           </div>
-          <div className="switch-row">
-            <Switch
-              id="palette-cycle-animate"
-              checked={spriteState.paletteCycleEnabled}
-              onCheckedChange={onPaletteCycleEnabledToggle}
-              disabled={!ready}
-              aria-labelledby="palette-cycle-animate-label"
-            />
-          </div>
+          <Switch
+            id="palette-cycle-animate"
+            checked={spriteState.paletteCycleEnabled}
+            onCheckedChange={onPaletteCycleEnabledToggle}
+            disabled={!ready}
+            aria-label="Cycle palettes"
+          />
         </div>
         {spriteState.paletteCycleEnabled && (
           <div className="rotation-slider-wrapper">
@@ -267,29 +247,22 @@ export function MotionControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <h3 className="section-title">Canvas hue rotation</h3>
-        <div className="control-field control-field--rotation">
-          <div className="field-heading">
-            <div className="field-heading-left">
-              <span className="field-label" id="canvas-hue-rotation-animate-label">
-                Animate canvas hue
-              </span>
-              <TooltipIcon
-                id="canvas-hue-rotation-animate-tip"
-                text="Continuously rotate canvas background colours through the colour wheel."
-                label="Animate canvas hue"
-              />
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="canvas-hue-rotation-tip"
+              text="Continuously rotate canvas background colours through the colour wheel."
+            >
+              <h3 className="section-title">Canvas hue rotation</h3>
+            </TextWithTooltip>
           </div>
-          <div className="switch-row">
-            <Switch
-              id="canvas-hue-rotation-animate"
-              checked={spriteState.canvasHueRotationEnabled}
-              onCheckedChange={onCanvasHueRotationEnabledToggle}
-              disabled={!ready}
-              aria-labelledby="canvas-hue-rotation-animate-label"
-            />
-          </div>
+          <Switch
+            id="canvas-hue-rotation-animate"
+            checked={spriteState.canvasHueRotationEnabled}
+            onCheckedChange={onCanvasHueRotationEnabledToggle}
+            disabled={!ready}
+            aria-label="Animate canvas hue"
+          />
         </div>
         {spriteState.canvasHueRotationEnabled && (
           <div className="rotation-slider-wrapper">

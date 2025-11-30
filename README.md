@@ -34,7 +34,8 @@ Pixli Pro is a professional-grade generative art application built for nightclub
 - **11 Motion Modes** – Drift, pulse, pulse meander, ripple, zigzag, cascade, spiral, comet, linear, isometric, and triangular
 - **Independent Animation Timelines** – Sprite hue rotation, palette cycling, and canvas hue rotation operate independently
 - **Blend Modes** – Multiply, screen, hard light, overlay, soft light with per-sprite randomization
-- **Depth of Field** – Optional blur effects for depth perception
+- **Visual Effects** – Depth of field, bloom, and noise/grain with multiple types including TV scanlines
+- **Color Adjustments** – Saturation, brightness, and contrast controls for sprites and canvas
 
 ### 🎯 Sprite Collection
 - **Geometric Shapes** – Tiles, circles, hexagons, diamonds, stars, scanlines, pixels, and more
@@ -247,16 +248,24 @@ Pixli Pro includes a powerful custom palette management system:
 - **Sprite Palette** – Select color palette for sprites
 - **Canvas Palette** – Select color palette for background
 - **Palette Variance** – Adjust color variation
+- **Color Adjustments** – Saturation, brightness, and contrast controls
+- **Hue Shift** – Adjust overall color hue
 - **Blend Mode** – Choose blend mode (with auto-randomization option)
 - **Layer Opacity** – Control overall opacity
+- **Canvas Background** – Solid colors or gradients with independent controls
 
 ### Motion Tab
-- **Movement Mode** – Select from 11 motion types (including new Pulse Meander mode)
+- **Movement Mode** – Select from 11 motion types (including Pulse Meander mode)
 - **Motion Intensity** – Master speed control
 - **Rotation Animation** – Animated sprite rotation
 - **Hue Rotation** – Rotate sprite colors through color wheel
-- **Palette Cycling** – Cycle through palettes automatically
+- **Palette Cycling** – Smoothly cycle through palettes automatically
 - **Canvas Hue Rotation** – Animate background colors
+
+### FX Tab
+- **Depth of Field** – Blur effects based on sprite distance from focus point
+- **Bloom** – Bright glowing effect for bright areas
+- **Noise & Grain** – Film grain, CRT, Bayer, static noise, or TV scanlines overlay
 
 ---
 
@@ -299,6 +308,31 @@ Contributions are welcome! Please follow these steps:
 - Maintain accessibility standards
 - Test on multiple browsers
 - Update documentation as needed
+
+---
+
+## 📝 Changelog
+
+### v1.3.0 (Latest)
+
+**New Features:**
+- Added Animation page to navigation
+- Added TV Scanlines as a noise/grain type option
+- Added panel headings (Shape, Colour, Motion, FX) for better organization
+- Improved palette cycling with smooth transitions (no more jumps)
+
+**Improvements:**
+- Fixed color adjustments (Saturation, Brightness, Contrast) for sprites and canvas
+- Enhanced canvas background controls with independent color adjustments
+- Improved UI hierarchy with panel and section headings
+
+**Removed:**
+- Motion Blur effect
+- Chromatic Aberration effect
+- Distortion effect
+- Glow effect
+- Trails & Echoes effect
+- Animated noise toggle (noise is now always animated)
 
 ---
 

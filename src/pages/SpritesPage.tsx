@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { CollectionSidebar, SpriteGrid, UploadSpriteModal } from "@/components/Sprites";
+import { CollectionSidebar, SpriteGrid, UploadSpriteModal, CreateCollectionModal } from "@/components/Sprites";
 import {
   getAllCustomCollections,
   getCustomCollection,
@@ -22,6 +22,7 @@ export function SpritesPage() {
   );
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
   const [uploadMode, setUploadMode] = useState<"upload" | "paste">("upload");
 
   // Get all collections (file-based + custom)
@@ -58,11 +59,12 @@ export function SpritesPage() {
   }, []);
 
   const handleCreateCollection = useCallback(() => {
-    const name = prompt("Enter collection name:");
-    if (!name || !name.trim()) return;
+    setShowCreateCollectionModal(true);
+  }, []);
 
+  const handleCreateCollectionSubmit = useCallback((name: string) => {
     try {
-      const collection = createCustomCollection(name.trim());
+      const collection = createCustomCollection(name);
       saveCustomCollection(collection);
       refreshCollections();
       setSelectedCollectionId(collection.id);
@@ -193,16 +195,16 @@ export function SpritesPage() {
   }, [selectedCollectionId, refreshCollections]);
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-slate-950">
+    <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-slate-950 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">
           Sprites
         </h2>
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Sidebar */}
         <CollectionSidebar
           selectedCollectionId={selectedCollectionId}
@@ -244,6 +246,13 @@ export function SpritesPage() {
         availableCollections={availableCollections}
         defaultCollectionId={selectedCollectionId || undefined}
         initialMode={uploadMode}
+      />
+
+      {/* Create Collection Modal */}
+      <CreateCollectionModal
+        isOpen={showCreateCollectionModal}
+        onClose={() => setShowCreateCollectionModal(false)}
+        onCreate={handleCreateCollectionSubmit}
       />
     </div>
   );

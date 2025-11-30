@@ -1,16 +1,17 @@
 import { useSidebar } from "@/context/SidebarContext";
 import { SpriteControls } from "@/components/ControlPanel/SpriteControls";
+import { ColourControls } from "@/components/ControlPanel/ColourControls";
 import { FxControls } from "@/components/ControlPanel/FxControls";
 import { MotionControls } from "@/components/ControlPanel/MotionControls";
-import { Shapes, Palette, Zap, Settings, Moon, Monitor, Sun } from "lucide-react";
+import { Shapes, Palette, Zap, Settings, Moon, Monitor, Sun, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import type { GeneratorState, SpriteController, SpriteMode, MovementMode } from "@/types/generator";
 import type { BlendModeOption } from "@/types/generator";
 
 interface AppSidebarProps {
   // Control panel state
-  activePanel: "sprites" | "colours" | "motion";
-  onPanelChange: (panel: "sprites" | "colours" | "motion") => void;
+  activePanel: "sprites" | "colours" | "motion" | "fx";
+  onPanelChange: (panel: "sprites" | "colours" | "motion" | "fx") => void;
   
   // Sprite state
   spriteState: GeneratorState | null;
@@ -70,8 +71,8 @@ interface AppSidebarProps {
   themeMode?: "system" | "light" | "dark";
   onThemeModeChange?: (mode: "system" | "light" | "dark") => void;
   onOpenSettings?: () => void;
-  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings") => void;
-  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | null;
+  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation") => void;
+  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation" | null;
 }
 
 export const AppSidebar = ({
@@ -147,9 +148,10 @@ export const AppSidebar = ({
   const ThemeModeIconComponent = ThemeModeIcon;
   
   const navigationItems = [
-    { value: "sprites" as const, label: "Sprites", icon: Shapes },
-    { value: "colours" as const, label: "Colours", icon: Palette },
+    { value: "sprites" as const, label: "Shape", icon: Shapes },
+    { value: "colours" as const, label: "Colour", icon: Palette },
     ...(isWideLayout ? [] : [{ value: "motion" as const, label: "Motion", icon: Zap }]),
+    { value: "fx" as const, label: "FX", icon: Sparkles },
   ];
 
   const showRightColumn = isExpanded || isHovered || isMobileOpen;
@@ -255,7 +257,7 @@ export const AppSidebar = ({
                 />
               )}
               {activePanel === "colours" && (
-                <FxControls
+                <ColourControls
                   spriteState={spriteState}
                   controller={controller}
                   ready={ready}
@@ -292,6 +294,13 @@ export const AppSidebar = ({
                   onPaletteCycleSpeedChange={onPaletteCycleSpeedChange}
                   onCanvasHueRotationEnabledToggle={onCanvasHueRotationEnabledToggle}
                   onCanvasHueRotationSpeedChange={onCanvasHueRotationSpeedChange}
+                />
+              )}
+              {activePanel === "fx" && (
+                <FxControls
+                  spriteState={spriteState}
+                  controller={controller}
+                  ready={ready}
                 />
               )}
             </div>

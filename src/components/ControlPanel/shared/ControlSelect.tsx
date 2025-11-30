@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Lock, Unlock } from "lucide-react";
-import { TooltipIcon } from "./TooltipIcon";
+import { TextWithTooltip } from "./TextWithTooltip";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import React, { useCallback, useRef, useEffect, useState } from "react";
 
@@ -141,11 +141,16 @@ export function ControlSelect({
     <div className="control-field">
       <div className="field-heading">
         <div className="field-heading-left">
-          <span className="field-label" id={`${id}-label`}>
-            {label}
-          </span>
-          {tooltip && tooltipId && (
-            <TooltipIcon id={tooltipId} text={tooltip} label={label} />
+          {tooltip && tooltipId ? (
+            <TextWithTooltip id={tooltipId} text={tooltip}>
+              <span className="field-label" id={`${id}-label`}>
+                {label}
+              </span>
+            </TextWithTooltip>
+          ) : (
+            <span className="field-label" id={`${id}-label`}>
+              {label}
+            </span>
           )}
         </div>
         {currentLabel ? (

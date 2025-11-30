@@ -1,6 +1,6 @@
 import p5 from "p5";
 import type { P5WithCanvas, HTMLElementWithResizeObserver } from "./types/p5-extensions";
-import { hasRedraw, hasResizeObserver } from "./types/p5-extensions";
+import { hasRedraw, hasResizeObserver, hasCanvas } from "./types/p5-extensions";
 
 import {
   defaultPaletteId,
@@ -14,6 +14,7 @@ import { calculateGradientLine } from "./lib/utils";
 import { getCollection, getSpriteInCollection, getAllCollections, findSpriteByIdentifier, getSpriteIdentifierFromMode } from "./constants/spriteCollections";
 import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache, preloadSpriteImages } from "./lib/services/spriteImageLoader";
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
+import { applyNoiseOverlay } from "./lib/utils/fxNoise";
 
 const MIN_TILE_SCALE = 0.12;
 const MAX_TILE_SCALE = 5.5; // Allow large sprites, but positioning will be adjusted
@@ -117,25 +118,6 @@ export type SpriteMode =
   | "x"
   | "arrow";
 
-interface ShapeTile {
-  kind: "shape";
-  shape: ShapeMode;
-  tint: string;
-  paletteColorIndex: number; // Index of the palette color used (before jittering)
-  u: number;
-  v: number;
-  scale: number;
-  blendMode: BlendModeKey;
-  rotationBase: number;
-  rotationDirection: number;
-  rotationSpeed: number;
-  // Store random multipliers for dynamic recalculation without regeneration
-  rotationBaseMultiplier: number; // Random multiplier for rotationBase (-1 to 1)
-  rotationSpeedMultiplier: number; // Random multiplier for rotationSpeed (0.6 to 1.2)
-  animationTimeMultiplier: number; // Random multiplier for animation time (0.85 to 1.15, +/- 15%)
-  isOutlined: boolean; // Whether this sprite should be rendered as an outline (used when outlineMixed is true)
-}
-
 interface SvgTile {
   kind: "svg";
   svgPath: string; // Path to the SVG file
@@ -156,14 +138,14 @@ interface SvgTile {
   isOutlined: boolean; // Whether this sprite should be rendered as an outline (used when outlineMixed is true)
 }
 
-type PreparedTile = ShapeTile | SvgTile;
+type PreparedTile = SvgTile;
 
 interface PreparedLayer {
   tiles: PreparedTile[];
   tileCount: number;
   blendMode: BlendModeKey;
   opacity: number;
-  mode: "shape" | "svg";
+  mode: "svg";
   baseSizeRatio: number;
 }
 
@@ -178,6 +160,9 @@ export interface GeneratorState {
   paletteId: string;
   paletteVariance: number;
   hueShift: number;
+  saturation: number; // Color saturation adjustment (0-200, 100 = normal)
+  brightness: number; // Color brightness adjustment (0-200, 100 = normal)
+  contrast: number; // Color contrast adjustment (0-200, 100 = normal)
   scalePercent: number;
   scaleBase: number;
   scaleSpread: number;
@@ -187,11 +172,12 @@ export interface GeneratorState {
   previousBlendMode: BlendModeKey;
   layerOpacity: number;
   spriteMode: SpriteMode; // DEPRECATED: kept for backward compatibility, use selectedSprites instead
-  selectedSprites: string[]; // Array of sprite identifiers: "shape:star" for shapes or svgPath for SVG sprites
+  selectedSprites: string[]; // Array of sprite identifiers: svgPath for SVG sprites
   movementMode: MovementMode;
   backgroundMode: BackgroundMode;
   backgroundHueShift: number;
   backgroundBrightness: number;
+  backgroundColorIndex: number; // Index of palette color used for background (0-based)
   motionSpeed: number;
   rotationEnabled: boolean;
   rotationAmount: number;
@@ -214,6 +200,7 @@ export interface GeneratorState {
   // Sprite collection settings
   spriteCollectionId: string; // Collection ID (e.g., "default", "christmas")
   // Animation settings
+  animationEnabled: boolean; // Master toggle for all movement/animation (default: true, controls motion speed/position updates)
   hueRotationEnabled: boolean; // Toggle sprite hue rotation animation
   hueRotationSpeed: number; // Speed of sprite hue rotation (0-100%)
   paletteCycleEnabled: boolean; // Toggle palette cycling animation
@@ -231,6 +218,24 @@ export interface GeneratorState {
   filledOpacity: number; // Opacity for filled sprites when mixed mode is enabled (0-100)
   outlinedOpacity: number; // Opacity for outlined sprites when mixed mode is enabled (0-100)
   colorSeedSuffix: string; // Suffix for color RNG to allow re-applying palette without regenerating sprites
+  blendModeSeedSuffix: string; // Suffix for blend mode RNG to allow re-applying blend modes without regenerating sprites
+  backgroundColorSeedSuffix: string; // Suffix for background color RNG to allow re-applying background color
+  // Section enable/disable flags (when collapsed, sections keep values but don't affect rendering)
+  colorAdjustmentsEnabled: boolean; // Whether color adjustments section is active
+  gradientsEnabled: boolean; // Whether gradients section is active
+  blendOpacityEnabled: boolean; // Whether blend & opacity section is active
+  canvasEnabled: boolean; // Whether canvas section is active
+  densityScaleEnabled: boolean; // Whether density & scale section is active
+  // FX (Visual Effects) settings
+  // Bloom
+  bloomEnabled: boolean;
+  bloomIntensity: number; // 0-100
+  bloomThreshold: number; // 0-100, brightness threshold
+  bloomRadius: number; // 0-100 pixels
+  // Noise/Grain (enhance existing)
+  noiseEnabled: boolean;
+  noiseType: "grain" | "crt" | "bayer" | "static" | "scanlines";
+  noiseStrength: number; // 0-100
 }
 
 export interface SpriteControllerOptions {
@@ -238,28 +243,7 @@ export interface SpriteControllerOptions {
   onFrameRate?: (fps: number) => void;
 }
 
-const shapeModes = [
-  "rounded",
-  "circle",
-  "square",
-  "triangle",
-  "hexagon",
-  "diamond",
-  "star",
-  "line",
-  "pentagon",
-  "asterisk",
-  "cross",
-  "pixels",
-  "heart",
-  "smiley",
-  "tree",
-  "x",
-  "arrow",
-] as const;
-const spriteModePool: SpriteMode[] = [...shapeModes];
-
-type ShapeMode = (typeof shapeModes)[number];
+// All sprites now use SVG files - no shape primitives needed
 
 // Helper to get a random sprite from default collection
 function getRandomDefaultSprite(): string {
@@ -283,9 +267,12 @@ export const DEFAULT_STATE: GeneratorState = {
   paletteId: defaultPaletteId,
   paletteVariance: 68,
   hueShift: 0,
-  scalePercent: 320,
-  scaleBase: 72,
-  scaleSpread: 62,
+  saturation: 100, // Default 100% = normal saturation
+  brightness: 100, // Default 100% = normal brightness
+  contrast: 100, // Default 100% = normal contrast
+  scalePercent: 925, // 50% UI: uiToDensity(50) = 50 + (50/100) * (1800-50) = 50 + 875 = 925
+  scaleBase: 50,
+  scaleSpread: 50,
   motionIntensity: 58,
   blendMode: "NONE",
   blendModeAuto: true,
@@ -297,6 +284,7 @@ export const DEFAULT_STATE: GeneratorState = {
   backgroundMode: "auto",
   backgroundHueShift: 0,
   backgroundBrightness: 50,
+  backgroundColorIndex: 0, // Default to first color for backward compatibility
   motionSpeed: 8.5,
   rotationEnabled: false,
   rotationAmount: 72,
@@ -319,6 +307,7 @@ export const DEFAULT_STATE: GeneratorState = {
   // Sprite collection defaults
   spriteCollectionId: "default", // Default to default collection
   // Animation defaults
+  animationEnabled: true, // Animation enabled by default
   hueRotationEnabled: false,
   hueRotationSpeed: 50,
   paletteCycleEnabled: false,
@@ -336,6 +325,22 @@ export const DEFAULT_STATE: GeneratorState = {
   filledOpacity: 74, // Default opacity for filled sprites in mixed mode
   outlinedOpacity: 74, // Default opacity for outlined sprites in mixed mode
   colorSeedSuffix: "", // Suffix for color RNG to allow re-applying palette without regenerating sprites
+  blendModeSeedSuffix: "", // Suffix for blend mode RNG to allow re-applying blend modes without regenerating sprites
+  backgroundColorSeedSuffix: "", // Suffix for background color RNG to allow re-applying background color
+  // Section enable flags - all enabled by default
+  colorAdjustmentsEnabled: true,
+  gradientsEnabled: true,
+  blendOpacityEnabled: true,
+  canvasEnabled: true,
+  densityScaleEnabled: true,
+  // FX defaults
+  bloomEnabled: false,
+  bloomIntensity: 50, // Default 50% intensity
+  bloomThreshold: 50, // Default 50% brightness threshold
+  bloomRadius: 20, // Default 20px radius
+  noiseEnabled: false,
+  noiseType: "grain", // Default grain noise
+  noiseStrength: 30, // Default 30% strength
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -482,11 +487,51 @@ const jitterColor = (hex: string, variance: number, random: () => number) => {
   return hslToHex(h + hueShift, s + satShift, l + lightShift);
 };
 
+/**
+ * Apply saturation, brightness, and contrast adjustments to a color
+ * @param hex - Input color in hex format
+ * @param saturationPercent - Saturation adjustment (0-200, 100 = normal, 0 = grayscale, 200 = max saturation)
+ * @param brightnessPercent - Brightness adjustment (0-200, 100 = normal, 0 = black, 200 = max brightness)
+ * @param contrastPercent - Contrast adjustment (0-200, 100 = normal, 0 = no contrast, 200 = max contrast)
+ */
+const applyColorAdjustments = (
+  hex: string,
+  saturationPercent: number,
+  brightnessPercent: number,
+  contrastPercent: number,
+): string => {
+  let [h, s, l] = hexToHsl(hex);
+  
+  // Apply saturation adjustment (0-200, 100 = normal)
+  // Map: 0 = 0% saturation (grayscale), 100 = 100% (normal), 200 = 200% (max)
+  const saturationFactor = saturationPercent / 100;
+  s = clamp(s * saturationFactor, 0, 100);
+  
+  // Apply contrast adjustment FIRST (0-200, 100 = normal)
+  // Contrast works by pushing lightness away from 50% (middle gray)
+  // 0 = no contrast (everything becomes 50% gray), 100 = normal, 200 = max contrast
+  // Always apply contrast (at 100% it returns the same value)
+  const originalLightness = l;
+  const contrastFactor = contrastPercent / 100;
+  const midpoint = 50;
+  l = clamp(midpoint + (originalLightness - midpoint) * contrastFactor, 0, 100);
+  
+  // Apply brightness adjustment AFTER contrast (0-200, 100 = normal)
+  // Map: 0 = 0% lightness (black), 100 = normal lightness, 200 = 100% lightness (white)
+  const brightnessFactor = brightnessPercent / 100;
+  l = clamp(l * brightnessFactor, 0, 100);
+  
+  return hslToHex(h, s, l);
+};
+
 const interpolatePaletteColors = (
   palette1: string[],
   palette2: string[],
   t: number // 0-1 interpolation factor
 ): string[] => {
+  // Clamp t to ensure we're always in valid range
+  const clampedT = Math.max(0, Math.min(1, t));
+  
   const maxLength = Math.max(palette1.length, palette2.length);
   return Array.from({ length: maxLength }, (_, i) => {
     const color1 = palette1[i % palette1.length];
@@ -497,9 +542,9 @@ const interpolatePaletteColors = (
     let hueDiff = h2 - h1;
     if (hueDiff > 180) hueDiff -= 360;
     if (hueDiff < -180) hueDiff += 360;
-    const h = h1 + hueDiff * t;
-    const s = s1 + (s2 - s1) * t;
-    const l = l1 + (l2 - l1) * t;
+    const h = h1 + hueDiff * clampedT;
+    const s = s1 + (s2 - s1) * clampedT;
+    const l = l1 + (l2 - l1) * clampedT;
     return hslToHex(h, s, l);
   });
 };
@@ -793,6 +838,26 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
  * @param state - Complete generator state (palette, density, motion, etc.)
  * @returns Prepared sprite with layers, tiles, and background configuration
  */
+/**
+ * Helper function to calculate background color index using seeded RNG
+ * Ensures the background color matches the theme/seed
+ */
+const calculateBackgroundColorIndex = (
+  seed: string,
+  backgroundPaletteId: string,
+  backgroundColorSeedSuffix: string = "",
+): number => {
+  const backgroundPalette = getPalette(backgroundPaletteId);
+  const paletteColorCount = backgroundPalette.colors.length;
+  if (paletteColorCount === 0) {
+    return 0;
+  }
+  // Use seeded RNG based on seed, background palette ID, and optional suffix
+  const suffixStr = backgroundColorSeedSuffix ? `-${backgroundColorSeedSuffix}` : "";
+  const bgColorRng = createMulberry32(hashSeed(`${seed}-background-color-${backgroundPaletteId}${suffixStr}`));
+  return Math.floor(bgColorRng() * paletteColorCount);
+};
+
 const computeSprite = (state: GeneratorState, overridePalette?: { id: string; colors: string[] }): PreparedSprite => {
   const rng = createMulberry32(hashSeed(state.seed));
   const palette = overridePalette ? { id: overridePalette.id, name: "", colors: overridePalette.colors } : getPalette(state.paletteId);
@@ -816,7 +881,17 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   const backgroundPaletteId =
     state.backgroundMode === "auto" ? state.paletteId : state.backgroundMode;
   const backgroundPalette = getPalette(backgroundPaletteId);
-  const backgroundBase = backgroundPalette.colors[0] ?? originalPaletteColors[0];
+  // Calculate background color index using seeded RNG with optional suffix
+  const bgColorIndex = calculateBackgroundColorIndex(
+    state.seed,
+    backgroundPaletteId,
+    state.backgroundColorSeedSuffix || ""
+  );
+  // Wrap index to valid range
+  const validBgIndex = backgroundPalette.colors.length > 0
+    ? (bgColorIndex % backgroundPalette.colors.length)
+    : 0;
+  const backgroundBase = backgroundPalette.colors[validBgIndex] ?? originalPaletteColors[0];
   const backgroundHueShiftDegrees = (state.backgroundHueShift / 100) * 360;
   const background = applyHueAndBrightness(
     backgroundBase,
@@ -847,15 +922,18 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     selectedSpriteIds = state.selectedSprites;
   } else {
     // Backward compatibility: if selectedSprites doesn't exist (old state), convert from spriteMode
-    const collection = getCollection(state.spriteCollectionId || "default");
-    if (collection?.isShapeBased) {
-      selectedSpriteIds = [`shape:${state.spriteMode}`];
+    // All collections are now SVG-based
+    const sprite = getSpriteInCollection(state.spriteCollectionId || "default", state.spriteMode);
+    if (sprite?.svgPath) {
+      selectedSpriteIds = [sprite.svgPath];
     } else {
-      const sprite = getSpriteInCollection(state.spriteCollectionId || "default", state.spriteMode);
-      if (sprite?.svgPath) {
-        selectedSpriteIds = [sprite.svgPath];
-      } else {
-        selectedSpriteIds = [`shape:${state.spriteMode}`];
+      // Fallback: use default sprite if spriteMode doesn't match any sprite
+      const defaultCollection = getCollection("default");
+      if (defaultCollection && defaultCollection.sprites.length > 0) {
+        const firstSprite = defaultCollection.sprites[0];
+      if (firstSprite.svgPath) {
+          selectedSpriteIds = [firstSprite.svgPath];
+        }
       }
     }
   }
@@ -863,16 +941,8 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   // Allow empty selection - will result in empty canvas
   // Empty array means no sprites will be rendered
   
-  // Helper to get sprite info from identifier
-  const getSpriteInfo = (identifier: string): { isShape: boolean; shape?: ShapeMode; svgSprite?: { id: string; svgPath: string } } | null => {
-    if (identifier.startsWith("shape:")) {
-      const shapeMode = identifier.replace("shape:", "") as ShapeMode;
-      if (shapeModes.includes(shapeMode)) {
-        return { isShape: true, shape: shapeMode };
-      }
-      return null;
-    }
-    
+  // Helper to get sprite info from identifier (all sprites now use SVG files)
+  const getSpriteInfo = (identifier: string): { svgSprite: { id: string; svgPath: string } } | null => {
     // Check if it's a custom sprite identifier (format: "custom:collectionId:spriteId")
     if (identifier.startsWith("custom:")) {
       const parts = identifier.split(":");
@@ -898,7 +968,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           }
           return null;
         }
-        return { isShape: false, svgSprite: { id: sprite.id, svgPath: sprite.svgPath } };
+        return { svgSprite: { id: sprite.id, svgPath: sprite.svgPath } };
       }
       return null;
     }
@@ -908,7 +978,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     for (const collection of allCollections) {
       const sprite = collection.sprites.find(s => s.svgPath === identifier);
       if (sprite && sprite.svgPath) {
-        return { isShape: false, svgSprite: { id: sprite.id, svgPath: sprite.svgPath } };
+        return { svgSprite: { id: sprite.id, svgPath: sprite.svgPath } };
       }
     }
     return null;
@@ -958,8 +1028,12 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       continue;
     }
 
+    // Use separate RNG for layer blend mode if blendModeSeedSuffix is set
+    const layerBlendRng = state.blendModeSeedSuffix
+      ? createMulberry32(hashSeed(`${state.seed}-blend${state.blendModeSeedSuffix}-layer${layerIndex}`))
+      : () => Math.random();
     const layerBlendMode: BlendModeKey = state.blendModeAuto
-      ? (blendModePool[Math.floor(Math.random() * blendModePool.length)] ??
+      ? (blendModePool[Math.floor(layerBlendRng() * blendModePool.length)] ??
         "NONE")
       : state.blendMode;
     const opacity = clamp(opacityBase + (rng() - 0.5) * 0.35, 0.12, 0.95);
@@ -1059,6 +1133,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           console.warn(`Sprite not found for identifier: ${selectedSpriteId}. Available sprites:`, selectedSpriteIds);
         }
         // Fallback: try to find any valid sprite from selected sprites
+        // Try to find a valid fallback sprite
         let fallbackInfo = null;
         for (const fallbackId of selectedSpriteIds) {
           fallbackInfo = getSpriteInfo(fallbackId);
@@ -1073,99 +1148,60 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           if (collection && collection.sprites.length > 0) {
             const firstSprite = collection.sprites[0];
             if (firstSprite.svgPath) {
-              fallbackInfo = { isShape: false, svgSprite: { id: firstSprite.id, svgPath: firstSprite.svgPath } };
-            } else if (firstSprite.spriteMode) {
-              fallbackInfo = { isShape: true, shape: firstSprite.spriteMode as ShapeMode };
+              fallbackInfo = { svgSprite: { id: firstSprite.id, svgPath: firstSprite.svgPath } };
             }
           }
         }
         
-        // Ultimate fallback: use star shape
+        // Ultimate fallback: use star sprite
         if (!fallbackInfo) {
-          fallbackInfo = { isShape: true, shape: "star" as ShapeMode };
+          fallbackInfo = { svgSprite: { id: "star", svgPath: "/sprites/default/star.svg" } };
         }
         
         // Create tile with fallback sprite
-        if (fallbackInfo.isShape) {
-          tiles.push({
-            kind: "shape",
-            shape: fallbackInfo.shape || "star",
-            tint,
-            paletteColorIndex,
-            u,
-            v,
-            scale,
-            blendMode: tileBlend,
-            rotationBase,
-            rotationDirection,
-            rotationSpeed: rotationSpeedValue,
-            rotationBaseMultiplier,
-            rotationSpeedMultiplier,
-            animationTimeMultiplier,
-            isOutlined,
-          });
-        } else if (fallbackInfo.svgSprite) {
-          tiles.push({
+        if (fallbackInfo.svgSprite) {
+        tiles.push({
             kind: "svg",
             svgPath: fallbackInfo.svgSprite.svgPath,
             spriteId: fallbackInfo.svgSprite.id,
-            tint,
-            paletteColorIndex,
-            u,
-            v,
-            scale,
-            blendMode: tileBlend,
-            rotationBase,
-            rotationDirection,
-            rotationSpeed: rotationSpeedValue,
-            rotationBaseMultiplier,
-            rotationSpeedMultiplier,
-            animationTimeMultiplier,
+          tint,
+          paletteColorIndex,
+          u,
+          v,
+          scale,
+          blendMode: tileBlend,
+          rotationBase,
+          rotationDirection,
+          rotationSpeed: rotationSpeedValue,
+          rotationBaseMultiplier,
+          rotationSpeedMultiplier,
+          animationTimeMultiplier,
             isOutlined,
-          });
+        });
         }
         continue; // Skip to next iteration after creating fallback tile
       }
       
-      if (spriteInfo.isShape) {
-        // Shape-based sprite
-        tiles.push({
-          kind: "shape",
-          shape: spriteInfo.shape || "star",
-          tint,
-          paletteColorIndex,
-          u,
-          v,
-          scale,
-          blendMode: tileBlend,
-          rotationBase,
-          rotationDirection,
-          rotationSpeed: rotationSpeedValue,
-          rotationBaseMultiplier,
-          rotationSpeedMultiplier,
-          animationTimeMultiplier,
-          isOutlined,
-        });
-      } else if (spriteInfo.svgSprite) {
-        // SVG-based sprite
-        tiles.push({
-          kind: "svg",
+      // All sprites are now SVG-based
+      if (spriteInfo.svgSprite) {
+          tiles.push({
+            kind: "svg",
           svgPath: spriteInfo.svgSprite.svgPath,
           spriteId: spriteInfo.svgSprite.id,
-          tint,
-          paletteColorIndex,
-          u,
-          v,
-          scale,
-          blendMode: tileBlend,
-          rotationBase,
-          rotationDirection,
-          rotationSpeed: rotationSpeedValue,
-          rotationBaseMultiplier,
-          rotationSpeedMultiplier,
-          animationTimeMultiplier,
+            tint,
+            paletteColorIndex,
+            u,
+            v,
+            scale,
+            blendMode: tileBlend,
+            rotationBase,
+            rotationDirection,
+            rotationSpeed: rotationSpeedValue,
+            rotationBaseMultiplier,
+            rotationSpeedMultiplier,
+            animationTimeMultiplier,
           isOutlined,
-        });
+          });
       }
     }
 
@@ -1174,7 +1210,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       tileCount: tileTotal,
       blendMode: layerBlendMode,
       opacity,
-      mode: selectedSpriteIds.every(id => id.startsWith("shape:")) ? "shape" : "svg",
+      mode: "svg",
       baseSizeRatio,
     });
   }
@@ -1200,8 +1236,17 @@ export interface SpriteController {
   setScaleSpread: (value: number) => void;
   setPaletteVariance: (value: number) => void;
   setHueShift: (value: number) => void;
+  setSaturation: (value: number) => void;
+  setBrightness: (value: number) => void;
+  setContrast: (value: number) => void;
+  setColorAdjustmentsEnabled: (enabled: boolean) => void;
+  setGradientsEnabled: (enabled: boolean) => void;
+  setBlendOpacityEnabled: (enabled: boolean) => void;
+  setCanvasEnabled: (enabled: boolean) => void;
+  setDensityScaleEnabled: (enabled: boolean) => void;
   setMotionIntensity: (value: number) => void;
   setMotionSpeed: (value: number) => void;
+  setAnimationEnabled: (enabled: boolean) => void;
   setBlendMode: (mode: BlendModeOption) => void;
   setBlendModeAuto: (value: boolean) => void;
   setLayerOpacity: (value: number) => void;
@@ -1244,6 +1289,16 @@ export interface SpriteController {
   setFilledOpacity: (value: number) => void;
   setOutlinedOpacity: (value: number) => void;
   randomizeOutlineDistribution: () => void;
+  // FX (Visual Effects) controller methods
+  // Bloom
+  setBloomEnabled: (enabled: boolean) => void;
+  setBloomIntensity: (intensity: number) => void;
+  setBloomThreshold: (threshold: number) => void;
+  setBloomRadius: (radius: number) => void;
+  // Noise
+  setNoiseEnabled: (enabled: boolean) => void;
+  setNoiseType: (type: "grain" | "crt" | "bayer" | "static") => void;
+  setNoiseStrength: (strength: number) => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
   applyMinimalGridPreset: () => void;
@@ -1308,8 +1363,7 @@ export const createSpriteController = (
   // Find the sprite mode for the selected sprite
   if (defaultCollection) {
     const sprite = defaultCollection.sprites.find(s => 
-      s.svgPath === randomSpriteIdentifier || 
-      (randomSpriteIdentifier.startsWith("shape:") && s.spriteMode === randomSpriteIdentifier.replace("shape:", ""))
+      s.svgPath === randomSpriteIdentifier
     );
     if (sprite) {
       // Use spriteMode if available, otherwise use id
@@ -1320,7 +1374,7 @@ export const createSpriteController = (
       }
     }
   }
-  
+
   // Store state in an object that can be updated
   // This ensures closures always read from the same reference, even after HMR
   const stateRef = { 
@@ -1403,6 +1457,7 @@ export const createSpriteController = (
     useFrameIndex: false,
   };
   
+  
   // Getter function to always return current state from the ref
   // This ensures the draw loop always reads the latest state, even after HMR
   const getState = () => stateRef.current;
@@ -1411,20 +1466,10 @@ export const createSpriteController = (
     blendModePool[Math.floor(Math.random() * blendModePool.length)] ?? "NONE";
 
   const reassignAutoBlendModes = () => {
-    if (!prepared) {
-      return;
-    }
-
-    prepared.layers.forEach((layer) => {
-      if (layer.mode !== "shape") {
-        return;
-      }
-      const layerBlend = randomBlendMode();
-      layer.blendMode = layerBlend;
-      layer.tiles.forEach((tile) => {
-        tile.blendMode = randomBlendMode();
-      });
-    });
+    // Instead of modifying prepared object in place, update the blendModeSeedSuffix
+    // This will cause blend modes to be recalculated with new random values on next recompute
+    const newBlendModeSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    applyState({ blendModeSeedSuffix: newBlendModeSeedSuffix }, { recompute: true });
   };
 
   const reassignRandomShapes = () => {
@@ -1432,19 +1477,8 @@ export const createSpriteController = (
       return;
     }
 
-    // Modify shapes directly in the prepared object
-    // The draw loop reads from prepared, so changes will be visible on next frame
-    prepared.layers.forEach((layer) => {
-      if (layer.mode !== "shape") {
-        return;
-      }
-      layer.tiles.forEach((tile) => {
-        if (tile.kind === "shape") {
-          // Assign a random shape from available shape modes
-          tile.shape = shapeModes[Math.floor(Math.random() * shapeModes.length)] as ShapeMode;
-        }
-      });
-    });
+    // All tiles are now SVG-based, no shape assignment needed
+    // This function is kept for backward compatibility but does nothing
     
     // Force a redraw by updating the p5 instance if available
     if (hasRedraw(p5Instance)) {
@@ -2072,8 +2106,14 @@ export const createSpriteController = (
         const minSpeed = 0.05; // 5% minimum
         const speedFactor = Math.max(minSpeed, currentState.paletteCycleSpeed / 100); // 0.05-1
         // Reduced from 60s to 30s period at 100% speed for better pacing (~2s per palette)
+        // Keep paletteCycleTime continuous (don't wrap) to ensure smooth interpolation
         paletteCycleTime += deltaTime * speedFactor * (1 / 30); // Scale to ~30s period at 100% speed
-        paletteCycleTime = paletteCycleTime % 30; // Wrap at 30 seconds
+        // Only wrap if it gets too large to prevent overflow (but keep it continuous for calculation)
+        if (paletteCycleTime > 30 * 1000) {
+          // Reset to a value that maintains continuity (subtract full periods)
+          const periods = Math.floor(paletteCycleTime / 30);
+          paletteCycleTime = paletteCycleTime - (periods * 30);
+        }
       }
       
       // Canvas hue rotation animation
@@ -2106,10 +2146,17 @@ export const createSpriteController = (
       if (currentState.paletteCycleEnabled) {
         const allPalettes = getAllPalettes();
         if (allPalettes.length > 0) {
+          // Calculate smooth cycle progress that wraps seamlessly
+          // Use continuous paletteCycleTime to avoid discontinuities when wrapping
           const cycleProgress = (paletteCycleTime / 30) * allPalettes.length;
+          // Get the fractional part for interpolation (0-1) - this is continuous
+          const fractionalPart = cycleProgress - Math.floor(cycleProgress);
+          // Get current and next palette indices with proper wrap-around
+          // Use modulo only for index calculation, not for the time itself
           const currentPaletteIndex = Math.floor(cycleProgress) % allPalettes.length;
           const nextIndex = (currentPaletteIndex + 1) % allPalettes.length;
-          paletteCycleInterpolation = cycleProgress % 1;
+          // Use the fractional part directly for smooth interpolation
+          paletteCycleInterpolation = fractionalPart;
           activePalette = {
             ...allPalettes[currentPaletteIndex],
             colors: interpolatePaletteColors(
@@ -2149,8 +2196,11 @@ export const createSpriteController = (
       const MOTION_SPEED_MAX_INTERNAL = 12.5;
       // Apply mode-specific speed multiplier to normalize perceived speed across modes
       // Higher multiplier = slower animation (divide to slow down)
+      // If animation is disabled, set speed factor to 0 to stop all movement
       const modeSpeedMultiplier = MOVEMENT_SPEED_MULTIPLIERS[currentState.movementMode] ?? 1.0;
-      const baseSpeedFactor = Math.max(currentState.motionSpeed / MOTION_SPEED_MAX_INTERNAL, 0);
+      const baseSpeedFactor = currentState.animationEnabled !== false 
+        ? Math.max(currentState.motionSpeed / MOTION_SPEED_MAX_INTERNAL, 0)
+        : 0;
       targetSpeedFactor = baseSpeedFactor / modeSpeedMultiplier;
       
       // Accumulate base time at constant rate
@@ -2187,9 +2237,34 @@ export const createSpriteController = (
       
       // Get base background color (without hue shift) for animated hue rotation
       const getBaseBackgroundColor = () => {
+        // If palette cycling is enabled and using auto mode, use interpolated palette colors directly
+        // This ensures smooth transitions without jumps when cycling between palettes
+        if (currentState.paletteCycleEnabled && currentState.backgroundMode === "auto" && activePalette) {
+          const bgColorIndex = calculateBackgroundColorIndex(
+            currentState.seed,
+            activePalette.id,
+            currentState.backgroundColorSeedSuffix || ""
+          );
+          const validBgIndex = activePalette.colors.length > 0
+            ? (bgColorIndex % activePalette.colors.length)
+            : 0;
+          return activePalette.colors[validBgIndex] ?? activePalette.colors[0];
+        }
+        
+        // Otherwise use discrete palette
         const bgPaletteId = resolveBackgroundPaletteId();
         const bgPalette = getPalette(bgPaletteId);
-        return bgPalette.colors[0] ?? getPalette(currentState.paletteId).colors[0];
+        // Calculate background color index using seeded RNG with optional suffix
+        const bgColorIndex = calculateBackgroundColorIndex(
+          currentState.seed,
+          bgPaletteId,
+          currentState.backgroundColorSeedSuffix || ""
+        );
+        // Wrap index to valid range
+        const validBgIndex = bgPalette.colors.length > 0
+          ? (bgColorIndex % bgPalette.colors.length)
+          : 0;
+        return bgPalette.colors[validBgIndex] ?? getPalette(currentState.paletteId).colors[0];
       };
       
       const applyCanvasAdjustments = (hex: string) =>
@@ -2221,6 +2296,14 @@ export const createSpriteController = (
           color = shiftHue(color, totalHueShift);
         }
         
+        // Apply saturation, brightness, and contrast adjustments
+        // Always apply (even at 100% defaults) to ensure code path is executed
+        const saturation = currentState.saturation ?? 100;
+        const brightness = currentState.brightness ?? 100;
+        const contrast = currentState.contrast ?? 100;
+        // Always apply adjustments - the function handles 100% as "no change"
+        color = applyColorAdjustments(color, saturation, brightness, contrast);
+        
         return color;
       };
       
@@ -2245,12 +2328,35 @@ export const createSpriteController = (
           }
           return currentState.canvasGradientMode;
         };
-        const gradientPalette = getPalette(resolveGradientPaletteId());
+        // Use interpolated palette colors if palette cycling is enabled and using auto mode
+        const gradientPaletteId = resolveGradientPaletteId();
+        const useInterpolatedForGradient = currentState.paletteCycleEnabled && 
+          currentState.canvasGradientMode === "auto" && 
+          activePalette;
+        const gradientPalette = useInterpolatedForGradient 
+          ? activePalette 
+          : getPalette(gradientPaletteId);
         const baseBgColor = getBaseBackgroundColor();
+        // For gradient, calculate start index using seeded RNG, then take next 3 colors (wrapping)
         const gradientSourceColors =
           gradientPalette.colors.length > 0
-            ? gradientPalette.colors.slice(0, 3)
+            ? (() => {
+                // Calculate start index using seeded RNG (same as getBaseBackgroundColor uses)
+                const bgColorIndex = calculateBackgroundColorIndex(
+                  currentState.seed,
+                  useInterpolatedForGradient ? activePalette.id : gradientPaletteId,
+                  currentState.backgroundColorSeedSuffix || ""
+                );
+                const startIndex = bgColorIndex % gradientPalette.colors.length;
+                const colors: string[] = [];
+                for (let i = 0; i < 3; i++) {
+                  colors.push(gradientPalette.colors[(startIndex + i) % gradientPalette.colors.length]);
+                }
+                return colors;
+              })()
             : [baseBgColor];
+        // Apply hue shift and brightness to each gradient color
+        // This ensures user's hue shift/brightness settings are preserved when re-applying palette
         const gradientColors = gradientSourceColors
           .map((color) => applyCanvasAdjustments(color))
           .filter(Boolean);
@@ -2290,10 +2396,11 @@ export const createSpriteController = (
           ctx.fillRect(0, 0, p.width, p.height);
         }
       } else {
-        // Solid background - apply animated hue shift
-        // Use base color to avoid double-applying static hue shift
+        // Solid background - get base palette color and apply adjustments
+        // getBaseBackgroundColor() returns a palette color (using backgroundColorSeedSuffix for randomization)
+        // applyCanvasAdjustments() preserves hue shift and brightness settings
         const baseBackgroundColor = getBaseBackgroundColor();
-        // Calculate background color with animated hue shift each frame
+        // Apply hue shift and brightness to the base color
         const animatedBackground = applyCanvasAdjustments(baseBackgroundColor);
         
         // Check if black background is enabled (read from localStorage each frame)
@@ -2345,6 +2452,18 @@ export const createSpriteController = (
         LIGHTEST: p.LIGHTEST ?? p.BLEND,
       };
 
+      // Map blend modes to canvas globalCompositeOperation for direct ctx operations
+      const blendToComposite: Record<BlendModeKey, GlobalCompositeOperation> = {
+        NONE: "source-over",
+        MULTIPLY: "multiply",
+        SCREEN: "screen",
+        HARD_LIGHT: "hard-light",
+        OVERLAY: "overlay",
+        SOFT_LIGHT: "soft-light",
+        DARKEST: "darken",
+        LIGHTEST: "lighten",
+      };
+
       // Depth of field setup
       const MAX_BLUR_RADIUS = 48; // Maximum blur radius in pixels
       // Increased threshold to skip blur for more sprites (performance optimization at high density)
@@ -2363,7 +2482,7 @@ export const createSpriteController = (
           const baseLayerSize = drawSize * layer.baseSizeRatio;
           
           layer.tiles.forEach((tile, tileIndex) => {
-            if (tile.kind === "shape" || tile.kind === "svg") {
+            if (tile.kind === "svg") {
               const baseSpriteSize =
                 baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
               const movement = computeMovementOffsets(currentState.movementMode, {
@@ -2405,7 +2524,10 @@ export const createSpriteController = (
           const tileBlendMode = currentState.blendModeAuto
             ? (tile.blendMode ?? layer.blendMode)
             : currentState.blendMode;
+          // Set blend mode for both p5.js and canvas context operations
           p.blendMode(blendMap[tileBlendMode] ?? p.BLEND);
+          // Also set canvas context blend mode for direct ctx operations
+          ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
           
           // Calculate movement offsets
           // Normal wrapping for all modes - calculate first
@@ -2413,906 +2535,7 @@ export const createSpriteController = (
           let normalizedV = ((tile.v % 1) + 1) % 1;
           let movement = { offsetX: 0, offsetY: 0, scaleMultiplier: 1 };
           
-          if (tile.kind === "shape") {
-            const baseShapeSize =
-              baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
-            movement = computeMovementOffsets(currentState.movementMode, {
-              time: scaledAnimationTime * tile.animationTimeMultiplier, // Use smoothly accumulating scaled time with per-tile variation
-              phase: tileIndex * 7,
-              motionScale,
-              layerIndex,
-              baseUnit: baseShapeSize,
-              layerTileSize: baseLayerSize,
-              speedFactor: 1.0, // Speed is already applied to scaledAnimationTime
-            });
-            
-            const baseX = offsetX + normalizedU * p.width + movement.offsetX;
-            const baseY = offsetY + normalizedV * p.height + movement.offsetY;
-            
-            const finalMovement = movement;
-            const shapeSize = baseShapeSize * finalMovement.scaleMultiplier;
-            // Determine opacity based on outline state when mixed mode is enabled
-            let opacityValue: number;
-            if (currentState.outlineMixed && currentState.outlineEnabled) {
-              // Use filled/outlined opacity based on tile's outline state
-              const tileOpacity = tile.isOutlined 
-                ? (currentState.outlinedOpacity ?? currentState.layerOpacity)
-                : (currentState.filledOpacity ?? currentState.layerOpacity);
-              opacityValue = clamp(tileOpacity / 100, 0, 1);
-            } else {
-              // Use layerOpacity for non-mixed mode
-              opacityValue = clamp(currentState.layerOpacity / 100, 0.12, 1);
-            }
-            const opacityAlpha = Math.round(opacityValue * 255);
-
-            // Calculate depth of field blur
-            let blurAmount = 0;
-            if (currentState.depthOfFieldEnabled && hasValidSizeRange && maxBlur > 0) {
-              // Calculate normalized z-index from size (0 = smallest, 1 = largest)
-              const normalizedZ = sizeRange > 0 ? (shapeSize - minSize) / sizeRange : 0.5;
-              // Calculate distance from focus plane
-              const distance = Math.abs(normalizedZ - focusZ);
-              // Calculate blur using quadratic falloff
-              const normalizedDist = distance; // Already normalized (0-1)
-              blurAmount = Math.pow(normalizedDist, 2) * maxBlur;
-              // Skip blur if very close to focus (performance optimization)
-              if (blurAmount < DOF_THRESHOLD * maxBlur) {
-                blurAmount = 0;
-              }
-            }
-
-            p.push();
-            
-            // Apply blur filter if needed
-            if (blurAmount > 0) {
-              ctx.filter = `blur(${blurAmount}px)`;
-            } else {
-              ctx.filter = 'none';
-            }
-            const halfSize = shapeSize / 2;
-            const allowableOverflow = Math.max(Math.max(p.width, p.height) * 0.6, shapeSize * 1.25);
-            
-            // Clamp positions to canvas bounds with overflow allowance
-            // Note: baseX/baseY already includes movement.offsetX/offsetY, so don't add it again
-            const clampedX = clamp(
-              baseX,
-              offsetX + halfSize - allowableOverflow,
-              offsetX + p.width - halfSize + allowableOverflow,
-            );
-            const clampedY = clamp(
-              baseY,
-              offsetY + halfSize - allowableOverflow,
-              offsetY + p.height - halfSize + allowableOverflow,
-            );
-            p.translate(clampedX, clampedY);
-            const rotationTime = scaledAnimationTime; // Use smoothly accumulating scaled time
-            // Recalculate rotation speed dynamically from currentState (no regeneration needed)
-            // Add minimum speed floor of 5% so animation never fully stops
-            const minSpeed = 0.05; // 5% minimum
-            const rotationSpeedBase = Math.max(minSpeed, clamp(currentState.rotationSpeed, 1, 100) / 100);
-            const rotationSpeed = currentState.rotationAnimated && rotationSpeedBase > 0
-              ? rotationSpeedBase * ROTATION_SPEED_MAX * tile.rotationSpeedMultiplier
-              : 0;
-            // Recalculate rotation base dynamically from currentState (no regeneration needed)
-            const rotationRange = degToRad(clamp(currentState.rotationAmount, 0, MAX_ROTATION_DEGREES));
-            const rotationBase = rotationRange * tile.rotationBaseMultiplier;
-            const rotationAngle =
-              (currentState.rotationEnabled ? rotationBase : 0) +
-              rotationSpeed * tile.rotationDirection * rotationTime;
-            if (rotationAngle !== 0) {
-              p.rotate(rotationAngle);
-            }
-            
-            // Get animated tile color (applies sprite hue rotation if enabled)
-            const animatedTileColor = getAnimatedTileColor(tile);
-            
-            // Determine if we should use canvas context for gradients
-            const useGradient = currentState.spriteFillMode === "gradient";
-            let gradientObj: CanvasGradient | null = null;
-            
-            if (useGradient) {
-              // Use the palette color index to select the corresponding gradient
-              // This ensures sprite using palette color 'b' uses gradient 'b'
-              const paletteGradients = getGradientsForPalette(currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId);
-              if (paletteGradients.length > 0) {
-                const gradientIndex = tile.paletteColorIndex % paletteGradients.length;
-                const gradientPreset = paletteGradients[gradientIndex];
-                if (gradientPreset) {
-                  // Apply hue shift and variance to gradient colors
-                  // Combine static and animated hue shifts for smooth transitions
-                  const staticHueShift = ((currentState.hueShift ?? 0) / 100) * 360;
-                  const hueShiftDegrees = currentState.hueRotationEnabled 
-                    ? staticHueShift + animatedSpriteHueShift
-                    : staticHueShift;
-                  const variance = clamp((currentState.paletteVariance ?? 68) / 100, 0, 1.5);
-                  
-                  // Apply hue shift and variance to each gradient color
-                  const processedGradientColors = gradientPreset.colors.map((color, colorIndex) => {
-                    // Apply hue shift first
-                    const hueShiftedColor = shiftHue(color, hueShiftDegrees);
-                    // Then apply variance using deterministic RNG based on tile position and color index
-                    const varianceRng = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}-${colorIndex}`));
-                    return jitterColor(hueShiftedColor, variance, varianceRng);
-                  });
-                  
-                  // Calculate gradient line based on direction
-                  const gradientLine = calculateGradientLine(
-                    currentState.spriteGradientDirection,
-                    shapeSize,
-                    shapeSize,
-                  );
-                  // Create gradient relative to shape center (we're already translated)
-                  gradientObj = ctx.createLinearGradient(
-                    gradientLine.x0 - shapeSize / 2,
-                    gradientLine.y0 - shapeSize / 2,
-                    gradientLine.x1 - shapeSize / 2,
-                    gradientLine.y1 - shapeSize / 2,
-                  );
-                  // Add color stops with opacity, using processed colors
-                  const numColors = processedGradientColors.length;
-                  processedGradientColors.forEach((color, index) => {
-                    const stop = numColors > 1 ? index / (numColors - 1) : 0;
-                    const colorObj = p.color(color);
-                    colorObj.setAlpha(opacityAlpha);
-                    gradientObj!.addColorStop(stop, colorObj.toString());
-                  });
-                }
-              }
-            }
-            
-            // Check if outline mode is enabled (check once, use throughout)
-            // When mixed mode is enabled, use per-tile outline state; otherwise use global state
-            // Only apply outline if outlineEnabled is true
-            const useOutline = currentState.outlineEnabled && (
-              currentState.outlineMixed 
-                ? tile.isOutlined 
-                : true
-            );
-            const strokeWidth = currentState.outlineStrokeWidth;
-            
-            if (!useGradient || !gradientObj) {
-              // Solid color fill
-              const fillColor = p.color(animatedTileColor);
-              fillColor.setAlpha(opacityAlpha);
-              if (useOutline) {
-                p.noFill();
-                p.stroke(fillColor);
-                p.strokeWeight(strokeWidth);
-              } else {
-                p.fill(fillColor);
-                p.noStroke();
-              }
-            } else {
-              // Gradient mode - no p5.js fill needed, will use canvas context
-              p.noFill();
-              p.noStroke();
-            }
-
-            // Draw shapes using canvas context if gradient, otherwise use p5
-            if (useGradient && gradientObj) {
-              ctx.save();
-              ctx.beginPath();
-              
-              // Set stroke or fill style based on outline mode
-              if (useOutline) {
-                ctx.strokeStyle = gradientObj;
-                ctx.lineWidth = strokeWidth;
-              } else {
-                ctx.fillStyle = gradientObj;
-              }
-              
-              let path2DFilled = false; // Track if Path2D was filled directly
-              
-              switch (tile.shape) {
-                case "rounded": {
-                  const cornerRadius = shapeSize * 0.3;
-                  const x = -shapeSize / 2;
-                  const y = -shapeSize / 2;
-                  ctx.roundRect(x, y, shapeSize, shapeSize, cornerRadius);
-                  break;
-                }
-                case "circle":
-                  ctx.arc(0, 0, shapeSize / 2, 0, Math.PI * 2);
-                  break;
-                case "square":
-                  ctx.rect(-shapeSize / 2, -shapeSize / 2, shapeSize, shapeSize);
-                  break;
-                case "triangle": {
-                  const height = (Math.sqrt(3) / 2) * shapeSize;
-                  const yOffset = height / 3;
-                  ctx.moveTo(-halfSize, yOffset);
-                  ctx.lineTo(halfSize, yOffset);
-                  ctx.lineTo(0, yOffset - height);
-                  ctx.closePath();
-                  break;
-                }
-                case "hexagon": {
-                  const radius = halfSize;
-                  for (let k = 0; k < 6; k += 1) {
-                    const angle = Math.PI * 2 * (k / 6) - Math.PI / 2;
-                    const x = Math.cos(angle) * radius;
-                    const y = Math.sin(angle) * radius;
-                    if (k === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                  }
-                  ctx.closePath();
-                  break;
-                }
-                case "diamond": {
-                  ctx.moveTo(0, -halfSize);
-                  ctx.lineTo(halfSize, 0);
-                  ctx.lineTo(0, halfSize);
-                  ctx.lineTo(-halfSize, 0);
-                  ctx.closePath();
-                  break;
-                }
-                case "star": {
-                  const outer = halfSize;
-                  const inner = outer * 0.45;
-                  for (let k = 0; k < 10; k += 1) {
-                    const angle = Math.PI * 2 * (k / 10) - Math.PI / 2;
-                    const radius = k % 2 === 0 ? outer : inner;
-                    const x = Math.cos(angle) * radius;
-                    const y = Math.sin(angle) * radius;
-                    if (k === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                  }
-                  ctx.closePath();
-                  break;
-                }
-                case "line": {
-                  const length = shapeSize * 36;
-                  const thickness = Math.max(2, shapeSize * 0.12);
-                  ctx.rect(-length / 2, -thickness / 2, length, thickness);
-                  break;
-                }
-                case "pentagon": {
-                  const radius = halfSize;
-                  for (let k = 0; k < 5; k += 1) {
-                    const angle = Math.PI * 2 * (k / 5) - Math.PI / 2;
-                    const x = Math.cos(angle) * radius;
-                    const y = Math.sin(angle) * radius;
-                    if (k === 0) ctx.moveTo(x, y);
-                    else ctx.lineTo(x, y);
-                  }
-                  ctx.closePath();
-                  break;
-                }
-                case "asterisk": {
-                  // Asterisk shape - use SVG path with Path2D
-                  // Original viewBox: 0 0 16 16
-                  const asteriskPath = "M15.9 5.7l-2-3.4-3.9 2.2v-4.5h-4v4.5l-4-2.2-2 3.4 3.9 2.3-3.9 2.3 2 3.4 4-2.2v4.5h4v-4.5l3.9 2.2 2-3.4-4-2.3z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 16;
-                  const vbHeight = 16;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
-                  } else {
-                    uniformScale = shapeSize / vbHeight;
-                  }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(asteriskPath);
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    ctx.fill(path);
-                  }
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                case "cross": {
-                  // Cross shape - use SVG path with Path2D
-                  // Original viewBox: 0 0 16 16
-                  const crossPath = "M10 1H6V6L1 6V10H6V15H10V10H15V6L10 6V1Z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 16;
-                  const vbHeight = 16;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
-                  } else {
-                    uniformScale = shapeSize / vbHeight;
-                  }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(crossPath);
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    ctx.fill(path);
-                  }
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                case "pixels": {
-                  // 4x4 grid of squares - matches SVG pattern (viewBox 0 0 17 17)
-                  // 16 squares, each 3 units, with 1 unit gaps
-                  const gridSize = 4;
-                  const squareSize = shapeSize / 17 * 3; // Scale from 17x17 viewBox
-                  const gap = shapeSize / 17 * 1; // 1 unit gap
-                  const startOffset = -(gridSize * squareSize + (gridSize - 1) * gap) / 2;
-                  
-                  for (let row = 0; row < gridSize; row++) {
-                    for (let col = 0; col < gridSize; col++) {
-                      const x = startOffset + col * (squareSize + gap) + squareSize / 2;
-                      const y = startOffset + row * (squareSize + gap) + squareSize / 2;
-                      ctx.rect(x - squareSize / 2, y - squareSize / 2, squareSize, squareSize);
-                    }
-                  }
-                  break;
-                }
-                case "heart": {
-                  // Heart shape from Clarity Design System - use SVG path with Path2D
-                  // Original viewBox: 0 0 36 36
-                  const heartPath = "M33,7.64c-1.34-2.75-5.2-5-9.69-3.69A9.87,9.87,0,0,0,18,7.72a9.87,9.87,0,0,0-5.31-3.77C8.19,2.66,4.34,4.89,3,7.64c-1.88,3.85-1.1,8.18,2.32,12.87C8,24.18,11.83,27.9,17.39,32.22a1,1,0,0,0,1.23,0c5.55-4.31,9.39-8,12.07-11.71C34.1,15.82,34.88,11.49,33,7.64Z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 36;
-                  const vbHeight = 36;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
-                  } else {
-                    uniformScale = shapeSize / vbHeight;
-                  }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(heartPath);
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    ctx.fill(path);
-                  }
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                case "smiley": {
-                  // Smiley face - use SVG path with Path2D
-                  // Original viewBox: 0 0 256 256
-                  const smileyPath = "M128,24A104,104,0,1,0,232,128,104.12041,104.12041,0,0,0,128,24Zm36,72a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,164,96ZM92,96a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,92,96Zm84.50488,60.00293a56.01609,56.01609,0,0,1-97.00976.00049,8.00016,8.00016,0,1,1,13.85058-8.01074,40.01628,40.01628,0,0,0,69.30957-.00049,7.99974,7.99974,0,1,1,13.84961,8.01074Z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 256;
-                  const vbHeight = 256;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
-                  } else {
-                    uniformScale = shapeSize / vbHeight;
-                  }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(smileyPath);
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    ctx.fill(path);
-                  }
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                case "tree": {
-                  // Tree shape - use SVG path with Path2D
-                  // Original viewBox: 0 0 256 256
-                  const treePath = "M231.18652,195.51465A7.9997,7.9997,0,0,1,224,200H136v40a8,8,0,0,1-16,0V200H32a7.99958,7.99958,0,0,1-6.31445-12.91113L71.64258,128H48a8.00019,8.00019,0,0,1-6.34082-12.87793l80-104a8,8,0,0,1,12.68164,0l80,104A8.00019,8.00019,0,0,1,208,128H184.35742l45.957,59.08887A7.99813,7.99813,0,0,1,231.18652,195.51465Z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 256;
-                  const vbHeight = 256;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
-                  } else {
-                    uniformScale = shapeSize / vbHeight;
-                  }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(treePath);
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    ctx.fill(path);
-                  }
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                case "x": {
-                  // X shape - use SVG path with Path2D
-                  // Original viewBox: 0 0 1920 1920
-                  const xPath = "M797.32 985.882 344.772 1438.43l188.561 188.562 452.549-452.549 452.548 452.549 188.562-188.562-452.549-452.548 452.549-452.549-188.562-188.561L985.882 797.32 533.333 344.772 344.772 533.333z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 1920;
-                  const vbHeight = 1920;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
-                  } else {
-                    uniformScale = shapeSize / vbHeight;
-                  }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(xPath);
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    ctx.fill(path);
-                  }
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                case "arrow": {
-                  // Arrow shape - use SVG path with Path2D
-                  // Original viewBox: 0 0 385.756 385.756
-                  const arrowPath = "M377.816,7.492C372.504,2.148,366.088,0,358.608,0H98.544c-15.44,0-29.08,10.988-29.08,26.428v23.724c0,15.44,13.64,29.848,29.08,29.848h152.924L8.464,322.08c-5.268,5.272-8.172,11.84-8.176,19.34c0,7.5,2.908,14.296,8.176,19.568L25.24,377.64c5.264,5.272,12.296,8.116,19.796,8.116s13.768-2.928,19.036-8.2l241.392-242.172v151.124c0,15.444,14.084,29.492,29.52,29.492h23.732c15.432,0,26.752-14.048,26.752-29.492V26.52C385.464,19.048,383.144,12.788,377.816,7.492z";
-                  const vbX = 0;
-                  const vbY = 0;
-                  const vbWidth = 385.756;
-                  const vbHeight = 385.756;
-                  // CRITICAL: Use uniform scale to preserve aspect ratio
-                  // Calculate scale based on the largest dimension to ensure shape fits
-                  const shapeAspectRatio = vbWidth / vbHeight;
-                  let uniformScale: number;
-                  if (shapeAspectRatio >= 1) {
-                    uniformScale = shapeSize / vbWidth;
-                  } else {
-                    uniformScale = shapeSize / vbHeight;
-                  }
-                  
-                  ctx.save();
-                  const scaledWidth = vbWidth * uniformScale;
-                  const scaledHeight = vbHeight * uniformScale;
-                  ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                  ctx.scale(uniformScale, uniformScale);
-                  ctx.translate(-vbX, -vbY);
-                  const path = new Path2D(arrowPath);
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    ctx.fill(path);
-                  }
-                  ctx.restore();
-                  path2DFilled = true;
-                  break;
-                }
-                default:
-                  ctx.arc(0, 0, shapeSize / 2, 0, Math.PI * 2);
-              }
-              
-              // Only fill/stroke if we didn't fill/stroke Path2D directly
-              if (!path2DFilled) {
-                if (useOutline) {
-                  ctx.stroke();
-                } else {
-                  ctx.fill();
-                }
-              }
-              ctx.restore();
-            } else {
-              // Use p5.js for solid colors - but we can still use Path2D via canvas context
-              // Access canvas context from p5.js
-              const p5Ctx = p.drawingContext as CanvasRenderingContext2D;
-              
-              // Check if outline mode is enabled
-              // When mixed mode is enabled, use per-tile outline state; otherwise use global state
-              const useOutline = currentState.outlineMixed 
-                ? tile.isOutlined 
-                : currentState.outlineEnabled;
-              const strokeWidth = currentState.outlineStrokeWidth;
-              
-              // Set fill or stroke style based on outline mode
-              const fillColor = p.color(animatedTileColor);
-              fillColor.setAlpha(opacityAlpha);
-              if (useOutline) {
-                p.noFill();
-                p.stroke(fillColor);
-                p.strokeWeight(strokeWidth);
-                p5Ctx.strokeStyle = fillColor.toString();
-                p5Ctx.lineWidth = strokeWidth;
-              } else {
-                p.fill(fillColor);
-                p.noStroke();
-                p5Ctx.fillStyle = fillColor.toString();
-              }
-              let path2DFilled = false;
-              
-              switch (tile.shape) {
-              case "rounded": {
-                const cornerRadius = shapeSize * 0.3;
-                p.rectMode(p.CENTER);
-                p.rect(0, 0, shapeSize, shapeSize, cornerRadius);
-                break;
-              }
-              case "circle":
-                p.circle(0, 0, shapeSize);
-                break;
-              case "square":
-                p.rectMode(p.CENTER);
-                p.rect(0, 0, shapeSize, shapeSize);
-                break;
-              case "triangle": {
-                const height = (Math.sqrt(3) / 2) * shapeSize;
-                const yOffset = height / 3;
-                p.triangle(
-                  -halfSize,
-                  yOffset,
-                  halfSize,
-                  yOffset,
-                  0,
-                  yOffset - height,
-                );
-                break;
-              }
-              case "hexagon": {
-                const radius = halfSize;
-                p.beginShape();
-                for (let k = 0; k < 6; k += 1) {
-                  const angle = p.TWO_PI * (k / 6) - p.HALF_PI;
-                  p.vertex(Math.cos(angle) * radius, Math.sin(angle) * radius);
-                }
-                p.endShape(p.CLOSE);
-                break;
-              }
-              case "diamond": {
-                p.beginShape();
-                p.vertex(0, -halfSize);
-                p.vertex(halfSize, 0);
-                p.vertex(0, halfSize);
-                p.vertex(-halfSize, 0);
-                p.endShape(p.CLOSE);
-                break;
-              }
-              case "star": {
-                const outer = halfSize;
-                const inner = outer * 0.45;
-                p.beginShape();
-                for (let k = 0; k < 10; k += 1) {
-                  const angle = p.TWO_PI * (k / 10) - p.HALF_PI;
-                  const radius = k % 2 === 0 ? outer : inner;
-                  p.vertex(Math.cos(angle) * radius, Math.sin(angle) * radius);
-                }
-                p.endShape(p.CLOSE);
-                break;
-              }
-              case "line": {
-                const length = shapeSize * 36;
-                const thickness = Math.max(2, shapeSize * 0.12);
-                p.rectMode(p.CENTER);
-                p.rect(0, 0, length, thickness);
-                break;
-              }
-              case "pentagon": {
-                const radius = halfSize;
-                p.beginShape();
-                for (let k = 0; k < 5; k += 1) {
-                  const angle = p.TWO_PI * (k / 5) - p.HALF_PI;
-                  p.vertex(Math.cos(angle) * radius, Math.sin(angle) * radius);
-                }
-                p.endShape(p.CLOSE);
-                break;
-              }
-              case "asterisk": {
-                // Asterisk shape - use SVG path with Path2D (same as Canvas 2D)
-                const asteriskPath = "M15.9 5.7l-2-3.4-3.9 2.2v-4.5h-4v4.5l-4-2.2-2 3.4 3.9 2.3-3.9 2.3 2 3.4 4-2.2v4.5h4v-4.5l3.9 2.2 2-3.4-4-2.3z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 16;
-                const vbHeight = 16;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
-                } else {
-                  uniformScale = shapeSize / vbHeight;
-                }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(asteriskPath);
-                if (useOutline) {
-                  p5Ctx.stroke(path);
-                } else {
-                  p5Ctx.fill(path);
-                }
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              case "cross": {
-                // Cross shape - use SVG path with Path2D (same as Canvas 2D)
-                const crossPath = "M10 1H6V6L1 6V10H6V15H10V10H15V6L10 6V1Z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 16;
-                const vbHeight = 16;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
-                } else {
-                  uniformScale = shapeSize / vbHeight;
-                }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(crossPath);
-                if (useOutline) {
-                  p5Ctx.stroke(path);
-                } else {
-                  p5Ctx.fill(path);
-                }
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              case "pixels": {
-                // 4x4 grid of squares - matches SVG pattern (viewBox 0 0 17 17)
-                // 16 squares, each 3 units, with 1 unit gaps
-                const gridSize = 4;
-                const squareSize = shapeSize / 17 * 3; // Scale from 17x17 viewBox
-                const gap = shapeSize / 17 * 1; // 1 unit gap
-                const startOffset = -(gridSize * squareSize + (gridSize - 1) * gap) / 2;
-                
-                p.rectMode(p.CORNER);
-                for (let row = 0; row < gridSize; row++) {
-                  for (let col = 0; col < gridSize; col++) {
-                    const x = startOffset + col * (squareSize + gap);
-                    const y = startOffset + row * (squareSize + gap);
-                    p.rect(x, y, squareSize, squareSize);
-                  }
-                }
-                p.rectMode(p.CENTER);
-                break;
-              }
-              case "heart": {
-                // Heart shape - use SVG path with Path2D (same as Canvas 2D)
-                const heartPath = "M33,7.64c-1.34-2.75-5.2-5-9.69-3.69A9.87,9.87,0,0,0,18,7.72a9.87,9.87,0,0,0-5.31-3.77C8.19,2.66,4.34,4.89,3,7.64c-1.88,3.85-1.1,8.18,2.32,12.87C8,24.18,11.83,27.9,17.39,32.22a1,1,0,0,0,1.23,0c5.55-4.31,9.39-8,12.07-11.71C34.1,15.82,34.88,11.49,33,7.64Z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 36;
-                const vbHeight = 36;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
-                } else {
-                  uniformScale = shapeSize / vbHeight;
-                }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(heartPath);
-                if (useOutline) {
-                  p5Ctx.stroke(path);
-                } else {
-                  p5Ctx.fill(path);
-                }
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              case "smiley": {
-                // Smiley face - use SVG path with Path2D (same as Canvas 2D)
-                const smileyPath = "M128,24A104,104,0,1,0,232,128,104.12041,104.12041,0,0,0,128,24Zm36,72a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,164,96ZM92,96a12,12,0,1,1-12,12A12.0006,12.0006,0,0,1,92,96Zm84.50488,60.00293a56.01609,56.01609,0,0,1-97.00976.00049,8.00016,8.00016,0,1,1,13.85058-8.01074,40.01628,40.01628,0,0,0,69.30957-.00049,7.99974,7.99974,0,1,1,13.84961,8.01074Z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 256;
-                const vbHeight = 256;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
-                } else {
-                  uniformScale = shapeSize / vbHeight;
-                }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(smileyPath);
-                if (useOutline) {
-                  p5Ctx.stroke(path);
-                } else {
-                  p5Ctx.fill(path);
-                }
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              case "tree": {
-                // Tree shape - use SVG path with Path2D (same as Canvas 2D)
-                const treePath = "M231.18652,195.51465A7.9997,7.9997,0,0,1,224,200H136v40a8,8,0,0,1-16,0V200H32a7.99958,7.99958,0,0,1-6.31445-12.91113L71.64258,128H48a8.00019,8.00019,0,0,1-6.34082-12.87793l80-104a8,8,0,0,1,12.68164,0l80,104A8.00019,8.00019,0,0,1,208,128H184.35742l45.957,59.08887A7.99813,7.99813,0,0,1,231.18652,195.51465Z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 256;
-                const vbHeight = 256;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
-                } else {
-                  uniformScale = shapeSize / vbHeight;
-                }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(treePath);
-                if (useOutline) {
-                  p5Ctx.stroke(path);
-                } else {
-                  p5Ctx.fill(path);
-                }
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              case "x": {
-                // X shape - use SVG path with Path2D (same as Canvas 2D)
-                const xPath = "M797.32 985.882 344.772 1438.43l188.561 188.562 452.549-452.549 452.548 452.549 188.562-188.562-452.549-452.548 452.549-452.549-188.562-188.561L985.882 797.32 533.333 344.772 344.772 533.333z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 1920;
-                const vbHeight = 1920;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
-                } else {
-                  uniformScale = shapeSize / vbHeight;
-                }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(xPath);
-                if (useOutline) {
-                  p5Ctx.stroke(path);
-                } else {
-                  p5Ctx.fill(path);
-                }
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              case "arrow": {
-                // Arrow shape - use SVG path with Path2D (same as Canvas 2D)
-                const arrowPath = "M377.816,7.492C372.504,2.148,366.088,0,358.608,0H98.544c-15.44,0-29.08,10.988-29.08,26.428v23.724c0,15.44,13.64,29.848,29.08,29.848h152.924L8.464,322.08c-5.268,5.272-8.172,11.84-8.176,19.34c0,7.5,2.908,14.296,8.176,19.568L25.24,377.64c5.264,5.272,12.296,8.116,19.796,8.116s13.768-2.928,19.036-8.2l241.392-242.172v151.124c0,15.444,14.084,29.492,29.52,29.492h23.732c15.432,0,26.752-14.048,26.752-29.492V26.52C385.464,19.048,383.144,12.788,377.816,7.492z";
-                const vbX = 0;
-                const vbY = 0;
-                const vbWidth = 385.756;
-                const vbHeight = 385.756;
-                // CRITICAL: Use uniform scale to preserve aspect ratio
-                // Calculate scale based on the largest dimension to ensure shape fits
-                const shapeAspectRatio = vbWidth / vbHeight;
-                let uniformScale: number;
-                if (shapeAspectRatio >= 1) {
-                  uniformScale = shapeSize / vbWidth;
-                } else {
-                  uniformScale = shapeSize / vbHeight;
-                }
-                
-                p5Ctx.save();
-                const scaledWidth = vbWidth * uniformScale;
-                const scaledHeight = vbHeight * uniformScale;
-                p5Ctx.translate(-scaledWidth / 2, -scaledHeight / 2);
-                p5Ctx.scale(uniformScale, uniformScale);
-                p5Ctx.translate(-vbX, -vbY);
-                const path = new Path2D(arrowPath);
-                if (useOutline) {
-                  p5Ctx.stroke(path);
-                } else {
-                  p5Ctx.fill(path);
-                }
-                p5Ctx.restore();
-                path2DFilled = true;
-                break;
-              }
-              default:
-                p.circle(0, 0, shapeSize);
-              }
-              
-              // Reset stroke if outline was used
-              if (useOutline) {
-                p.noStroke();
-              }
-            }
-
-            // Reset filter after drawing sprite
-            ctx.filter = 'none';
-            p.pop();
-          } else if (tile.kind === "svg") {
+          if (tile.kind === "svg") {
             // SVG sprite rendering
             // Get animated tile color (applies sprite hue rotation if enabled)
             const animatedTileColor = getAnimatedTileColor(tile);
@@ -3350,10 +2573,14 @@ export const createSpriteController = (
             // Calculate depth of field blur
             let blurAmount = 0;
             if (currentState.depthOfFieldEnabled && hasValidSizeRange && maxBlur > 0) {
+              // Calculate normalized z-index from size (0 = smallest, 1 = largest)
               const normalizedZ = sizeRange > 0 ? (svgSize - minSize) / sizeRange : 0.5;
+              // Calculate distance from focus plane
               const distance = Math.abs(normalizedZ - focusZ);
-              const normalizedDist = distance;
+              // Calculate blur using quadratic falloff
+              const normalizedDist = distance; // Already normalized (0-1)
               blurAmount = Math.pow(normalizedDist, 2) * maxBlur;
+              // Skip blur if very close to focus (performance optimization)
               if (blurAmount < DOF_THRESHOLD * maxBlur) {
                 blurAmount = 0;
               }
@@ -3367,7 +2594,6 @@ export const createSpriteController = (
             } else {
               ctx.filter = 'none';
             }
-            
             const halfSize = svgSize / 2;
             const allowableOverflow = Math.max(Math.max(p.width, p.height) * 0.6, svgSize * 1.25);
             
@@ -3383,16 +2609,17 @@ export const createSpriteController = (
               offsetY + halfSize - allowableOverflow,
               offsetY + p.height - halfSize + allowableOverflow,
             );
-            p.translate(clampedX, clampedY);
             
-            // Apply rotation
-            const rotationTime = scaledAnimationTime;
+            p.translate(clampedX, clampedY);
+            const rotationTime = scaledAnimationTime; // Use smoothly accumulating scaled time
+            // Recalculate rotation speed dynamically from currentState (no regeneration needed)
             // Add minimum speed floor of 5% so animation never fully stops
             const minSpeed = 0.05; // 5% minimum
             const rotationSpeedBase = Math.max(minSpeed, clamp(currentState.rotationSpeed, 1, 100) / 100);
             const rotationSpeed = currentState.rotationAnimated && rotationSpeedBase > 0
               ? rotationSpeedBase * ROTATION_SPEED_MAX * tile.rotationSpeedMultiplier
               : 0;
+            // Recalculate rotation base dynamically from currentState (no regeneration needed)
             const rotationRange = degToRad(clamp(currentState.rotationAmount, 0, MAX_ROTATION_DEGREES));
             const rotationBase = rotationRange * tile.rotationBaseMultiplier;
             const rotationAngle =
@@ -3402,6 +2629,103 @@ export const createSpriteController = (
               p.rotate(rotationAngle);
             }
             
+            const tileKey = `${layerIndex}-${tileIndex}`;
+            
+            
+            // Determine if we should use canvas context for gradients
+            const useGradient = currentState.spriteFillMode === "gradient";
+            let gradientObj: CanvasGradient | null = null;
+            
+            if (useGradient) {
+              // Use the palette color index to select the corresponding gradient
+              // This ensures sprite using palette color 'b' uses gradient 'b'
+              const paletteGradients = getGradientsForPalette(currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId);
+              if (paletteGradients.length > 0) {
+                const gradientIndex = tile.paletteColorIndex % paletteGradients.length;
+                const gradientPreset = paletteGradients[gradientIndex];
+                if (gradientPreset) {
+                  // Apply hue shift and variance to gradient colors
+                  // Combine static and animated hue shifts for smooth transitions
+                  const staticHueShift = ((currentState.hueShift ?? 0) / 100) * 360;
+                  const hueShiftDegrees = currentState.hueRotationEnabled 
+                    ? staticHueShift + animatedSpriteHueShift
+                    : staticHueShift;
+                  const variance = clamp((currentState.paletteVariance ?? 68) / 100, 0, 1.5);
+                  
+                  // Apply hue shift and variance to each gradient color
+                  let processedGradientColors = gradientPreset.colors.map((color, colorIndex) => {
+                    // Apply hue shift first
+                    const hueShiftedColor = shiftHue(color, hueShiftDegrees);
+                    // Then apply variance using deterministic RNG based on tile position and color index
+                    const varianceRng = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}-${colorIndex}`));
+                    return jitterColor(hueShiftedColor, variance, varianceRng);
+                  });
+                  
+                  // Apply saturation, brightness, and contrast adjustments to gradient colors
+                  if (currentState.colorAdjustmentsEnabled !== false) {
+                    const saturation = currentState.saturation ?? 100;
+                    const brightness = currentState.brightness ?? 100;
+                    const contrast = currentState.contrast ?? 100;
+                    processedGradientColors = processedGradientColors.map(color =>
+                      applyColorAdjustments(color, saturation, brightness, contrast)
+                    );
+                  }
+                  
+                  // Calculate gradient line based on direction
+                  const gradientLine = calculateGradientLine(
+                    currentState.spriteGradientDirection,
+                    svgSize,
+                    svgSize,
+                  );
+                  // Create gradient relative to sprite center (we're already translated)
+                  gradientObj = ctx.createLinearGradient(
+                    gradientLine.x0 - svgSize / 2,
+                    gradientLine.y0 - svgSize / 2,
+                    gradientLine.x1 - svgSize / 2,
+                    gradientLine.y1 - svgSize / 2,
+                  );
+                  // Add color stops with opacity, using processed colors
+                  const numColors = processedGradientColors.length;
+                  processedGradientColors.forEach((color, index) => {
+                    const stop = numColors > 1 ? index / (numColors - 1) : 0;
+                    const colorObj = p.color(color);
+                    colorObj.setAlpha(opacityAlpha);
+                    gradientObj!.addColorStop(stop, colorObj.toString());
+                  });
+                }
+              }
+            }
+            
+            // Check if outline mode is enabled (check once, use throughout)
+            // When mixed mode is enabled, use per-tile outline state; otherwise use global state
+            // Only apply outline if outlineEnabled is true
+            const useOutline = currentState.outlineEnabled && (
+              currentState.outlineMixed 
+                ? tile.isOutlined 
+                : true
+            );
+            const strokeWidth = currentState.outlineStrokeWidth;
+            
+            if (!useGradient || !gradientObj) {
+              // Solid color fill
+              const fillColor = p.color(animatedTileColor);
+              fillColor.setAlpha(opacityAlpha);
+              if (useOutline) {
+                p.noFill();
+                p.stroke(fillColor);
+                p.strokeWeight(strokeWidth);
+              } else {
+              p.fill(fillColor);
+            p.noStroke();
+              }
+                  } else {
+              // Gradient mode - no p5.js fill needed, will use canvas context
+                p.noFill();
+                p.noStroke();
+            }
+
+            // All shape rendering code has been removed - all sprites now use SVG files exclusively
+            // The SVG rendering code continues below
             // Load and draw SVG image
             // Use synchronous cache lookup - images should be preloaded
             // SVGO processing should have already cleaned up the SVGs to remove frames
@@ -3460,11 +2784,11 @@ export const createSpriteController = (
               // If this assertion fails, there's a bug in the scale calculation
               // (Skip this check for line sprite since it intentionally changes aspect ratio)
               if (!isLineSprite) {
-                const originalAspectRatio = vbWidth / vbHeight;
-                const finalAspectRatio = finalWidth / finalHeight;
-                // Allow tiny floating point differences
-                if (Math.abs(originalAspectRatio - finalAspectRatio) > 0.0001) {
-                  console.error(`Aspect ratio mismatch! Original: ${originalAspectRatio}, Final: ${finalAspectRatio}, uniformScale: ${uniformScale}`);
+              const originalAspectRatio = vbWidth / vbHeight;
+              const finalAspectRatio = finalWidth / finalHeight;
+              // Allow tiny floating point differences
+              if (Math.abs(originalAspectRatio - finalAspectRatio) > 0.0001) {
+                console.error(`Aspect ratio mismatch! Original: ${originalAspectRatio}, Final: ${finalAspectRatio}, uniformScale: ${uniformScale}`);
                 }
               }
               
@@ -3484,7 +2808,6 @@ export const createSpriteController = (
                 const strokeWidth = currentState.outlineStrokeWidth;
                 
                 // Draw the path directly on canvas
-                ctx.globalCompositeOperation = "source-over";
                 // Apply opacity to color (globalAlpha is already set, but also add to color for consistency)
                 const colorWithAlpha = p.color(animatedTileColor);
                 colorWithAlpha.setAlpha(opacityAlpha);
@@ -3505,6 +2828,9 @@ export const createSpriteController = (
                 // p5.js transforms (translate, rotate) affect the canvas context, which can cause
                 // non-uniform scaling if not reset. We need a clean identity matrix.
                 ctx.save();
+                // Apply blend mode to canvas context for direct drawing operations
+                // Note: Set after save() so it's part of the saved state and persists through drawing
+                ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
                 // Reset to identity matrix - this ensures no legacy transforms affect our uniform scaling
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 
@@ -3528,53 +2854,55 @@ export const createSpriteController = (
                 const hasEvenOddFill = (cachedImg as any).__svgHasEvenOddFill;
                 const svgPaths = (cachedImg as any).__svgPaths;
                 
-                if (svgPaths && svgPaths.length > 0) {
-                  // Multiple paths - render with proper fill rule for boolean shapes
-                  if (hasEvenOddFill) {
-                    // For boolean shapes with evenodd, combine all paths into one
-                    // Path2D supports multiple subpaths when combined with move commands
-                    // Combine all path data strings into a single path
-                    const combinedPathData = svgPaths.map((p: { d: string; fillRule?: string }) => p.d).join(' ');
-                    const combinedPath = new Path2D(combinedPathData);
-                    
-                    if (useOutline) {
-                      ctx.stroke(combinedPath);
+                // Normal rendering
+                  if (svgPaths && svgPaths.length > 0) {
+                    // Multiple paths - render with proper fill rule for boolean shapes
+                    if (hasEvenOddFill) {
+                      // For boolean shapes with evenodd, combine all paths into one
+                      // Path2D supports multiple subpaths when combined with move commands
+                      // Combine all path data strings into a single path
+                      const combinedPathData = svgPaths.map((p: { d: string; fillRule?: string }) => p.d).join(' ');
+                      const combinedPath = new Path2D(combinedPathData);
+                      
+                      if (useOutline) {
+                        ctx.stroke(combinedPath);
+                      } else {
+                        // Use fillRule parameter for evenodd (boolean shapes with cutouts)
+                        ctx.fill(combinedPath, 'evenodd');
+                      }
                     } else {
-                      // Use fillRule parameter for evenodd (boolean shapes with cutouts)
-                      ctx.fill(combinedPath, 'evenodd');
+                      // Normal paths - render each separately
+                      for (const pathInfo of svgPaths) {
+                        const path = new Path2D(pathInfo.d);
+                        if (useOutline) {
+                          ctx.stroke(path);
+                        } else {
+                          ctx.fill(path);
+                        }
+                      }
                     }
                   } else {
-                    // Normal paths - render each separately
-                    for (const pathInfo of svgPaths) {
-                      const path = new Path2D(pathInfo.d);
-                      if (useOutline) {
-                        ctx.stroke(path);
+                    // Single path or fallback
+                    const path = new Path2D(svgPathData);
+                    
+                    if (useOutline) {
+                      ctx.stroke(path);
+                    } else {
+                      // Use fillRule parameter for boolean shapes
+                      if (hasEvenOddFill) {
+                        ctx.fill(path, 'evenodd');
                       } else {
                         ctx.fill(path);
                       }
                     }
                   }
-                } else {
-                  // Single path or fallback
-                  const path = new Path2D(svgPathData);
-                  
-                  if (useOutline) {
-                    ctx.stroke(path);
-                  } else {
-                    // Use fillRule parameter for boolean shapes
-                    if (hasEvenOddFill) {
-                      ctx.fill(path, 'evenodd');
-                    } else {
-                      ctx.fill(path);
-                    }
-                  }
-                }
                 
                 ctx.restore();
               } else {
                 // Fallback: Draw image if path data not available
                 // Use finalWidth/finalHeight (non-uniform for line sprite)
-                ctx.globalCompositeOperation = "source-over";
+                // Apply blend mode to canvas context
+                ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
                 ctx.drawImage(
                   cachedImg, 
                   -finalWidth / 2, 
@@ -3583,14 +2911,19 @@ export const createSpriteController = (
                   finalHeight
                 );
                 
-                // Apply tint color using multiply
+                // Apply tint color using multiply (this is separate from blend mode)
+                // Save current composite operation, apply tint, then restore
+                ctx.save();
                 ctx.globalCompositeOperation = "multiply";
                 ctx.fillStyle = animatedTileColor;
                 ctx.fillRect(-finalWidth / 2, -finalHeight / 2, finalWidth, finalHeight);
+                ctx.restore();
+                // Restore blend mode after tinting
+                ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
               }
               
-              // Restore composite operation
-              ctx.globalCompositeOperation = "source-over";
+              // Note: Don't reset composite operation here - let it persist for the blend mode
+              // The blend mode should remain active until the next sprite is drawn
               ctx.restore();
             } else {
               // Image not loaded yet - load it asynchronously
@@ -3611,6 +2944,84 @@ export const createSpriteController = (
       // Reset global alpha after drawing (for fade transitions)
       if (transitionState.isTransitioning && transitionState.type === "fade") {
         p.drawingContext.globalAlpha = 1.0;
+      }
+      
+      // Apply Bloom effect if enabled (after all sprites are drawn, before noise)
+      if (currentState.bloomEnabled && hasCanvas(p5Instance)) {
+        const canvas = p5Instance.canvas as HTMLCanvasElement;
+        if (canvas) {
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            // Get current canvas image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Create bloom canvas for bright areas
+            const bloomCanvas = document.createElement("canvas");
+            bloomCanvas.width = canvas.width;
+            bloomCanvas.height = canvas.height;
+            const bloomCtx = bloomCanvas.getContext("2d");
+            if (bloomCtx) {
+              // Extract bright areas based on threshold
+              const threshold = (currentState.bloomThreshold / 100) * 255; // 0-255
+              const bloomImageData = bloomCtx.createImageData(canvas.width, canvas.height);
+              const bloomData = bloomImageData.data;
+              
+              for (let i = 0; i < data.length; i += 4) {
+                // Calculate brightness (luminance)
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+                
+                if (brightness > threshold) {
+                  // Copy bright pixels to bloom canvas
+                  bloomData[i] = r;
+                  bloomData[i + 1] = g;
+                  bloomData[i + 2] = b;
+                  bloomData[i + 3] = data[i + 3]; // Preserve alpha
+                } else {
+                  // Dark pixels become transparent
+                  bloomData[i] = 0;
+                  bloomData[i + 1] = 0;
+                  bloomData[i + 2] = 0;
+                  bloomData[i + 3] = 0;
+                }
+              }
+              
+              bloomCtx.putImageData(bloomImageData, 0, 0);
+              
+              // Blur the bright areas
+              const bloomRadius = (currentState.bloomRadius / 100) * 50; // Max 50px
+              if (bloomRadius > 0) {
+                bloomCtx.filter = `blur(${bloomRadius}px)`;
+                bloomCtx.drawImage(bloomCanvas, 0, 0);
+                bloomCtx.filter = 'none';
+              }
+              
+              // Composite bloom back onto main canvas using screen blend mode
+              ctx.save();
+              ctx.globalCompositeOperation = "screen";
+              ctx.globalAlpha = currentState.bloomIntensity / 100;
+              ctx.drawImage(bloomCanvas, 0, 0);
+              ctx.restore();
+            }
+          }
+        }
+      }
+      
+      // Apply Noise/Grain overlay if enabled (after all sprites and bloom are drawn)
+      if (currentState.noiseEnabled && hasCanvas(p5Instance)) {
+        const canvas = p5Instance.canvas as HTMLCanvasElement;
+        if (canvas) {
+          applyNoiseOverlay(
+            canvas,
+            currentState.noiseType,
+            currentState.noiseStrength,
+            false, // Always use static noise (animated toggle removed)
+            0 // No time parameter needed for static noise
+          );
+        }
       }
     });
 
@@ -3634,16 +3045,23 @@ export const createSpriteController = (
     // Migration: Initialize selectedSprites from spriteMode if missing (but not if explicitly empty)
     // Only migrate if selectedSprites is undefined/null (old state format), not if it's an empty array
     if (state.selectedSprites === undefined || state.selectedSprites === null) {
-      const collection = getCollection(state.spriteCollectionId || "default");
+      // All collections are now SVG-based
       let identifier: string;
-      if (collection?.isShapeBased) {
-        identifier = `shape:${state.spriteMode}`;
+      const sprite = getSpriteInCollection(state.spriteCollectionId || "default", state.spriteMode);
+      if (sprite?.svgPath) {
+        identifier = sprite.svgPath;
       } else {
-        const sprite = getSpriteInCollection(state.spriteCollectionId || "default", state.spriteMode);
-        if (sprite?.svgPath) {
-          identifier = sprite.svgPath;
+        // Fallback: use default sprite if spriteMode doesn't match any sprite
+        const defaultCollection = getCollection("default");
+        if (defaultCollection && defaultCollection.sprites.length > 0) {
+          const firstSprite = defaultCollection.sprites[0];
+          if (firstSprite.svgPath) {
+            identifier = firstSprite.svgPath;
+          } else {
+            identifier = "/sprites/default/star.svg"; // Ultimate fallback
+          }
         } else {
-          identifier = `shape:${state.spriteMode}`;
+          identifier = "/sprites/default/star.svg"; // Ultimate fallback
         }
       }
       stateRef.current.selectedSprites = [identifier];
@@ -3723,9 +3141,7 @@ export const createSpriteController = (
         stateRef.current.spriteCollectionId = "default";
       }
       stateRef.current.paletteId = getRandomPalette().id;
-      stateRef.current.scalePercent = randomInt(220, MAX_DENSITY_PERCENT_UI - 60); // Use max minus small buffer
-      stateRef.current.scaleBase = randomInt(52, 88);
-      stateRef.current.scaleSpread = randomInt(42, 96);
+      // Density/scale settings are preserved - not randomized
       stateRef.current.paletteVariance = randomInt(32, 128);
       stateRef.current.hueShift = 0;
       stateRef.current.motionIntensity = randomInt(42, 98);
@@ -3734,6 +3150,8 @@ export const createSpriteController = (
       stateRef.current.backgroundMode = "auto";
       stateRef.current.backgroundHueShift = 0;
       stateRef.current.backgroundBrightness = 50;
+      // Reset background color seed suffix to use base seeded calculation
+      stateRef.current.backgroundColorSeedSuffix = "";
       
       // Preserve rotation settings: if both are off, keep off; if either is on, keep on
       if (!preserveRotationEnabled && !preserveRotationAnimated) {
@@ -3757,6 +3175,8 @@ export const createSpriteController = (
       updateSeed();
       stateRef.current.paletteId = getRandomPalette().id;
       stateRef.current.paletteVariance = randomInt(32, 126);
+      // Reset background color seed suffix to use base seeded calculation
+      stateRef.current.backgroundColorSeedSuffix = "";
       state = stateRef.current; // Keep local variable in sync
       updateSprite();
     },
@@ -3765,7 +3185,18 @@ export const createSpriteController = (
       // This keeps the same sprite positions, sizes, and shapes but randomizes which colors are assigned
       // We update only the colorSeedSuffix to change color assignments without affecting positions
       const newColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-      applyState({ colorSeedSuffix: newColorSeedSuffix }, { recompute: true });
+      
+      // Also randomize background color by updating the seed suffix
+      // This allows the background color to change while maintaining theme consistency
+      const newBackgroundColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      
+      applyState(
+        {
+          colorSeedSuffix: newColorSeedSuffix,
+          backgroundColorSeedSuffix: newBackgroundColorSeedSuffix,
+        },
+        { recompute: true }
+      );
     },
     randomizeScale: () => {
       stateRef.current.scaleBase = randomInt(50, 88);
@@ -3809,25 +3240,9 @@ export const createSpriteController = (
     },
     randomizeBlendMode: () => {
       if (stateRef.current.blendModeAuto) {
+        // Re-assign blend modes by updating the seed suffix (similar to refreshPaletteApplication)
+        // This will cause blend modes to be recalculated with new random values
         reassignAutoBlendModes();
-        notifyState();
-        // Force a redraw to show the updated blend modes
-        // The draw loop will pick up the changes from the prepared object
-        if (p5Instance) {
-          // Ensure the loop is running first
-          if (typeof p5Instance.loop === 'function') {
-            p5Instance.loop();
-          }
-          // Then force a redraw
-          if (hasRedraw(p5Instance)) {
-            // Use requestAnimationFrame to ensure redraw happens after state update
-            requestAnimationFrame(() => {
-              if (p5Instance && hasRedraw(p5Instance)) {
-                p5Instance.redraw();
-              }
-            });
-          }
-        }
         return;
       }
       const nextBlend = randomBlendMode();
@@ -3867,12 +3282,50 @@ export const createSpriteController = (
       // Hue shift is stored as 0-100 (maps to 0-360 degrees)
       applyState({ hueShift: clamp(value, 0, 100) });
     },
+    setSaturation: (value: number) => {
+      // Saturation affects sprite colors, so regeneration is needed
+      // Saturation is stored as 0-200 (100 = normal, 0 = grayscale, 200 = max saturation)
+      applyState({ saturation: clamp(value, 0, 200) });
+    },
+    setBrightness: (value: number) => {
+      // Brightness affects sprite colors, so regeneration is needed
+      // Brightness is stored as 0-200 (100 = normal, 0 = black, 200 = max brightness)
+      applyState({ brightness: clamp(value, 0, 200) });
+    },
+    setContrast: (value: number) => {
+      // Contrast affects sprite colors, so regeneration is needed
+      // Contrast is stored as 0-200 (100 = normal, 0 = no contrast, 200 = max contrast)
+      applyState({ contrast: clamp(value, 0, 200) });
+    },
+    setColorAdjustmentsEnabled: (enabled: boolean) => {
+      // Enable/disable color adjustments section (values persist but don't affect rendering when disabled)
+      applyState({ colorAdjustmentsEnabled: enabled }, { recompute: true });
+    },
+    setGradientsEnabled: (enabled: boolean) => {
+      // Enable/disable gradients section
+      applyState({ gradientsEnabled: enabled }, { recompute: true });
+    },
+    setBlendOpacityEnabled: (enabled: boolean) => {
+      // Enable/disable blend & opacity section
+      applyState({ blendOpacityEnabled: enabled }, { recompute: true });
+    },
+    setCanvasEnabled: (enabled: boolean) => {
+      // Enable/disable canvas section (applied in render, no regeneration needed)
+      applyState({ canvasEnabled: enabled }, { recompute: false });
+    },
+    setDensityScaleEnabled: (enabled: boolean) => {
+      // Enable/disable density & scale section (values persist but don't affect rendering when disabled)
+      applyState({ densityScaleEnabled: enabled }, { recompute: true });
+    },
     setMotionIntensity: (value: number) => {
       // Motion intensity is applied directly in rendering, no regeneration needed
       applyState({ motionIntensity: clamp(value, 0, 100) }, { recompute: false });
     },
     setMotionSpeed: (value: number) => {
       applyState({ motionSpeed: clamp(value, 0, 12.5) }, { recompute: false });
+    },
+    setAnimationEnabled: (enabled: boolean) => {
+      applyState({ animationEnabled: enabled }, { recompute: false });
     },
     setBlendMode: (mode: BlendModeOption) => {
       // Blend mode is applied directly in rendering (tile.blendMode ?? layer.blendMode ?? state.blendMode)
@@ -3913,22 +3366,19 @@ export const createSpriteController = (
       
       if (!collection) {
         // Collection doesn't exist - fallback to default
+        // All collections are now SVG-based, so just use default collection
         const defaultCollection = getCollection("default");
-        if (defaultCollection?.isShapeBased && shapeModes.includes(mode as ShapeMode)) {
+        if (defaultCollection) {
+          const sprite = getSpriteInCollection("default", mode);
+          if (sprite) {
           applyState({ spriteCollectionId: "default", spriteMode: mode });
         }
-        return;
-      }
-      
-      if (collection.isShapeBased) {
-        // For default, validate it's a shape mode
-        if (shapeModes.includes(mode as ShapeMode)) {
-          applyState({ spriteMode: mode });
         }
         return;
       }
       
-      // For SVG collections, validate the sprite exists in the collection
+      // All collections are now SVG-based
+      // Validate the sprite exists in the collection
       const sprite = getSpriteInCollection(collectionId, mode);
       if (sprite) {
         // Preload the sprite image before applying state change to avoid lag/stutter
@@ -3964,23 +3414,22 @@ export const createSpriteController = (
       }
       
       // Sprite not found in current collection - try to find it in any collection
+      // All collections are now SVG-based
       const allCollections = getAllCollections();
       for (const coll of allCollections) {
-        if (!coll.isShapeBased) {
           const foundSprite = getSpriteInCollection(coll.id, mode);
           if (foundSprite) {
-            // Preload the sprite image before switching collections
-            const spritePath = foundSprite.svgPath;
-            if (spritePath && !getCachedSpriteImage(spritePath)) {
-              loadSpriteImage(spritePath).catch(error => {
-                console.warn(`Failed to preload sprite: ${spritePath}`, error);
-              });
-            }
-            
+          // Preload the sprite image before switching collections
+          const spritePath = foundSprite.svgPath;
+          if (spritePath && !getCachedSpriteImage(spritePath)) {
+            loadSpriteImage(spritePath).catch(error => {
+              console.warn(`Failed to preload sprite: ${spritePath}`, error);
+            });
+          }
+          
             // Found it in another collection - switch to that collection and mode
             applyState({ spriteCollectionId: coll.id, spriteMode: mode });
             return;
-          }
         }
       }
       
@@ -4049,19 +3498,36 @@ export const createSpriteController = (
     },
     usePalette: (paletteId: PaletteId) => {
       if (getPalette(paletteId)) {
-        applyState({ paletteId });
+        // Randomize background color when palette changes by updating the seed suffix
+        // This maintains theme consistency while allowing variation
+        const newBackgroundColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        
+        applyState({
+          paletteId,
+          backgroundColorSeedSuffix: newBackgroundColorSeedSuffix,
+        });
       }
     },
     setBackgroundMode: (mode: BackgroundMode) => {
       // Check if mode is valid (auto or a valid palette ID from all palettes including custom)
       if (mode === "auto") {
-        applyState({ backgroundMode: mode });
+        // Randomize background color when mode changes by updating the seed suffix
+        const newBackgroundColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        applyState({ 
+          backgroundMode: mode,
+          backgroundColorSeedSuffix: newBackgroundColorSeedSuffix,
+        });
         return;
       }
       // Use getPalette to check if palette exists (includes custom palettes)
       const palette = getPalette(mode);
       if (palette && palette.id === mode) {
-        applyState({ backgroundMode: mode });
+        // Randomize background color when mode changes by updating the seed suffix
+        const newBackgroundColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        applyState({ 
+          backgroundMode: mode,
+          backgroundColorSeedSuffix: newBackgroundColorSeedSuffix,
+        });
       }
     },
     setBackgroundHueShift: (value: number) => {
@@ -4170,6 +3636,30 @@ export const createSpriteController = (
         seed: `${currentState.seed}-outline-${Date.now()}`,
       });
     },
+    // FX (Visual Effects) controller methods
+    // Bloom
+    setBloomEnabled: (enabled: boolean) => {
+      applyState({ bloomEnabled: enabled }, { recompute: false });
+    },
+    setBloomIntensity: (intensity: number) => {
+      applyState({ bloomIntensity: clamp(intensity, 0, 100) }, { recompute: false });
+    },
+    setBloomThreshold: (threshold: number) => {
+      applyState({ bloomThreshold: clamp(threshold, 0, 100) }, { recompute: false });
+    },
+    setBloomRadius: (radius: number) => {
+      applyState({ bloomRadius: clamp(radius, 0, 100) }, { recompute: false });
+    },
+    // Noise
+    setNoiseEnabled: (enabled: boolean) => {
+      applyState({ noiseEnabled: enabled }, { recompute: false });
+    },
+    setNoiseType: (type: "grain" | "crt" | "bayer" | "static" | "scanlines") => {
+      applyState({ noiseType: type }, { recompute: false });
+    },
+    setNoiseStrength: (strength: number) => {
+      applyState({ noiseStrength: clamp(strength, 0, 100) }, { recompute: false });
+    },
     setSpriteCollection: (collectionId: string) => {
       const collection = getCollection(collectionId);
       if (collection) {
@@ -4183,25 +3673,30 @@ export const createSpriteController = (
           s.id === currentSpriteId || s.spriteMode === currentSpriteId
         );
         
-        if (collection.isShapeBased) {
-          // Shape-based collection - no preloading needed
-          if (!spriteInCollection && collection.sprites.length > 0) {
-            const firstSprite = collection.sprites[0];
-            if (firstSprite.spriteMode) {
-              applyState({ 
-                spriteCollectionId: collectionId,
-                spriteMode: firstSprite.spriteMode 
+        // All collections are now SVG-based - preload sprites
+        if (!spriteInCollection && collection.sprites.length > 0) {
+          const firstSprite = collection.sprites[0];
+          if (firstSprite.svgPath) {
+            // Preload the first sprite before switching
+            if (!getCachedSpriteImage(firstSprite.svgPath)) {
+              loadSpriteImage(firstSprite.svgPath).catch(error => {
+                console.warn(`Failed to preload sprite: ${firstSprite.svgPath}`, error);
               });
-            } else {
-              applyState({ spriteCollectionId: collectionId });
             }
+            // Use the sprite's identifier (svgPath or custom identifier)
+            const spriteIdentifier = getSpriteIdentifier(firstSprite, collectionId);
+            applyState({ 
+              spriteCollectionId: collectionId,
+              spriteMode: firstSprite.id as SpriteMode,
+              selectedSprites: [spriteIdentifier]
+            });
           } else {
             applyState({ spriteCollectionId: collectionId });
           }
           return;
         }
         
-        // SVG collection - determine which sprite to use
+        // Determine which sprite to use
         const spriteToUse = spriteInCollection || (collection.sprites.length > 0 ? collection.sprites[0] : null);
         
         if (spriteToUse && spriteToUse.svgPath) {
@@ -4238,8 +3733,8 @@ export const createSpriteController = (
               spriteMode: spriteToUse.id as SpriteMode
             });
           }
-        } else {
-          // Fallback: just update collection ID
+          } else {
+            // Fallback: just update collection ID
           applyState({ spriteCollectionId: collectionId });
         }
       }

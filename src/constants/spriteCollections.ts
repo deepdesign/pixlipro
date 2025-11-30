@@ -211,7 +211,7 @@ export function cleanupCollectionBlobUrls(collectionId: string): void {
  */
 function buildAllCollectionsMap(): Map<string, SpriteCollection> {
   const map = buildCollectionsFromManual();
-  // Always add default collection first
+// Always add default collection first
   map.set('default', createDefaultCollection());
   
   // Add custom collections from localStorage

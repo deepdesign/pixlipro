@@ -1319,12 +1319,15 @@ html[data-theme="dark"] body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
-  overflow-y: visible; /* Allow drop shadows to show */
+  overflow-y: hidden; /* Prevent scrollbar - app-shell handles scrolling */
   box-sizing: border-box;
+  height: 100vh;
+  min-height: 100vh;
 }
 
 .app-shell {
   @apply flex flex-col;
+  height: calc(100vh - var(--header-height) - var(--footer-height));
   min-height: calc(100vh - var(--header-height) - var(--footer-height));
   max-height: calc(100vh - var(--header-height) - var(--footer-height));
   padding-bottom: 0; /* Footer uses internal padding only */
@@ -1332,7 +1335,7 @@ html[data-theme="dark"] body {
   width: 100%;
   max-width: none; /* Allow unlimited scaling */
   overflow-x: hidden;
-  overflow-y: auto; /* Allow scrolling within content area */
+  overflow-y: hidden; /* Prevent scrollbar - individual content areas handle their own scrolling */
   box-sizing: border-box;
 }
 
@@ -1381,6 +1384,8 @@ html[data-theme="dark"] body {
   flex-direction: column;
   margin-top: 0;
   overflow: visible; /* Allow drop shadows to show */
+  height: 100%;
+  min-height: 0;
 }
 
 .app-frame--footer {
@@ -2708,6 +2713,8 @@ body:has(.app-frame--stacked) .header-toolbar {
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%;
+  min-height: 0;
   max-width: none; /* Allow unlimited scaling */
 }
 
@@ -2735,6 +2742,9 @@ body:has(.app-frame--stacked) .header-toolbar {
   min-width: 0; /* Allow flex items to shrink below content size */
   width: 100%;
   max-width: none; /* Allow unlimited scaling */
+  height: 100%;
+  min-height: 0;
+  flex: 1;
 }
 
 /* Canvas butts up left - remove gap before display-column */
@@ -2841,6 +2851,8 @@ body:has(.app-frame--stacked) .header-toolbar {
   padding-right: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  height: 100%;
+  min-height: 0;
   /* Canvas-card inside handles its own sizing with clamp() for smooth scaling */
 }
 
@@ -2991,10 +3003,17 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 }
 
 .panel-heading {
-  font-size: 0.78rem;
-  letter-spacing: 0.28em;
+  @apply text-base font-semibold; /* text-base (1rem/16px) - larger than section-title */
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--heading-color);
+  margin: 0;
+  margin-bottom: theme("spacing.6"); /* Extra space below panel heading */
+}
+
+/* Dark mode: panel headings should be white */
+[data-theme="dark"] .panel-heading {
+  color: white !important;
 }
 
 .panel-footer {
@@ -3047,6 +3066,20 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 /* Dark mode: section titles should be white */
 [data-theme="dark"] .section-title {
+  color: white !important;
+}
+
+.section-subheading {
+  font-size: 0.7rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--heading-color);
+  margin: 0;
+  margin-bottom: theme("spacing.0");
+}
+
+/* Dark mode: section subheadings should be white */
+[data-theme="dark"] .section-subheading {
   color: white !important;
 }
 
@@ -4067,10 +4100,7 @@ button.bg-primary.button-selected:active {
 }
 
 .tooltip-content {
-  position: absolute;
-  bottom: calc(100% + 0.55rem);
-  left: 50%;
-  transform: translate(-50%, 8px);
+  /* Base styles - position and transform can be overridden by inline styles */
   min-width: 220px;
   max-width: min(320px, calc(100vw - 2rem));
   padding-inline: theme("spacing.3");
@@ -4086,18 +4116,26 @@ button.bg-primary.button-selected:active {
   border: 2px solid var(--card-border);
   border-radius: var(--radius-sm);
   box-shadow: 4px 4px 0 var(--card-shadow);
+  /* Prevent tooltip from being clipped */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: visible !important;
+  /* Ensure tooltip can escape container boundaries */
+  pointer-events: none;
+  /* Default positioning for CSS-only tooltips (TooltipIcon) */
+  position: absolute;
+  bottom: calc(100% + 0.55rem);
+  left: 50%;
+  transform: translate(-50%, 8px);
   opacity: 0;
   visibility: hidden;
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
-  z-index: 9999;
-  /* Prevent tooltip from being clipped */
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  /* Ensure tooltip can escape container boundaries */
-  pointer-events: none;
+  z-index: 2147483646 !important; /* Highest z-index except status bar */
 }
+
+/* TextWithTooltip uses inline styles for fixed positioning, so these defaults are for TooltipIcon */
 
 /* Ensure tooltip containers allow overflow */
 .control-field,
@@ -4108,12 +4146,33 @@ button.bg-primary.button-selected:active {
   overflow: visible !important;
 }
 
-/* Ensure sidebar and panel containers allow tooltip overflow */
+/* Ensure sidebar allows overflow for tooltips */
 aside[class*="sidebar"],
-[class*="control-panel"],
 [class*="app-sidebar"] {
-  overflow-y: auto !important;
   overflow-x: visible !important;
+  overflow-y: auto !important; /* Keep scrolling */
+  contain: layout style paint; /* Allow tooltips to escape */
+}
+
+/* Ensure control panel containers allow tooltip overflow */
+[class*="control-panel"],
+.control-column,
+.control-card,
+.panel {
+  overflow-x: visible !important;
+}
+
+/* Ensure layout containers allow overflow */
+.app-layout,
+.app-frame,
+.app-main {
+  overflow-x: visible !important;
+}
+
+/* Ensure tooltips can escape scrolling containers by using fixed positioning */
+.retro-tooltip .tooltip-content {
+  position: fixed !important;
+  z-index: 2147483646 !important;
 }
 
 .tooltip-content::after {
@@ -4130,13 +4189,14 @@ aside[class*="sidebar"],
   box-shadow: 2px 2px 0 var(--card-shadow);
 }
 
+/* Tooltip visibility - CSS hover states for TooltipIcon */
 .retro-tooltip:hover .tooltip-content,
 .retro-tooltip:focus-within .tooltip-content,
 .tooltip-trigger:hover + .tooltip-content,
 .tooltip-trigger:focus-visible + .tooltip-content {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, 0);
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translate(-50%, 0) !important;
 }
 
 .switch-row {

@@ -81,7 +81,7 @@ export function CollectionSidebar({
       </div>
 
       {/* Collections List */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         <div className="p-2 space-y-1">
           {collections.map((collection) => {
             const isSelected = collection.id === selectedCollectionId;

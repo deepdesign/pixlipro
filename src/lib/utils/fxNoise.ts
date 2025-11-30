@@ -120,11 +120,89 @@ export const generateBayerDither = (
 };
 
 /**
+ * Generate static noise pattern (TV static)
+ */
+export const generateStaticNoise = (
+  width: number,
+  height: number,
+  strength: number, // 0-100
+  time: number, // Animation time (for animated static)
+): ImageData => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return new ImageData(width, height);
+  }
+
+  const strengthFactor = strength / 100;
+  const imageData = ctx.createImageData(width, height);
+  const data = imageData.data;
+
+  // Use time-based seed for animated static
+  const seed = Math.floor(time * 30) % 10000;
+
+  for (let i = 0; i < data.length; i += 4) {
+    // Create high-contrast random noise
+    const noise = Math.random() > 0.5 ? 255 : 0;
+    const alpha = Math.random() * strengthFactor * 255;
+    data[i] = noise; // R
+    data[i + 1] = noise; // G
+    data[i + 2] = noise; // B
+    data[i + 3] = Math.floor(alpha); // A
+  }
+
+  return imageData;
+};
+
+/**
+ * Generate TV scanlines pattern
+ */
+export const generateScanlines = (
+  width: number,
+  height: number,
+  strength: number, // 0-100
+): ImageData => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return new ImageData(width, height);
+  }
+
+  const strengthFactor = strength / 100;
+  const imageData = ctx.createImageData(width, height);
+  const data = imageData.data;
+  
+  // Scanline spacing (every 2 pixels for classic CRT look)
+  const scanlineHeight = 2;
+  const scanlineAlpha = Math.floor(strengthFactor * 180);
+
+  for (let y = 0; y < height; y++) {
+    const isScanline = y % scanlineHeight === 0;
+    const alpha = isScanline ? scanlineAlpha : 0;
+    
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      // Dark scanlines (black with opacity)
+      data[idx] = 0; // R
+      data[idx + 1] = 0; // G
+      data[idx + 2] = 0; // B
+      data[idx + 3] = alpha; // A
+    }
+  }
+
+  return imageData;
+};
+
+/**
  * Apply noise overlay to canvas
  */
 export const applyNoiseOverlay = (
   canvas: HTMLCanvasElement,
-  noiseType: "grain" | "crt" | "bayer",
+  noiseType: "grain" | "crt" | "bayer" | "static" | "scanlines",
   strength: number,
   animated: boolean,
   time: number,
@@ -150,6 +228,17 @@ export const applyNoiseOverlay = (
       break;
     case "bayer":
       noiseData = generateBayerDither(canvas.width, canvas.height, strength);
+      break;
+    case "static":
+      noiseData = generateStaticNoise(
+        canvas.width,
+        canvas.height,
+        strength,
+        animated ? time : 0,
+      );
+      break;
+    case "scanlines":
+      noiseData = generateScanlines(canvas.width, canvas.height, strength);
       break;
     default:
       return canvas;

@@ -71,9 +71,9 @@ export function SpriteCard({
   };
 
   return (
-    <div className="group relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow overflow-visible">
+    <div className="group relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:shadow-md transition-shadow overflow-visible">
       {/* SVG Preview */}
-      <div className="w-full aspect-square bg-slate-100 dark:bg-slate-700 rounded mb-3 flex items-center justify-center overflow-hidden relative">
+      <div className="w-full aspect-square bg-slate-100 dark:bg-slate-700 rounded mb-2 flex items-center justify-center overflow-hidden relative">
         {previewUrl ? (
           <img
             src={previewUrl}

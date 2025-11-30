@@ -23,6 +23,7 @@ import { SequencesPage } from "./pages/SequencesPage";
 import { PresetsPage } from "./pages/PresetsPage";
 import { PalettesPage } from "./pages/PalettesPage";
 import { SpritesPage } from "./pages/SpritesPage";
+import { AnimationPage } from "./pages/AnimationPage";
 import { useDualMonitor } from "./hooks/useDualMonitor";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useOSC } from "./hooks/useOSC";
@@ -39,7 +40,7 @@ import { StatusBar } from "./components/StatusBar";
 import { PixliLogo } from "./components/Header/PixliLogo";
 import {
   SpriteControls,
-  FxControls,
+  ColourControls,
   MotionControls,
 } from "./components/ControlPanel";
 import { getPalette } from "./data/palettes";
@@ -99,7 +100,7 @@ const App = () => {
   const isMobileRemote = window.location.pathname === "/remote";
   
   // Navigation state
-  const [currentPage, setCurrentPage] = useState<"create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | null>(null);
+  const [currentPage, setCurrentPage] = useState<"create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation" | null>(null);
   
   // Settings state (kept for backward compatibility)
   const [showSettingsPage, setShowSettingsPage] = useState(false);
@@ -220,7 +221,7 @@ const App = () => {
     };
   }, [isProjectorMode, controller, dualMonitor.isProjectorMode, spriteState]);
   
-  const [activePanel, setActivePanel] = useState<"sprites" | "colours" | "motion">("sprites");
+  const [activePanel, setActivePanel] = useState<"sprites" | "colours" | "motion" | "fx">("sprites");
   const [showPresetManager, setShowPresetManager] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [customPalettesRefresh, setCustomPalettesRefresh] = useState(0);
@@ -923,7 +924,7 @@ const App = () => {
   const renderDisplayContent = () => {
     const isCanvasPage = !currentPage || currentPage === "create";
     
-    return (
+      return (
       <>
         {/* Canvas - always mounted but hidden when on other pages */}
         <div 
@@ -968,57 +969,61 @@ const App = () => {
 
         {/* Pages - shown when not on canvas */}
         {currentPage === "palettes" && (
-          <PalettesPage />
+        <PalettesPage />
         )}
-        
+    
         {currentPage === "sprites" && (
           <SpritesPage />
         )}
         
         {currentPage === "presets" && (
-          <PresetsPage
-            currentState={spriteState}
-            onLoadPreset={handleLoadPreset}
-          />
+        <PresetsPage
+          currentState={spriteState}
+          onLoadPreset={handleLoadPreset}
+        />
         )}
-        
+    
         {currentPage === "sequences" && (
-          <SequencesPage
-            currentState={spriteState}
-            onLoadPreset={handleLoadPreset}
-          />
+        <SequencesPage
+          currentState={spriteState}
+          onLoadPreset={handleLoadPreset}
+        />
         )}
-        
+    
+        {currentPage === "animation" && (
+        <AnimationPage />
+        )}
+    
         {(showSettingsPage || currentPage === "settings") && (
-          <SettingsPage 
-            onClose={() => {
-              setShowSettingsPage(false);
-              setCurrentPage("create");
-              handleNavigate("create");
-            }}
-            onAspectRatioChange={(aspectRatio, custom) => {
-              if (controller) {
-                if (aspectRatio === "custom" && custom) {
-                  controller.setCustomAspectRatio(custom.width, custom.height);
-                } else {
-                  controller.setAspectRatio(aspectRatio);
-                }
+        <SettingsPage 
+          onClose={() => {
+            setShowSettingsPage(false);
+            setCurrentPage("create");
+            handleNavigate("create");
+          }}
+          onAspectRatioChange={(aspectRatio, custom) => {
+            if (controller) {
+              if (aspectRatio === "custom" && custom) {
+                controller.setCustomAspectRatio(custom.width, custom.height);
+              } else {
+                controller.setAspectRatio(aspectRatio);
               }
-            }}
-            onLoadPreset={handleLoadPreset}
-            currentState={spriteState}
-            frameRate={frameRate}
-            ready={ready}
-            webSocketState={{
-              connected: webSocket.isConnected,
-              connecting: webSocket.isConnecting,
-              error: webSocket.error,
-              clients: webSocket.clients,
-            }}
-          />
+            }
+          }}
+          onLoadPreset={handleLoadPreset}
+          currentState={spriteState}
+          frameRate={frameRate}
+          ready={ready}
+          webSocketState={{
+            connected: webSocket.isConnected,
+            connecting: webSocket.isConnecting,
+            error: webSocket.error,
+            clients: webSocket.clients,
+          }}
+        />
         )}
       </>
-    );
+  );
   };
 
 
@@ -1051,7 +1056,7 @@ const App = () => {
   }, []);
 
   // Handle navigation
-  const handleNavigate = (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings") => {
+  const handleNavigate = (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation") => {
     setCurrentPage(page);
     if (page === "settings") {
       setShowSettingsPage(true);
@@ -1127,6 +1132,8 @@ const App = () => {
       setCurrentPage("presets");
     } else if (path === "/sequences") {
       setCurrentPage("sequences");
+    } else if (path === "/animation") {
+      setCurrentPage("animation");
     } else if (path === "/settings") {
       setCurrentPage("settings");
       setShowSettingsPage(true);
@@ -1156,7 +1163,7 @@ const App = () => {
         />
       </div>
 
-    <AppLayout sidebarProps={sidebarProps} hideSidebar={showSettingsPage || currentPage === "palettes" || currentPage === "presets" || currentPage === "sequences" || currentPage === "sprites"}>
+    <AppLayout sidebarProps={sidebarProps} hideSidebar={showSettingsPage || currentPage === "palettes" || currentPage === "presets" || currentPage === "sequences" || currentPage === "sprites" || currentPage === "animation"}>
       <div className="app-shell">
 
       <div className={`app-frame app-frame--compact app-frame--main${isSmallCanvas ? " app-frame--stacked" : ""}`}>

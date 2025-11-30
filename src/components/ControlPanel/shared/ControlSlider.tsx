@@ -1,5 +1,5 @@
 import { useCallback, ChangeEvent } from "react";
-import { TooltipIcon } from "./TooltipIcon";
+import { TextWithTooltip } from "./TextWithTooltip";
 import { cn } from "@/lib/utils";
 
 interface ControlSliderProps {
@@ -60,11 +60,16 @@ export function ControlSlider({
     <div className="control-field">
       <div className="field-heading">
         <div className="field-heading-left">
-          <span className="field-label" id={`${id}-label`}>
-            {label}
-          </span>
-          {tooltipId && (
-            <TooltipIcon id={tooltipId} text={tooltip!} label={label} />
+          {tooltipId && tooltip ? (
+            <TextWithTooltip id={tooltipId} text={tooltip}>
+              <span className="field-label" id={`${id}-label`}>
+                {label}
+              </span>
+            </TextWithTooltip>
+          ) : (
+            <span className="field-label" id={`${id}-label`}>
+              {label}
+            </span>
           )}
         </div>
         <span className="field-value">{displayValue}</span>
