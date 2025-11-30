@@ -45,3 +45,14 @@ Additional requirements for robust Tailwind usage:
     - Check that responsive and dark-mode states make sense in both light and dark themes.
     - Confirm semantic HTML and accessibility attributes are in place.
 23. If unsure about a pattern, prefer solutions that match Tailwind's documentation and examples rather than inventing new visual styles.
+
+## Plan File Management
+
+**CRITICAL: All plans must be saved as permanent files in the `plans/` directory.**
+
+- NEVER rely on Cursor's temporary internal plan system (cursor-plan:// URIs)
+- ALWAYS create a permanent `.md` file in `plans/` with descriptive kebab-case naming (e.g., `feature-name-plan.md`)
+- Plans are version-controlled documentation - they must be committed to git
+- See `plans/README.md` for full conventions and guidelines
+- When a plan is mentioned or referenced, check if it exists as a file in `plans/` first
+- If a plan needs to be recreated, save it immediately as a permanent file in `plans/`

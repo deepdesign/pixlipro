@@ -174,7 +174,7 @@ pixlipro/
 │   ├── pages/             # Page components (Help, Settings)
 │   ├── types/             # TypeScript type definitions
 │   └── index.css          # Global styles and Tailwind imports
-├── plans/                 # Feature plans and documentation
+├── plans/                 # Feature plans and documentation (see plans/README.md)
 ├── docs/                  # Technical documentation
 ├── package.json
 └── README.md
@@ -313,7 +313,14 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v1.3.0 (Latest)
+### v1.3.1 (Latest)
+
+**Improvements:**
+- Established plan file management convention in `plans/` directory
+- Added plan file documentation and conventions (see `plans/README.md`)
+- Standardized plan file naming and location for better organization
+
+### v1.3.0
 
 **New Features:**
 - Added Animation page to navigation
