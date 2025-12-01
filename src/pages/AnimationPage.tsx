@@ -39,7 +39,7 @@ export function AnimationPage() {
     }
   }, [selectedAnimationId]);
 
-  const handleEditAnimation = useCallback((animationId: string) => {
+  const handleEditAnimation = useCallback((_animationId: string) => {
     // TODO: Open animation editor (Phase 3-6)
     // For now, show a placeholder message
     alert("Animation editor coming soon! This will allow you to edit custom animations with path drawing, keyframes, and bezier curves.");

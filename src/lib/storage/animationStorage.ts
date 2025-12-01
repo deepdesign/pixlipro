@@ -116,7 +116,7 @@ export function duplicateAnimation(animation: Animation, newName?: string): Cust
     loop: animation.isDefault ? true : animation.loop, // Default loop for duplicated defaults
     keyframes: animation.isDefault ? [] : animation.keyframes, // No keyframes for duplicated defaults
     author: animation.isDefault ? "User" : animation.author,
-    tags: animation.tags,
+    tags: animation.isDefault ? undefined : animation.tags,
   };
 
   return saveCustomAnimation(animationData);

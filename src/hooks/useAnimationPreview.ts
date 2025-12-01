@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import type { AnimationPreviewSettings } from "@/types/animations";
-import { getAllPalettes } from "@/data/palettes";
 import { getAllCollections } from "@/constants/spriteCollections";
 
 const DEFAULT_SETTINGS: AnimationPreviewSettings = {

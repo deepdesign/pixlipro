@@ -1359,8 +1359,6 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     
     // Configure all secondary sprites (existing and newly created)
     // Re-position all secondary tiles to ensure even distribution
-    const initialSecondaryCount = primaryLayer.tiles.length - 1; // Number of existing secondary tiles
-    
     for (let i = 0; i < targetSecondaryCount; i++) {
       const tile = secondaryTiles[i];
       tile.paletteColorIndex = thumbnailConfig.secondaryColorIndex;
