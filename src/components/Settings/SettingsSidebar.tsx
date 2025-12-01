@@ -48,9 +48,9 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
   return (
     <Sidebar className="settings-sidebar-nav bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 [&_*[data-slot='icon']]:fill-none [&_*[data-slot='icon']]:stroke-current">
       <SidebarBody>
-        {/* Content Management Section */}
+        {/* Canvas Section */}
         <SidebarSection>
-          <SidebarHeading>Content Management</SidebarHeading>
+          <SidebarHeading>Canvas</SidebarHeading>
           {contentManagementItems.map((item) => {
             const Icon = item.icon;
             return (

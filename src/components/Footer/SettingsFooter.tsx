@@ -4,11 +4,11 @@
  */
 export function SettingsFooter() {
   return (
-    <footer className="flex items-center justify-between w-full text-[0.7rem] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+    <footer className="flex items-center justify-between w-full text-[0.65rem] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
       {/* Logo on left */}
       <div className="flex-shrink-0">
-        <img 
-          src="/logo/SVG/pixli-logo-white.svg" 
+        <img
+          src="/logo/SVG/pixli-logo-white.svg"
           alt="Pixli: generative art toy"
           className="h-8 w-auto"
         />
@@ -17,8 +17,14 @@ export function SettingsFooter() {
       {/* Text on right */}
       <div className="text-right">
         <span>
-          © {new Date().getFullYear()} Pixli · generative art toy · v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'} ·{" "}
-          <a href="https://jamescutts.me/" target="_blank" rel="noreferrer" className="text-[var(--accent-primary)] hover:opacity-80">
+          © {new Date().getFullYear()} Pixli · generative art toy · v1.3.1 ·{" "}
+          <a 
+            href="https://www.jamescutts.me/" 
+            target="_blank" 
+            rel="noreferrer" 
+            className="!text-[var(--accent-primary)] hover:!text-[var(--accent-primary)]/80 transition-colors"
+            style={{ color: 'var(--accent-primary)' }}
+          >
             jamescutts.me
           </a>
         </span>

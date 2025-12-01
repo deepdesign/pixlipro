@@ -114,6 +114,18 @@ export const palettes: Palette[] = [
     colors: ["#0f0f1c", "#1f1147", "#371a79", "#5d2e9a", "#8c44ff"],
     category: "Dark/Mysterious",
   },
+  {
+    id: "slate",
+    name: "Slate Gray",
+    colors: ["#f8fafc", "#1e293b", "#1e293b", "#1e293b", "#1e293b"], // slate-50 (index 0) for main sprite, slate-800 (index 1+) for background sprites - two shades darker
+    category: "Dark/Mysterious",
+  },
+  {
+    id: "slate-bg",
+    name: "Slate Background",
+    colors: ["#1e293b", "#1e293b", "#1e293b", "#1e293b", "#1e293b"], // slate-800 for background (dark mode) - one shade darker
+    category: "Dark/Mysterious",
+  },
 ];
 
 export const defaultPaletteId = "neon";

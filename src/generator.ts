@@ -236,6 +236,15 @@ export interface GeneratorState {
   noiseEnabled: boolean;
   noiseType: "grain" | "crt" | "bayer" | "static" | "scanlines";
   noiseStrength: number; // 0-100
+  // Thumbnail mode settings (for animation thumbnails)
+  thumbnailMode?: {
+    primaryColorIndex: number; // Color index for primary sprite (e.g., 0 for slate-50)
+    secondaryColorIndex: number; // Color index for secondary sprites (e.g., 1 for slate-600)
+    primaryScale: number; // Scale for primary sprite
+    secondaryScale: number; // Scale for secondary sprites (typically 50% of primary)
+    secondaryCount: number; // Number of secondary sprites (e.g., 7)
+    primaryPosition?: { u: number; v: number }; // Optional: fixed position for primary sprite (0-1)
+  };
 }
 
 export interface SpriteControllerOptions {
@@ -629,59 +638,117 @@ const computeMovementOffsets = (
       // Apply pulse to scale
       const scaleMultiplier = clampScale(1 + pulse * 0.55);
       
-      // Add meandering movement - increased multipliers for more pronounced wandering
+      // Add meandering movement - increased multipliers for wider area coverage
       // Use different frequencies for X and Y to create organic, wandering motion
-      const meanderX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.55;
-      const meanderY = Math.cos(phased * 0.024 + phase * 0.12) * baseUnit * motionScale * 0.6;
+      const meanderX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 1.2;
+      const meanderY = Math.cos(phased * 0.024 + phase * 0.12) * baseUnit * motionScale * 1.3;
       
       return { offsetX: meanderX, offsetY: meanderY, scaleMultiplier };
     }
     case "drift": {
-      const driftX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.45;
-      const driftY = Math.cos(phased * 0.024 + phase * 0.12) * baseUnit * motionScale * 0.5;
-      const scaleMultiplier = clampScale(1 + Math.sin(phased * 0.016) * motionScale * 0.16);
+      // More exaggerated floating motion with larger amplitude
+      const driftX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.8;
+      const driftY = Math.cos(phased * 0.024 + phase * 0.12) * baseUnit * motionScale * 0.9;
+      const scaleMultiplier = clampScale(1 + Math.sin(phased * 0.016) * motionScale * 0.25);
       return { offsetX: driftX, offsetY: driftY, scaleMultiplier };
     }
     case "ripple": {
-      const wave = Math.sin(phased * 0.04 + layerIndex * 0.6);
-      const radius = baseUnit * (0.6 + motionScale * 0.9);
-      const offsetX =
-        Math.cos(phase * 1.2 + phased * 0.015) * radius * wave * 0.35;
-      const offsetY =
-        Math.sin(phase * 1.35 + phased * 0.02) * radius * wave * 0.35;
-      const scaleMultiplier = clampScale(1 + wave * motionScale * 0.4);
+      // Wave-like motion with circular/radial wave propagation
+      // Ripples expand outward from center in waves
+      const wavePhase = phased * 0.04 + layerIndex * 0.6;
+      const wave = Math.sin(wavePhase);
+      
+      // Create expanding/contracting radius for ripple effect
+      // Waves expand outward then contract back
+      const rippleRadius = baseUnit * (0.4 + motionScale * 0.8) * (0.5 + wave * 0.5);
+      
+      // Circular motion based on phase - creates radial wave pattern
+      // Each sprite has a different starting angle based on phase
+      const angle = phase * 2 * Math.PI + phased * 0.02;
+      
+      // Radial movement - sprites move outward/inward in circular pattern
+      const offsetX = Math.cos(angle) * rippleRadius * wave;
+      const offsetY = Math.sin(angle) * rippleRadius * wave;
+      
+      // Scale pulses with wave for ripple effect
+      const scaleMultiplier = clampScale(1 + wave * motionScale * 0.5);
       return { offsetX, offsetY, scaleMultiplier };
     }
     case "zigzag": {
-      const zig = phased * 0.06 + layerIndex * 0.25;
-      const tri = (2 / Math.PI) * Math.asin(Math.sin(zig));
-      const sweep = Math.sin(zig * 1.35);
-      const offsetX =
-        tri * layerTileSize * 0.35 * motionScale +
-        sweep * baseUnit * 0.2 * motionScale;
-      const offsetY =
-        Math.sin(zig * 0.9 + layerIndex * 0.4 + phase * 0.4) *
-        layerTileSize *
-        0.22 *
-        motionScale;
+      // Create a zigzag sawtooth path that moves horizontally and returns along the same path
+      // The sprite moves left-to-right along a sawtooth zigzag path,
+      // then reverses direction to return along the same path, forming a closed loop
+      
+      // Slow down the animation significantly - very slow (halved again)
+      const zigTime = phased * 0.002 + layerIndex * 0.02;
+      
+      // Determine if we're going forward (0-1) or backward (1-2) in the cycle
+      const cyclePhase = zigTime % 2;
+      const isForward = cyclePhase < 1;
+      
+      // Horizontal progress: 0 to 1 going forward, 1 to 0 going backward
+      const horizontalProgress = isForward 
+        ? cyclePhase  // Forward: 0 to 1
+        : 2 - cyclePhase; // Backward: 1 to 0
+      
+      // Horizontal movement distance (left-right) - 50% longer again
+      const horizontalAmplitude = baseUnit * (1.8 + motionScale * 3.0);
+      // Convert progress to -1 to 1 range for centered movement
+      const horizontalPosition = (horizontalProgress - 0.5) * 2; // -1 to 1
+      const offsetX = horizontalPosition * horizontalAmplitude * motionScale;
+      
+      // Create sawtooth pattern for vertical movement (zigzag up and down)
+      // The sawtooth follows the horizontal position to create a proper zigzag path
+      // Number of zigzag segments per horizontal cycle (fewer segments = smoother)
+      const zigzagSegments = 3; // Creates 3 peaks/troughs per horizontal cycle
+      const sawtoothPhase = horizontalProgress * zigzagSegments; // 0 to zigzagSegments
+      const sawtoothValue = sawtoothPhase % 1; // 0 to 1 within each segment
+      
+      // Create sawtooth: goes from 0 to 1, then drops back to 0
+      // This creates the sharp zigzag pattern
+      const zigzagY = sawtoothValue < 0.5 
+        ? sawtoothValue * 2  // Rising edge: 0 to 1
+        : 2 - sawtoothValue * 2; // Falling edge: 1 to 0
+      
+      // Normalize to -1 to 1 range for centered vertical movement
+      const normalizedZigzag = (zigzagY - 0.5) * 2;
+      
+      // Vertical amplitude for zigzag pattern - increased for more pronounced sawtooth
+      const verticalAmplitude = baseUnit * (0.4 + motionScale * 0.8);
+      const offsetY = normalizedZigzag * verticalAmplitude * motionScale;
+      
+      // Optional: slight scale variation for visual interest
       const scaleMultiplier = clampScale(
-        1 + Math.cos(zig * 1.1) * 0.18 * motionScale,
+        1 + Math.cos(zigTime * Math.PI * 0.3) * 0.08 * motionScale,
       );
+      
       return { offsetX, offsetY, scaleMultiplier };
     }
     case "cascade": {
+      // Waterfall-like tailing motion - stronger downward flow with trailing effect
       const cascadeTime = phased * 0.045 + layerIndex * 0.2;
       const wave = Math.sin(cascadeTime);
+      
+      // Stronger downward drift for waterfall effect
+      // Use exponential curve for more pronounced downward acceleration
       const drift = (1 - Math.cos(cascadeTime)) * 0.5;
+      const waterfallDrift = Math.pow(drift, 0.7); // Exponential curve for waterfall effect
+      
+      // Increased vertical movement for waterfall tailing
       const offsetY =
-        (drift * 2 - 1) *
+        (waterfallDrift * 2 - 1) *
         layerTileSize *
-        0.4 *
-        (1 + layerIndex * 0.12) *
+        0.7 *
+        (1 + layerIndex * 0.2) *
         motionScale;
-      const offsetX = wave * baseUnit * 0.3 * motionScale;
+      
+      // Reduced horizontal movement - waterfall flows more vertically
+      const offsetX = wave * baseUnit * 0.2 * motionScale;
+      
+      // Scale variation creates trailing effect (sprites get smaller as they fall)
+      const trailingScale = 1 - waterfallDrift * 0.3; // Sprites shrink as they cascade down
       const scaleMultiplier = clampScale(
-        1 + Math.sin(cascadeTime * 1.2 + phase * 0.25) * 0.16 * motionScale,
+        trailingScale + Math.sin(cascadeTime * 1.2 + phase * 0.25) * 0.12 * motionScale,
       );
       return { offsetX, offsetY, scaleMultiplier };
     }
@@ -703,7 +770,8 @@ const computeMovementOffsets = (
     case "comet": {
       const pathLength =
         layerTileSize * (0.85 + layerIndex * 0.28 + motionScale * 1.2);
-      const travel = phased * (0.035 + layerIndex * 0.01);
+      // Slow down the comet trail animation
+      const travel = phased * (0.018 + layerIndex * 0.005);
       const orbital = travel + phase;
       const tail = (Math.sin(travel * 0.9 + phase * 0.6) + 1) * 0.5;
       const offsetX = Math.cos(orbital) * pathLength;
@@ -713,9 +781,9 @@ const computeMovementOffsets = (
     }
     case "linear": {
       // Determine direction based on phase (deterministic per sprite)
-      // Use phase to pick from all 45-degree angles: 0°, 45°, 90°, 135°, 180°, 225°, 270°, 315°
-      const angleDegrees = [0, 45, 90, 135, 180, 225, 270, 315];
-      const directionIndex = Math.floor((phase * 0.142857) % angleDegrees.length);
+      // Only horizontal and vertical directions: 0° (right), 90° (down), 180° (left), 270° (up)
+      const angleDegrees = [0, 90, 180, 270];
+      const directionIndex = Math.floor((phase * 0.25) % angleDegrees.length);
       const angle = (angleDegrees[directionIndex] * Math.PI) / 180;
       
       // Parallax effect: speed relative to sprite size
@@ -736,7 +804,7 @@ const computeMovementOffsets = (
       // No additional easing needed to avoid speed bumps
       const travel = oscillation * maxDistance;
       
-      // Calculate offset based on angle
+      // Calculate offset based on angle (only horizontal or vertical)
       const offsetX = Math.cos(angle) * travel;
       const offsetY = Math.sin(angle) * travel;
       return { offsetX, offsetY, scaleMultiplier: 1 };
@@ -1212,6 +1280,114 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       mode: "svg",
       baseSizeRatio,
     });
+  }
+
+  // Post-process for thumbnail mode
+  if (state.thumbnailMode && layers.length > 0 && layers[0].tiles.length > 0) {
+    const thumbnailConfig = state.thumbnailMode;
+    const primaryLayer = layers[0];
+    const primaryTile = primaryLayer.tiles[0];
+    let secondaryTiles = primaryLayer.tiles.slice(1);
+
+    // Configure primary sprite
+    // Force primary sprite to always use slate-50 (index 0) - ensure it's always the first color
+    const primaryColorIndex = 0; // Always use index 0 for slate-50
+    primaryTile.paletteColorIndex = primaryColorIndex;
+    primaryTile.scale = thumbnailConfig.primaryScale;
+    primaryTile.blendMode = "NONE"; // Primary sprite should have no blend mode
+    if (thumbnailConfig.primaryPosition) {
+      primaryTile.u = thumbnailConfig.primaryPosition.u;
+      primaryTile.v = thumbnailConfig.primaryPosition.v;
+    }
+
+    // Update primary tile tint to match the new color index
+    const primaryColor = chosenPalette[primaryColorIndex] ?? chosenPalette[0];
+    primaryTile.tint = primaryColor;
+
+    // Configure secondary sprites
+    const secondaryColor = chosenPalette[thumbnailConfig.secondaryColorIndex] ?? chosenPalette[1];
+    const targetSecondaryCount = thumbnailConfig.secondaryCount;
+    
+    // Distribute secondary sprites randomly but evenly across the canvas
+    // Use a seeded RNG based on the state seed to ensure consistent placement
+    const positionRng = createMulberry32(hashSeed(`${state.seed}-thumbnail-secondary-positions`));
+    const minDistance = 0.15; // Minimum distance from center (to avoid overlap with primary)
+    const maxDistance = 0.45; // Maximum distance from center (keep on canvas)
+    const padding = 0.1; // Padding from edges to keep sprites visible
+    
+    // Create additional secondary tiles if we don't have enough
+    if (secondaryTiles.length < targetSecondaryCount) {
+      const selectedSpriteIds = state.selectedSprites.length > 0 
+        ? state.selectedSprites 
+        : ["/sprites/default/square.svg"]; // Fallback to square
+      const spriteInfo = getSpriteInfo(selectedSpriteIds[0]);
+      const defaultSpritePath = spriteInfo?.svgSprite?.svgPath || "/sprites/default/square.svg";
+      const defaultSpriteId = spriteInfo?.svgSprite?.id || "square";
+      
+      // Create additional tiles to reach target count
+      for (let i = secondaryTiles.length; i < targetSecondaryCount; i++) {
+        // Generate position for new tile
+        const angle = positionRng() * 2 * Math.PI;
+        const distance = minDistance + positionRng() * (maxDistance - minDistance);
+        let u = 0.5 + distance * Math.cos(angle);
+        let v = 0.5 + distance * Math.sin(angle);
+        u = Math.max(padding, Math.min(1 - padding, u));
+        v = Math.max(padding, Math.min(1 - padding, v));
+        
+        // Create new tile
+        const newTile: PreparedTile = {
+          kind: "svg",
+          svgPath: defaultSpritePath,
+          spriteId: defaultSpriteId,
+          tint: secondaryColor,
+          paletteColorIndex: thumbnailConfig.secondaryColorIndex,
+          u,
+          v,
+          scale: thumbnailConfig.secondaryScale,
+          blendMode: "NONE", // Secondary sprites should have no blend mode
+          rotationBase: 0,
+          rotationDirection: 1,
+          rotationSpeed: 0,
+          rotationBaseMultiplier: 0,
+          rotationSpeedMultiplier: 0,
+          animationTimeMultiplier: 1.0,
+          isOutlined: false,
+        };
+        secondaryTiles.push(newTile);
+      }
+    }
+    
+    // Configure all secondary sprites (existing and newly created)
+    // Re-position all secondary tiles to ensure even distribution
+    const initialSecondaryCount = primaryLayer.tiles.length - 1; // Number of existing secondary tiles
+    
+    for (let i = 0; i < targetSecondaryCount; i++) {
+      const tile = secondaryTiles[i];
+      tile.paletteColorIndex = thumbnailConfig.secondaryColorIndex;
+      tile.scale = thumbnailConfig.secondaryScale;
+      tile.blendMode = "NONE"; // Secondary sprites should have no blend mode
+      
+      // Generate new position for all secondary tiles (ensures even distribution)
+      const angle = positionRng() * 2 * Math.PI;
+      const distance = minDistance + positionRng() * (maxDistance - minDistance);
+      
+      // Convert to cartesian coordinates
+      let u = 0.5 + distance * Math.cos(angle);
+      let v = 0.5 + distance * Math.sin(angle);
+      
+      // Clamp to keep sprites on canvas (with padding)
+      u = Math.max(padding, Math.min(1 - padding, u));
+      v = Math.max(padding, Math.min(1 - padding, v));
+      
+      tile.u = u;
+      tile.v = v;
+      tile.tint = secondaryColor;
+    }
+
+    // Update layer with exactly the tiles we need (1 primary + targetSecondaryCount secondary)
+    // Put primary tile LAST so it renders on top (in front of secondary sprites)
+    primaryLayer.tiles = [...secondaryTiles.slice(0, targetSecondaryCount), primaryTile];
+    primaryLayer.tileCount = primaryLayer.tiles.length;
   }
 
   return { layers, background };
@@ -2518,10 +2694,18 @@ export const createSpriteController = (
 
         p.push();
         layer.tiles.forEach((tile, tileIndex) => {
+          // In thumbnail mode, primary sprite (last tile in layer 0) should have no blend mode
+          const isThumbnailPrimary = currentState.thumbnailMode && 
+                                     layerIndex === 0 && 
+                                     tileIndex === layer.tiles.length - 1;
+          
           // Use currentState.blendMode when blendModeAuto is false, otherwise use stored tile/layer blend mode
-          const tileBlendMode = currentState.blendModeAuto
-            ? (tile.blendMode ?? layer.blendMode)
-            : currentState.blendMode;
+          // Force "NONE" blend mode for thumbnail primary sprite
+          const tileBlendMode = isThumbnailPrimary 
+            ? "NONE"
+            : (currentState.blendModeAuto
+                ? (tile.blendMode ?? layer.blendMode)
+                : currentState.blendMode);
           // Set blend mode for both p5.js and canvas context operations
           p.blendMode(blendMap[tileBlendMode] ?? p.BLEND);
           // Also set canvas context blend mode for direct ctx operations
@@ -2539,6 +2723,7 @@ export const createSpriteController = (
             const animatedTileColor = getAnimatedTileColor(tile);
             const baseSvgSize =
               baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
+            
             movement = computeMovementOffsets(currentState.movementMode, {
               time: scaledAnimationTime * tile.animationTimeMultiplier, // Use per-tile animation time variation
               phase: tileIndex * 7,
@@ -2555,8 +2740,15 @@ export const createSpriteController = (
             const finalMovement = movement;
             const svgSize = baseSvgSize * finalMovement.scaleMultiplier;
             // Determine opacity based on outline state when mixed mode is enabled
+            // In thumbnail mode, primary sprite (last tile in layer 0) should be 100% opaque
+            const isThumbnailPrimary = currentState.thumbnailMode && 
+                                       layerIndex === 0 && 
+                                       tileIndex === layer.tiles.length - 1;
             let opacityValue: number;
-            if (currentState.outlineMixed && currentState.outlineEnabled) {
+            if (isThumbnailPrimary) {
+              // Primary sprite in thumbnail mode: 100% opaque, no blend mode
+              opacityValue = 1.0;
+            } else if (currentState.outlineMixed && currentState.outlineEnabled) {
               // Use filled/outlined opacity based on tile's outline state
               const tileOpacity = tile.isOutlined 
                 ? (currentState.outlinedOpacity ?? currentState.layerOpacity)
