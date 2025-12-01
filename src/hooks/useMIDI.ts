@@ -63,7 +63,8 @@ export function useMIDI(options: UseMIDIOptions = {}) {
             case "preset4":
             case "preset5":
               if (message.type === "noteon" && message.value > 0) {
-                const presetIndex = parseInt(mapping.replace("preset", "")) - 1;
+                // @ts-expect-error - intentionally unused, placeholder for future implementation
+                const _presetIndex = parseInt(mapping.replace("preset", "")) - 1;
                 // Load preset by index (would need preset list)
                 break;
               }
@@ -90,7 +91,8 @@ export function useMIDI(options: UseMIDIOptions = {}) {
             // Note C4 (60) = Preset 1, C#4 (61) = Preset 2, etc.
             const noteNumber = message.number;
             if (noteNumber >= 60 && noteNumber <= 64) {
-              const presetIndex = noteNumber - 60;
+              // @ts-expect-error - intentionally unused, placeholder for future implementation
+              const _presetIndex = noteNumber - 60;
               // Load preset by index (would need preset list)
             }
           }

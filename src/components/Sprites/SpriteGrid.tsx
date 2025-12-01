@@ -1,8 +1,7 @@
 import { Button } from "@/components/Button";
 import { Plus } from "lucide-react";
 import { SpriteCard } from "./SpriteCard";
-import type { CustomSprite, CustomSpriteCollection } from "@/lib/storage/customSpriteStorage";
-import { getAllCollections } from "@/constants/spriteCollections";
+import type { CustomSpriteCollection } from "@/lib/storage/customSpriteStorage";
 
 interface SpriteGridProps {
   collection: CustomSpriteCollection | null;

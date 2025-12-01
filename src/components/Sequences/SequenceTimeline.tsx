@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import {
   DndContext,
   closestCenter,
@@ -6,8 +6,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
 } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
@@ -18,12 +18,11 @@ import { SequenceSceneCard } from "./SequenceSceneCard";
 import { PlaybackControls } from "./PlaybackControls";
 import { Button } from "@/components/Button";
 import {
-  saveSequence,
   type Sequence,
   type SequenceScene,
   generateSequenceSceneId,
 } from "@/lib/storage/sequenceStorage";
-import { getAllPresets, type Preset } from "@/lib/storage/presetStorage";
+import type { Preset } from "@/lib/storage/presetStorage";
 import { Plus } from "lucide-react";
 
 interface SequenceTimelineProps {

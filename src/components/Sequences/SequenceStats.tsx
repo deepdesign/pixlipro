@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAllSequences, type Sequence } from "@/lib/storage/sequenceStorage";
+import { getAllSequences } from "@/lib/storage/sequenceStorage";
 import { List, Film, Clock, TrendingUp } from "lucide-react";
 
 export function SequenceStats() {

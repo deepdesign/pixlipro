@@ -37,12 +37,6 @@ const PresetManager = lazy(() => import("./components/PresetManager").then(modul
 const ExportModal = lazy(() => import("./components/ExportModal").then(module => ({ default: module.ExportModal })));
 import { Header } from "./components/Header";
 import { StatusBar } from "./components/StatusBar";
-import { PixliLogo } from "./components/Header/PixliLogo";
-import {
-  SpriteControls,
-  ColourControls,
-  MotionControls,
-} from "./components/ControlPanel";
 import { getPalette } from "./data/palettes";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useTheme } from "./hooks/useTheme";
@@ -148,12 +142,12 @@ const App = () => {
 
     const streamCanvas = () => {
       const p5Instance = controller?.getP5Instance();
-      if (!p5Instance || !p5Instance.canvas) {
+      if (!hasCanvas(p5Instance)) {
         animationFrameId = requestAnimationFrame(streamCanvas);
         return;
       }
 
-      const canvas = p5Instance.canvas as HTMLCanvasElement;
+      const canvas = p5Instance.canvas;
       const currentTime = performance.now();
 
       // Throttle to target FPS
@@ -327,7 +321,7 @@ const App = () => {
       }
       
       // Fallback: remove after 400ms if transition doesn't fire
-      fallbackTimeout = window.setTimeout(() => {
+      fallbackTimeout = setTimeout(() => {
         if (initialLoader && handleTransitionEnd) {
           initialLoader.removeEventListener("transitionend", handleTransitionEnd);
         }
@@ -376,7 +370,8 @@ const App = () => {
     ];
   }, [PALETTE_OPTIONS]);
 
-  const handleCustomPaletteCreated = useCallback(() => {
+  // @ts-expect-error - intentionally unused, kept for future use
+  const _handleCustomPaletteCreated = useCallback(() => {
     setCustomPalettesRefresh((prev) => prev + 1);
   }, []);
 
@@ -535,13 +530,6 @@ const App = () => {
     };
   }, [spriteState, controllerRef.current, updateCanvasSize]);
   
-  // Also update canvas size when layout changes (columns split/merge)
-  // useEffect(() => {
-  //   const timeoutId = setTimeout(() => {
-  //     updateCanvasSize();
-  //   }, 100);
-  //   return () => clearTimeout(timeoutId);
-  // }, [isWideLayout, updateCanvasSize]);
 
   const currentPalette = useMemo(() => {
     if (!spriteState?.paletteId) {
@@ -571,13 +559,6 @@ const App = () => {
     return SPRITE_MODES[0].label;
   }, [spriteState]);
 
-  // Removed: This was preventing Motion tab from working when merged
-  // The tabs should work fine when merged since they're rendered conditionally
-  // useEffect(() => {
-  //   if (!isWideLayout && controlTabIndex > 1) {
-  //     setControlTabIndex(0);
-  //   }
-  // }, [isWideLayout, controlTabIndex]);
 
 
   // Controller initialization is now handled by useSpriteController hook
@@ -857,7 +838,8 @@ const App = () => {
   }, [spriteState, webSocket.connected]); // Removed webSocket.sendStateUpdate - it's stable now
 
   // OSC Integration
-  const osc = useOSC({
+  // @ts-expect-error - hook must run for side effects, return value unused
+  const _osc = useOSC({
     onPresetLoad: handleLoadPresetById,
     onMotionIntensityChange: (intensity) => {
       controllerRef.current?.setMotionIntensity(intensity);
@@ -871,13 +853,14 @@ const App = () => {
     onSequencePrevious: () => {
       // Sequence previous would be handled by SequencePlayer
     },
-    onStateUpdate: (state) => {
+    onStateUpdate: (_state) => {
       // State updates sent via OSC (handled by backend)
     },
   });
 
   // MIDI Integration
-  const midi = useMIDI({
+  // @ts-expect-error - hook must run for side effects, return value unused
+  const _midi = useMIDI({
     onMotionIntensityChange: (intensity) => {
       controllerRef.current?.setMotionIntensity(intensity);
     },
@@ -888,14 +871,14 @@ const App = () => {
       controllerRef.current?.setHueRotationSpeed(speed);
     },
     onRandomizeAll: handleRandomiseAll,
-    onStateUpdate: (state) => {
+    onStateUpdate: (_state) => {
       // State updates sent via MIDI (if needed)
     },
   });
 
   // DMX Integration
   const dmx = useDMX({
-    onStateUpdate: (state) => {
+    onStateUpdate: (_state) => {
       // State updates sent to DMX channels
     },
   });
@@ -994,34 +977,42 @@ const App = () => {
         <AnimationPage />
         )}
     
-        {(showSettingsPage || currentPage === "settings") && (
-        <SettingsPage 
-          onClose={() => {
-            setShowSettingsPage(false);
-            setCurrentPage("create");
-            handleNavigate("create");
-          }}
-          onAspectRatioChange={(aspectRatio, custom) => {
-            if (controller) {
-              if (aspectRatio === "custom" && custom) {
-                controller.setCustomAspectRatio(custom.width, custom.height);
-              } else {
-                controller.setAspectRatio(aspectRatio);
-              }
-            }
-          }}
-          onLoadPreset={handleLoadPreset}
-          currentState={spriteState}
-          frameRate={frameRate}
-          ready={ready}
-          webSocketState={{
-            connected: webSocket.isConnected,
-            connecting: webSocket.isConnecting,
-            error: webSocket.error,
-            clients: webSocket.clients,
-          }}
-        />
-        )}
+        {(showSettingsPage || currentPage === "settings") && (() => {
+          // Extract section from URL
+          const path = window.location.pathname;
+          const settingsMatch = path.match(/^\/settings(?:\/([^/]+))?/);
+          const initialSection = settingsMatch?.[1] || "display";
+          
+          return (
+            <SettingsPage 
+              onClose={() => {
+                setShowSettingsPage(false);
+                setCurrentPage("create");
+                handleNavigate("create");
+              }}
+              onAspectRatioChange={(aspectRatio, custom) => {
+                if (controller) {
+                  if (aspectRatio === "custom" && custom) {
+                    controller.setCustomAspectRatio(custom.width, custom.height);
+                  } else {
+                    controller.setAspectRatio(aspectRatio);
+                  }
+                }
+              }}
+              onLoadPreset={handleLoadPreset}
+              currentState={spriteState}
+              frameRate={frameRate}
+              ready={ready}
+              webSocketState={{
+                connected: webSocket.connected,
+                connecting: webSocket.connecting,
+                error: webSocket.error,
+                clients: webSocket.clients,
+              }}
+              initialSection={initialSection}
+            />
+          );
+        })()}
       </>
   );
   };
@@ -1029,45 +1020,58 @@ const App = () => {
 
   // Calculate header height and set CSS variable
   const headerRef = useRef<HTMLDivElement>(null);
-  const footerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
+    let rafId: number | null = null;
     const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        const height = headerRef.current.offsetHeight;
-        document.documentElement.style.setProperty('--header-height', `${height}px`);
+      if (rafId) {
+        cancelAnimationFrame(rafId);
       }
+      rafId = requestAnimationFrame(() => {
+        if (headerRef.current) {
+          const height = headerRef.current.offsetHeight;
+          document.documentElement.style.setProperty('--header-height', `${height}px`);
+        } else {
+          // When header is hidden (canvas screen), set height to 0
+          document.documentElement.style.setProperty('--header-height', '0px');
+        }
+        rafId = null;
+      });
     };
     updateHeaderHeight();
-    window.addEventListener('resize', updateHeaderHeight);
-    return () => window.removeEventListener('resize', updateHeaderHeight);
-  }, []);
+    window.addEventListener('resize', updateHeaderHeight, { passive: true });
+    return () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+      }
+      window.removeEventListener('resize', updateHeaderHeight);
+    };
+  }, [currentPage]); // Re-run when currentPage changes
 
   useEffect(() => {
-    const updateFooterHeight = () => {
-      if (footerRef.current) {
-        const height = footerRef.current.offsetHeight;
-        document.documentElement.style.setProperty('--footer-height', `${height}px`);
-      }
-    };
-    updateFooterHeight();
-    window.addEventListener('resize', updateFooterHeight);
-    return () => window.removeEventListener('resize', updateFooterHeight);
+    // Footer is now only in settings pages, so set height to 0 for canvas screen
+    document.documentElement.style.setProperty('--footer-height', '0px');
   }, []);
 
   // Handle navigation
-  const handleNavigate = (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation") => {
+  const handleNavigate = (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation", section?: string) => {
     setCurrentPage(page);
     if (page === "settings") {
       setShowSettingsPage(true);
+      // Update URL with section if provided
+      if (section) {
+        window.history.pushState({}, "", `/settings/${section}`);
+      } else {
+        window.history.pushState({}, "", `/settings`);
+      }
     } else {
       setShowSettingsPage(false);
-    }
-    // Update URL without reload
-    if (page === "create") {
-      window.history.pushState({}, "", "/");
-    } else {
-      window.history.pushState({}, "", `/${page}`);
+      // Update URL without reload
+      if (page === "create") {
+        window.history.pushState({}, "", "/");
+      } else {
+        window.history.pushState({}, "", `/${page}`);
+      }
     }
   };
 
@@ -1124,6 +1128,15 @@ const App = () => {
   // Initialize page from URL
   useEffect(() => {
     const path = window.location.pathname;
+    
+    // Check for settings page with section
+    const settingsMatch = path.match(/^\/settings(?:\/([^/]+))?/);
+    if (settingsMatch) {
+      setCurrentPage("settings");
+      setShowSettingsPage(true);
+      return;
+    }
+    
     if (path === "/palettes") {
       setCurrentPage("palettes");
     } else if (path === "/sprites") {
@@ -1134,9 +1147,6 @@ const App = () => {
       setCurrentPage("sequences");
     } else if (path === "/animation") {
       setCurrentPage("animation");
-    } else if (path === "/settings") {
-      setCurrentPage("settings");
-      setShowSettingsPage(true);
     } else if (path === "/" || path === "") {
       setCurrentPage("create");
     }
@@ -1148,10 +1158,14 @@ const App = () => {
     setCurrentPage("sequences");
   }
 
+  // Show header only when not on canvas screen
+  const showHeader = currentPage !== "create" && currentPage !== "settings" && currentPage !== null;
+
   return (
     <>
-    {/* Header - Full width, outside AppLayout */}
-    <div ref={headerRef} className="app-frame app-frame--compact app-frame--header w-full">
+    {/* Header - Full width, outside AppLayout - Only show when not on canvas */}
+    {showHeader && (
+      <div ref={headerRef} className="app-frame app-frame--compact app-frame--header w-full">
         <Header
           themeMode={themeMode}
           onThemeModeChange={setThemeMode}
@@ -1162,8 +1176,9 @@ const App = () => {
           }}
         />
       </div>
+    )}
 
-    <AppLayout sidebarProps={sidebarProps} hideSidebar={showSettingsPage || currentPage === "palettes" || currentPage === "presets" || currentPage === "sequences" || currentPage === "sprites" || currentPage === "animation"}>
+    <AppLayout sidebarProps={sidebarProps} hideSidebar={currentPage === "palettes" || currentPage === "presets" || currentPage === "sequences" || currentPage === "sprites" || currentPage === "animation"}>
       <div className="app-shell">
 
       <div className={`app-frame app-frame--compact app-frame--main${isSmallCanvas ? " app-frame--stacked" : ""}`}>
@@ -1177,19 +1192,6 @@ const App = () => {
           </div>
           </div>
         </main>
-      </div>
-      <div ref={footerRef} className="app-frame app-frame--compact app-frame--footer">
-        <footer className={`app-footer${isMobile ? " app-footer--mobile" : ""}`}>
-          <div className="footer-brand">
-            {!isMobile && <PixliLogo className="footer-logo" />}
-          </div>
-          <span className="footer-text">
-            © {new Date().getFullYear()} Pixli · generative art toy · v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev'} ·{" "}
-            <a href="https://jamescutts.me/" target="_blank" rel="noreferrer">
-              jamescutts.me
-            </a>
-          </span>
-        </footer>
       </div>
       </div>
     </AppLayout>

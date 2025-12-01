@@ -10,7 +10,6 @@ import {
   updateSpriteInCollection,
   deleteSpriteFromCollection,
   moveSpriteBetweenCollections,
-  generateSpriteId,
   type CustomSprite,
   type CustomSpriteCollection,
 } from "@/lib/storage/customSpriteStorage";
@@ -23,13 +22,7 @@ export function SpritesPage() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showCreateCollectionModal, setShowCreateCollectionModal] = useState(false);
-  const [uploadMode, setUploadMode] = useState<"upload" | "paste">("upload");
-
   // Get all collections (file-based + custom)
-  const allCollections = getAllCollections();
-  
-  // Get custom collection IDs to filter them out
-  const customCollectionIds = new Set(customCollections.map(c => c.id));
   
   // Only include custom collections in the dropdown (file-based collections are read-only)
   const availableCollections = customCollections.map(c => ({ 
@@ -195,46 +188,50 @@ export function SpritesPage() {
   }, [selectedCollectionId, refreshCollections]);
 
   return (
-    <div className="h-full w-full flex flex-col bg-gray-50 dark:bg-slate-950 min-h-0 overflow-hidden">
+    <div className="h-full w-full flex flex-col bg-slate-50 dark:bg-slate-950 min-h-0 overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">
+      <div className="px-6 py-4 flex-shrink-0">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-50">
           Sprites
         </h2>
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex overflow-hidden min-h-0">
-        {/* Sidebar */}
-        <CollectionSidebar
-          selectedCollectionId={selectedCollectionId}
-          customCollections={customCollections}
-          onSelectCollection={setSelectedCollectionId}
-          onCreateCollection={handleCreateCollection}
-          onRenameCollection={handleRenameCollection}
-          onDeleteCollection={handleDeleteCollection}
-        />
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-visible p-6">
-          {isFileBasedCollection ? (
-            <div className="flex items-center justify-center h-64 text-slate-500 dark:text-slate-400">
-              <div className="text-center">
-                <p className="mb-2">This is a read-only collection</p>
-                <p className="text-sm">File-based collections cannot be edited here.</p>
-                <p className="text-sm mt-2">Create a custom collection to add your own sprites.</p>
-              </div>
-            </div>
-          ) : (
-            <SpriteGrid
-              collection={selectedCollection}
-              onAddSprite={handleAddSprite}
-              onRenameSprite={handleRenameSprite}
-              onDeleteSprite={handleDeleteSprite}
-              onMoveSprite={handleMoveSprite}
-              availableCollections={availableCollections.filter(c => c.id !== selectedCollectionId)}
+      <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm h-full flex overflow-hidden">
+          <div className="flex-1 flex overflow-hidden min-h-0">
+            {/* Sidebar */}
+            <CollectionSidebar
+              selectedCollectionId={selectedCollectionId}
+              customCollections={customCollections}
+              onSelectCollection={setSelectedCollectionId}
+              onCreateCollection={handleCreateCollection}
+              onRenameCollection={handleRenameCollection}
+              onDeleteCollection={handleDeleteCollection}
             />
-          )}
+
+            {/* Main Content */}
+            <div className="flex-1 overflow-y-auto overflow-x-visible p-6">
+              {isFileBasedCollection ? (
+                <div className="flex items-center justify-center h-64 text-slate-500 dark:text-slate-400">
+                  <div className="text-center">
+                    <p className="mb-2">This is a read-only collection</p>
+                    <p className="text-sm">File-based collections cannot be edited here.</p>
+                    <p className="text-sm mt-2">Create a custom collection to add your own sprites.</p>
+                  </div>
+                </div>
+              ) : (
+                <SpriteGrid
+                  collection={selectedCollection}
+                  onAddSprite={handleAddSprite}
+                  onRenameSprite={handleRenameSprite}
+                  onDeleteSprite={handleDeleteSprite}
+                  onMoveSprite={handleMoveSprite}
+                  availableCollections={availableCollections.filter(c => c.id !== selectedCollectionId)}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -245,7 +242,7 @@ export function SpritesPage() {
         onSave={handleSaveSprite}
         availableCollections={availableCollections}
         defaultCollectionId={selectedCollectionId || undefined}
-        initialMode={uploadMode}
+        initialMode="upload"
       />
 
       {/* Create Collection Modal */}

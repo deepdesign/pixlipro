@@ -3,13 +3,14 @@ import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/cat
 import { Button } from "@/components/Button";
 import { Input } from "@/components/catalyst/input";
 import { Label, Field } from "@/components/catalyst/fieldset";
-import { Switch, SwitchField } from "@/components/catalyst/switch";
+import { SwitchField } from "@/components/catalyst/switch";
+import { Switch } from "@/components/catalyst/switch-adapter";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-import { X, Upload, FileText, Loader2 } from "lucide-react";
+import { Upload, FileText, Loader2 } from "lucide-react";
 import { validateSvg, extractSpriteNameFromSvg, optimizeSvg } from "@/lib/utils/svgOptimizer";
 import { generateSpriteId } from "@/lib/storage/customSpriteStorage";
 import type { CustomSprite } from "@/lib/storage/customSpriteStorage";
-import { getAllCollections } from "@/constants/spriteCollections";
+import { getCollection } from "@/constants/spriteCollections";
 
 interface UploadSpriteModalProps {
   isOpen: boolean;
@@ -188,15 +189,10 @@ export function UploadSpriteModal({
     }
 
     // Find collection to get existing sprite IDs
-    const allCollections = getAllCollections();
-    const collection = allCollections.find(c => c.id === selectedCollectionId) ||
-      availableCollections.find(c => c.id === selectedCollectionId);
+    const collection = getCollection(selectedCollectionId);
     
-    const existingIds = collection?.sprites.map(s => s.id) || [];
+    const existingIds = collection?.sprites?.map((s) => s.id) || [];
     const spriteId = generateSpriteId(spriteName, existingIds);
-
-    const finalSvg = optimizeEnabled && optimizedSvg ? optimizedSvg : svgContent;
-    const finalSize = optimizeEnabled && optimizedSvg ? optimizedSize : originalSize;
 
     const sprite: CustomSprite = {
       id: spriteId,

@@ -1,6 +1,6 @@
 import { Switch } from "@/components/catalyst/switch-adapter";
 import { MOVEMENT_MODES, formatMovementMode } from "@/constants/movement";
-import { ControlSlider, ControlSelect, TooltipIcon, TextWithTooltip } from "./shared";
+import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
 import { speedToUi, uiToSpeed } from "@/lib/utils";
 import type { GeneratorState, SpriteController, MovementMode } from "@/types/generator";
 import { getAllPalettes, getPalette } from "@/data/palettes";
@@ -34,7 +34,7 @@ export function MotionControls({
   spriteState,
   controller,
   ready,
-  showHeading,
+  showHeading: _showHeading,
   lockedMovementMode,
   onLockMovementMode,
   onMovementSelect,

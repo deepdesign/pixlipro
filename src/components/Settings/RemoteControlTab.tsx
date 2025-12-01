@@ -65,7 +65,6 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
     } else {
       setQrCodeDataURL("");
       setWsUrl("");
-      setIsConnected(false);
       onConnectionChange?.(false);
     }
   };
@@ -94,7 +93,7 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6">
       {/* Remote Control Card */}
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">

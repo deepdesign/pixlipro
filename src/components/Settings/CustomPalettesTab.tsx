@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/Button";
-import { Download, Upload, Plus, X } from "lucide-react";
+import { Download, Upload, X } from "lucide-react";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Input } from "@/components/catalyst/input";
 import { Label, Field } from "@/components/catalyst/fieldset";
-import { Switch, SwitchField } from "@/components/catalyst/switch";
+import { SwitchField } from "@/components/catalyst/switch";
+import { Switch } from "@/components/catalyst/switch-adapter";
 import {
   getAllCustomPalettes,
   saveCustomPalette,

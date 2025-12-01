@@ -1,5 +1,5 @@
 import { Switch } from "@/components/catalyst/switch-adapter";
-import { ControlSlider, ControlSelect, TooltipIcon, TextWithTooltip } from "./shared";
+import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
 import type {
   GeneratorState,
   SpriteController,

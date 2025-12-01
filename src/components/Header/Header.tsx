@@ -2,19 +2,17 @@ import { Button } from "@/components/Button";
 import { PixliLogo } from "./PixliLogo";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useSidebar } from "@/context/SidebarContext";
-import { Menu, X, Sparkles, Bookmark, List, Palette, Shapes, PlayCircle } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Navbar, NavbarSection } from "@/components/catalyst/navbar";
 interface HeaderProps {
-  themeMode: "system" | "light" | "dark";
-  onThemeModeChange: (mode: "system" | "light" | "dark") => void;
+  themeMode?: "system" | "light" | "dark";
+  onThemeModeChange?: (mode: "system" | "light" | "dark") => void;
   onOpenSettings?: () => void;
   onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation") => void;
   currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation" | null;
 }
 
 export function Header({
-  onNavigate,
-  currentPage,
 }: HeaderProps) {
   const isMobile = useIsMobile();
   
@@ -77,90 +75,9 @@ export function Header({
             aria-label="Pixli: generative art toy"
             className="p-1"
           >
-            <PixliLogo className="h-24 w-24 sm:h-18 sm:w-18" />
+            <PixliLogo className="h-12 w-12 sm:h-9 sm:w-9" />
           </a>
         </NavbarSection>
-
-        {/* Center section: Navigation items */}
-        {onNavigate && (
-          <NavbarSection className="self-end ml-auto">
-            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1 shadow-sm">
-              <button
-                type="button"
-                onClick={() => onNavigate("create")}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentPage === "create"
-                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">Canvas</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("animation")}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentPage === "animation"
-                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <PlayCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">Animation</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("sprites")}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentPage === "sprites"
-                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <Shapes className="h-4 w-4" />
-                <span className="hidden sm:inline">Sprites</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("palettes")}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentPage === "palettes"
-                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <Palette className="h-4 w-4" />
-                <span className="hidden sm:inline">Palettes</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("presets")}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentPage === "presets"
-                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <Bookmark className="h-4 w-4" />
-                <span className="hidden sm:inline">Presets</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("sequences")}
-                className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  currentPage === "sequences"
-                    ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
-                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <List className="h-4 w-4" />
-                <span className="hidden sm:inline">Sequences</span>
-              </button>
-            </div>
-          </NavbarSection>
-        )}
-
       </Navbar>
     </header>
   );

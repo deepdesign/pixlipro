@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/Button";
-import { Play, Pause, Square, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { Play, Pause, Square, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Sequence, SequenceItem } from "@/lib/storage/sequenceStorage";
 import type { GeneratorState } from "@/types/generator";
 import { getAllPresets, loadPresetState, type Preset } from "@/lib/storage/presetStorage";
@@ -18,9 +18,7 @@ type PlaybackState = "stopped" | "playing" | "paused";
 
 export function SequencePlayer({
   sequence,
-  currentState,
   onLoadPreset,
-  onRandomize,
 }: SequencePlayerProps) {
   const [playbackState, setPlaybackState] = useState<PlaybackState>("stopped");
   const [currentIndex, setCurrentIndex] = useState(0);

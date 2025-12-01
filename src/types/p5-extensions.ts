@@ -16,12 +16,6 @@ export interface P5WithCanvas extends p5 {
    * Used for time-based animations
    */
   deltaMs?: number;
-  
-  /**
-   * Redraw function - forces a single frame to be drawn
-   * Available in p5.js but not in types
-   */
-  redraw?: () => void;
 }
 
 /**

@@ -16,9 +16,9 @@ export function SpriteCard({
   sprite,
   onRename,
   onDelete,
-  onMove,
-  availableCollections,
-  onMoveToCollection,
+  onMove: _onMove,
+  availableCollections: _availableCollections,
+  onMoveToCollection: _onMoveToCollection,
 }: SpriteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(sprite.name);

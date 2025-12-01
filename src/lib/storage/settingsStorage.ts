@@ -16,6 +16,7 @@ export interface MIDISettings {
   learnMode: boolean;
   mappings: {
     [key: string]: {
+      parameter: string;
       type: "cc" | "note";
       channel: number;
       number: number;

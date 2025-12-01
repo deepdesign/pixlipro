@@ -52,7 +52,7 @@ export function useTheme() {
     if (
       themeMode !== "system" ||
       typeof window === "undefined" ||
-      typeof window.matchMedia === "function"
+      typeof window.matchMedia !== "function"
     ) {
       return;
     }
@@ -62,8 +62,16 @@ export function useTheme() {
       media.addEventListener("change", handler);
       return () => media.removeEventListener("change", handler);
     }
-    media.addListener(handler);
-    return () => media.removeListener(handler);
+    // Fallback for older browsers
+    if (typeof (media as any).addListener === 'function') {
+      (media as any).addListener(handler);
+      return () => {
+        if (typeof (media as any).removeListener === 'function') {
+          (media as any).removeListener(handler);
+        }
+      };
+    }
+    return () => {};
   }, [applyDocumentTheme, themeMode]);
 
   useEffect(() => {

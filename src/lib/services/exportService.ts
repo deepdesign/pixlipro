@@ -1,5 +1,4 @@
 import p5 from "p5";
-import type { P5WithCanvas } from "@/types/p5-extensions";
 import { hasCanvas } from "@/types/p5-extensions";
 import { getPalette } from "@/data/palettes";
 import type { GeneratorState } from "@/generator";
@@ -418,7 +417,7 @@ export async function addLogoToCanvas(
   ctx: CanvasRenderingContext2D,
   canvasWidth: number,
   canvasHeight: number,
-  canvas: HTMLCanvasElement,
+  _canvas: HTMLCanvasElement,
   paletteId?: string
 ): Promise<void> {
   try {
@@ -481,8 +480,7 @@ export async function addLogoToCanvas(
     ctx.save();
     ctx.font = `${fontSize}px "Space Grotesk", system-ui, sans-serif`;
     ctx.letterSpacing = `${fontSize * 0.18}px`;
-    const textMetrics = ctx.measureText(text);
-    const textWidth = textMetrics.width;
+    ctx.measureText(text);
     ctx.restore();
     
     const textX = canvasWidth - padding; // Right side with padding

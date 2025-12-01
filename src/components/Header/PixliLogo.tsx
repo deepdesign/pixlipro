@@ -9,8 +9,8 @@ export const PixliLogo = ({ className = "" }: { className?: string }) => (
   <div
     className={className}
     style={{
-      maskImage: "url('/logo/SVG/pixli-logo-white.svg')",
-      WebkitMaskImage: "url('/logo/SVG/pixli-logo-white.svg')",
+      maskImage: "url('/logo/SVG/pixli-logo-p-white.svg')",
+      WebkitMaskImage: "url('/logo/SVG/pixli-logo-p-white.svg')",
       maskSize: "contain",
       WebkitMaskSize: "contain",
       maskRepeat: "no-repeat",

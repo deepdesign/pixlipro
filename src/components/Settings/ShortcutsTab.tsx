@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Field, Label, Description } from "@/components/catalyst/fieldset";
+import { Label } from "@/components/catalyst/fieldset";
 import { Input } from "@/components/catalyst/input";
 import { Button } from "@/components/Button";
 import {
@@ -9,7 +9,7 @@ import {
   type ShortcutBinding,
   type ShortcutsSettings,
 } from "@/lib/storage/shortcutsStorage";
-import { Keyboard, Edit2, X, Check } from "lucide-react";
+import { Keyboard, Edit2, X } from "lucide-react";
 
 interface ShortcutsTabProps {
   onShortcutChange?: (action: string, binding: ShortcutBinding) => void;
@@ -18,7 +18,7 @@ interface ShortcutsTabProps {
 export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
   const [shortcuts, setShortcuts] = useState<ShortcutsSettings>(() => loadShortcuts());
   const [editingAction, setEditingAction] = useState<string | null>(null);
-  const [capturingKey, setCapturingKey] = useState(false);
+  const [, setCapturingKey] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

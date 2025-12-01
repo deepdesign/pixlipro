@@ -10,40 +10,32 @@ interface TextWithTooltipProps {
 /**
  * TextWithTooltip Component
  * 
- * Wraps text content with tooltip functionality that appears on hover.
- * The tooltip is shown when hovering over the text itself, not a separate icon.
- * Uses fixed positioning to escape container clipping.
+ * Wraps text content with tooltip functionality styled like Flowbite tooltips.
+ * The tooltip appears on hover with Flowbite's Tailwind CSS styling.
+ * Based on Flowbite's tooltip design: https://flowbite.com/docs/components/tooltips/
  */
 export function TextWithTooltip({ id, text, children, className = "" }: TextWithTooltipProps) {
   const triggerRef = useRef<HTMLSpanElement>(null);
-  const tooltipRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [style, setStyle] = useState<React.CSSProperties>({});
+  const [position, setPosition] = useState({ top: 0, left: 0 });
 
   const updatePosition = useCallback(() => {
     const trigger = triggerRef.current;
     const tooltip = tooltipRef.current;
     if (!trigger || !tooltip || !isVisible) return;
     
-    const rect = trigger.getBoundingClientRect();
-    const spacing = 8; // 0.55rem spacing
-    
-    // Get tooltip dimensions once rendered
+    const triggerRect = trigger.getBoundingClientRect();
     const tooltipRect = tooltip.getBoundingClientRect();
-    const tooltipHeight = tooltipRect.height || 60; // Fallback estimate
+    const spacing = 8; // 8px spacing
     
     // Position tooltip above the trigger, centered horizontally
-    const top = rect.top - tooltipHeight - spacing;
-    const left = rect.left + rect.width / 2;
+    const top = triggerRect.top - tooltipRect.height - spacing;
+    const left = triggerRect.left + triggerRect.width / 2;
     
-    setStyle({
-      position: "fixed",
-      top: `${Math.max(8, top)}px`, // Ensure tooltip doesn't go above viewport
-      left: `${left}px`,
-      transform: "translateX(-50%)",
-      zIndex: 2147483646,
-      opacity: 1,
-      visibility: "visible",
+    setPosition({
+      top: Math.max(8, top),
+      left: Math.max(8, Math.min(left, window.innerWidth - tooltipRect.width - 8)),
     });
   }, [isVisible]);
 
@@ -88,21 +80,27 @@ export function TextWithTooltip({ id, text, children, className = "" }: TextWith
     <>
       <span 
         ref={triggerRef}
-        className={`retro-tooltip cursor-help ${className}`}
+        className={`inline-block cursor-help ${className}`}
       >
         {children}
       </span>
       {isVisible && (
-        <span
+        <div
           ref={tooltipRef}
           id={id}
           role="tooltip"
-          className="tooltip-content"
-          style={style}
-          onLoad={updatePosition}
+          className="absolute z-10 inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-sm transition-opacity duration-300 opacity-100"
+          style={{
+            position: "fixed",
+            top: `${position.top}px`,
+            left: `${position.left}px`,
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+          }}
         >
           {text}
-        </span>
+          <div className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-2 h-2 border-4 border-t-gray-900 dark:border-t-gray-700 border-x-transparent border-b-transparent" />
+        </div>
       )}
     </>
   );

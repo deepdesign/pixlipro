@@ -11,6 +11,11 @@ interface AppLayoutProps {
 
 const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideSidebar = false }) => {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+  
+  // When on settings page, right column is hidden, so always use 64px margin
+  const isSettingsPage = sidebarProps.currentPage === "settings";
+  const effectiveExpanded = isExpanded || isHovered;
+  const shouldUseWideMargin = !isSettingsPage && effectiveExpanded;
 
   return (
     <div className="flex flex-1 lg:flex-row h-full">
@@ -24,7 +29,7 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideS
         className={`flex-1 min-w-0 h-full border-t border-slate-200 dark:border-slate-800 ${
           hideSidebar 
             ? "lg:ml-0" 
-            : isExpanded || isHovered 
+            : shouldUseWideMargin
               ? "lg:ml-[370px]" 
               : "lg:ml-[64px]"
         } ${isMobileOpen ? "ml-0" : ""}`}

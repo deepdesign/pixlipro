@@ -4,5 +4,5 @@
  * Type definitions for theme management.
  */
 
-export type { ThemeMode, ThemeColor } from "@/constants/theme";
+export type { ThemeMode } from "@/constants/theme";
 

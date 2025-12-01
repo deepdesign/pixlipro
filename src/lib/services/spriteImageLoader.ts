@@ -24,87 +24,63 @@ const svgoConfig: Config = {
     // Remove metadata and editor-specific content
     {
       name: 'removeDoctype',
-      active: true,
     },
     {
       name: 'removeXMLProcInst',
-      active: true,
     },
     {
       name: 'removeComments',
-      active: true,
     },
     {
       name: 'removeMetadata',
-      active: true,
     },
     {
       name: 'removeTitle',
-      active: true,
     },
     {
       name: 'removeDesc',
-      active: true,
     },
     {
       name: 'removeUselessDefs',
-      active: true, // Remove unused definitions (important for removing clipping masks)
+ // Remove unused definitions (important for removing clipping masks)
     },
     {
       name: 'removeEditorsNSData',
-      active: true,
     },
     {
       name: 'removeEmptyAttrs',
-      active: true,
     },
     {
       name: 'removeHiddenElems',
-      active: true, // Remove hidden elements
+ // Remove hidden elements
     },
     {
       name: 'removeEmptyText',
-      active: true,
     },
     {
       name: 'removeEmptyContainers',
-      active: true,
     },
     // Clean up IDs (can break references to removed clipPaths)
     {
       name: 'cleanupIds',
-      active: true,
       params: {
         remove: true,
         minify: false,
       },
     },
-    // Remove viewBox artifacts
-    {
-      name: 'removeViewBox',
-      active: false, // Keep viewBox for proper scaling
-    },
     // Simplify paths and shapes
     {
       name: 'convertPathData',
-      active: true,
-    },
-    {
-      name: 'convertShapeToPath',
-      active: false, // Keep shapes as shapes for better compatibility
     },
     {
       name: 'cleanupNumericValues',
-      active: true,
     },
     // Remove unused attributes
     {
       name: 'removeUselessStrokeAndFill',
-      active: true,
     },
     {
       name: 'removeUnknownsAndDefaults',
-      active: true,
     },
   ],
 };
@@ -123,9 +99,6 @@ async function processSvgContent(svgText: string): Promise<string> {
   
   // Check if this is SVG content from a blob URL (custom sprite)
   // Custom sprites are already optimized during upload, so skip SVGO
-  const isCustomSprite = svgText.includes('<!-- Custom sprite') || 
-                         svgText.length < 1000; // Heuristic: custom sprites are usually smaller
-  
   // Actually, better approach: just try to optimize and catch errors gracefully
   // The warnings are non-fatal - SVGO will still work, just with warnings
   try {
@@ -198,10 +171,6 @@ async function processSvgContent(svgText: string): Promise<string> {
   // Boolean shapes use fill-rule="evenodd" to create cutouts
   // We need to preserve this for proper rendering on canvas
   // Detect boolean shapes by checking for fill-rule="evenodd"
-  const hasEvenOddFill = processedSvg.includes('fill-rule="evenodd"') || 
-                         processedSvg.includes("fill-rule='evenodd'") ||
-                         processedSvg.includes('fill-rule:evenodd');
-  
   // Don't remove fill-rule - we'll use it during canvas rendering
   // Just normalize the attribute format
   processedSvg = processedSvg.replace(/fill-rule[=:]["']?evenodd["']?/gi, 'fill-rule="evenodd"');
@@ -307,14 +276,12 @@ async function processSvgContent(svgText: string): Promise<string> {
     if (pathDataArray.length > 0) {
       // Extract original viewBox to get dimensions
       const viewBoxMatch = processedSvg.match(/viewBox=["']?([0-9.\s-]+)["']?/i);
-      let originalViewBox = "0 0 24 24";
       let viewBoxWidth = 24;
       let viewBoxHeight = 24;
       
       if (viewBoxMatch) {
         const viewBoxParts = viewBoxMatch[1].trim().split(/[\s,]+/);
         if (viewBoxParts.length >= 4) {
-          originalViewBox = `${viewBoxParts[0]} ${viewBoxParts[1]} ${viewBoxParts[2]} ${viewBoxParts[3]}`;
           viewBoxWidth = parseFloat(viewBoxParts[2]) || 24;
           viewBoxHeight = parseFloat(viewBoxParts[3]) || 24;
         }
@@ -517,7 +484,7 @@ export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement
         processedSvg = processedSvg.replace(/fill:[^;"]+/gi, 'fill:#ffffff');
         
         // Debug: Log the processed SVG to verify viewBox and paths
-        if (svgPath.includes('christmas')) {
+        if (import.meta.env.DEV && svgPath.includes('christmas')) {
           console.log(`Processed SVG for ${svgPath}:`, processedSvg);
         }
         
@@ -530,12 +497,10 @@ export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement
         if (viewBoxMatch) {
           const viewBoxParts = viewBoxMatch[1].trim().split(/[\s,]+/);
           if (viewBoxParts.length >= 4) {
-            const vbX = parseFloat(viewBoxParts[0]);
-            const vbY = parseFloat(viewBoxParts[1]);
             const vbWidth = parseFloat(viewBoxParts[2]);
             const vbHeight = parseFloat(viewBoxParts[3]);
             svgAspectRatio = vbWidth / vbHeight;
-            svgViewBox = { x: vbX, y: vbY, width: vbWidth, height: vbHeight };
+            svgViewBox = { width: vbWidth, height: vbHeight };
           }
         }
         

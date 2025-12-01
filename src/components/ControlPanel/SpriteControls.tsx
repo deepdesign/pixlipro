@@ -1,7 +1,7 @@
-import { useRef, useMemo, useCallback } from "react";
+import { useRef, useMemo } from "react";
 import { Button } from "@/components/Button";
 import { Switch } from "@/components/catalyst/switch-adapter";
-import { Lock, Unlock, RefreshCw } from "lucide-react";
+import { Lock, Unlock, RefreshCw, ChevronDown } from "lucide-react";
 import { SPRITE_MODES } from "@/constants/sprites";
 import { getAllCollections, getCollection, getSpriteIdentifierFromMode } from "@/constants/spriteCollections";
 import { 
@@ -11,7 +11,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/Select";
-import { ControlSlider, ShapeIcon, TooltipIcon, TextWithTooltip } from "./shared";
+import { ControlSlider, ShapeIcon, TextWithTooltip } from "./shared";
 import { densityToUi, uiToDensity } from "@/lib/utils";
 import { animatePulse } from "@/lib/utils/animations";
 import type { GeneratorState, SpriteController, SpriteMode } from "@/types/generator";
@@ -273,7 +273,14 @@ export function SpriteControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => controller?.setDensityScaleEnabled(!(spriteState.densityScaleEnabled ?? true))}
+          disabled={!ready}
+          className="flex items-center justify-between gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
+          aria-label={(spriteState.densityScaleEnabled ?? true) ? "Collapse density and scale section" : "Expand density and scale section"}
+          aria-expanded={spriteState.densityScaleEnabled !== false}
+        >
           <div className="flex items-center gap-2">
             <TextWithTooltip
               id="density-scale-tip"
@@ -282,13 +289,12 @@ export function SpriteControls({
               <h3 className="section-title">Density &amp; scale</h3>
             </TextWithTooltip>
           </div>
-          <Switch
-            checked={spriteState.densityScaleEnabled ?? true}
-            onCheckedChange={(checked) => controller?.setDensityScaleEnabled(checked)}
-            disabled={!ready}
-            aria-label={spriteState.densityScaleEnabled ? "Disable density and scale controls" : "Enable density and scale controls"}
+          <ChevronDown
+            className={`h-5 w-5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${
+              spriteState.densityScaleEnabled !== false ? "rotate-180" : ""
+            }`}
           />
-        </div>
+        </button>
         {spriteState.densityScaleEnabled !== false && (
           <>
             <ControlSlider

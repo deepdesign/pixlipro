@@ -70,7 +70,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
     setCustomWidth(value);
     const width = parseInt(value) || 1920;
     const height = parseInt(customHeight) || 1080;
-    const newSettings = { 
+    const newSettings: AppSettings = { 
       ...settings, 
       aspectRatio: "custom",
       customAspectRatio: { width, height }
@@ -84,7 +84,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
     setCustomHeight(value);
     const width = parseInt(customWidth) || 1920;
     const height = parseInt(value) || 1080;
-    const newSettings = { 
+    const newSettings: AppSettings = { 
       ...settings, 
       aspectRatio: "custom",
       customAspectRatio: { width, height }
@@ -107,7 +107,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
     : (currentPreset && "resolutions" in currentPreset && currentPreset.resolutions?.[0]) || "";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6">
       {/* Aspect Ratio Card */}
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">

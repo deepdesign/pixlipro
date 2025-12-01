@@ -9,12 +9,10 @@ import { Select } from "@/components/catalyst/select";
 import { createMIDIClient, type MIDIDevice } from "@/lib/integrations/midi";
 
 interface IntegrationsTabProps {
-  onOSCMessage?: (address: string, ...args: (number | string)[]) => void;
   onMIDIMessage?: (message: { type: string; channel: number; number: number; value: number }) => void;
-  onDMXUpdate?: (channels: { channel: number; value: number }[]) => void;
 }
 
-export function IntegrationsTab({ onOSCMessage, onMIDIMessage, onDMXUpdate }: IntegrationsTabProps) {
+export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [midiDevices, setMidiDevices] = useState<MIDIDevice[]>([]);
   const [midiClient, setMidiClient] = useState<ReturnType<typeof createMIDIClient> | null>(null);
@@ -232,7 +230,7 @@ export function IntegrationsTab({ onOSCMessage, onMIDIMessage, onDMXUpdate }: In
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6">
       {/* OSC Card */}
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">

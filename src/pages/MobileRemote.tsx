@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/Button";
-import { ChevronLeft, ChevronRight, Play, Pause, RotateCcw, Wifi, WifiOff } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw, Wifi, WifiOff } from "lucide-react";
 import type { Preset } from "@/lib/storage/presetStorage";
 import type { GeneratorState } from "@/types/generator";
 
@@ -12,7 +12,7 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
   const [connected, setConnected] = useState(false);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [currentPreset, setCurrentPreset] = useState<Preset | null>(null);
-  const [currentState, setCurrentState] = useState<GeneratorState | null>(null);
+  const [, setCurrentState] = useState<GeneratorState | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

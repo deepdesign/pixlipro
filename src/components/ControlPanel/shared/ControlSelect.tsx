@@ -11,7 +11,7 @@ import {
 import { Lock, Unlock } from "lucide-react";
 import { TextWithTooltip } from "./TextWithTooltip";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import React, { useCallback, useRef, useEffect, useState } from "react";
+import React, { useCallback, useRef, useEffect } from "react";
 
 interface ControlSelectOption {
   value: string;
@@ -175,7 +175,6 @@ export function ControlSelect({
               </SelectValue>
             </SelectTrigger>
           <SelectContent
-            modal={isMobile && isModalSelect}
             className={isMobile && isModalSelect ? "select-mobile-modal" : undefined}
           >
             <SelectGroup>

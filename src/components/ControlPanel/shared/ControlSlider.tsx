@@ -1,4 +1,5 @@
-import { useCallback, ChangeEvent } from "react";
+import { useCallback } from "react";
+import type { ChangeEvent } from "react";
 import { TextWithTooltip } from "./TextWithTooltip";
 import { cn } from "@/lib/utils";
 

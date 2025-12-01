@@ -49,9 +49,9 @@ export async function generateQRCodeSVG(text: string): Promise<string> {
  * Note: This is a best-effort approach. In production, you'd want to
  * get this from the WebSocket server or use a service discovery mechanism.
  */
-export function getLocalIP(): string {
+export function getLocalIP(): Promise<string> {
   // Try to get IP from WebRTC (if available)
-  return new Promise((resolve) => {
+  return new Promise<string>((resolve) => {
     const RTCPeerConnection =
       window.RTCPeerConnection ||
       (window as any).webkitRTCPeerConnection ||

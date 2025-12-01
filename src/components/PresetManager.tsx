@@ -166,7 +166,7 @@ export const PresetManager = ({
   );
 
   const handleOverlayClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (_e: React.MouseEvent<HTMLDivElement>) => {
       onClose();
     },
     [onClose],

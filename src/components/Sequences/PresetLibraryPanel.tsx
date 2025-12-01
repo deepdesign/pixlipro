@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/catalyst/input";
-import { getAllPresets, type Preset } from "@/lib/storage/presetStorage";
+import type { Preset } from "@/lib/storage/presetStorage";
 import type { GeneratorState } from "@/types/generator";
 import { Plus, Upload, Search } from "lucide-react";
 

@@ -205,7 +205,6 @@ export class DMXClient {
   mapGeneratorState(state: {
     palette?: { colors?: string[] };
     motionIntensity?: number;
-    paletteCycleProgress?: number;
   }): void {
     // RGB from palette average
     if (state.palette?.colors && state.palette.colors.length > 0) {
@@ -220,10 +219,6 @@ export class DMXClient {
       this.setChannel(4, Math.round(state.motionIntensity * 2.55)); // 0-100 to 0-255
     }
 
-    // Palette cycle progress
-    if (state.paletteCycleProgress !== undefined) {
-      this.setChannel(5, Math.round(state.paletteCycleProgress * 2.55)); // 0-100 to 0-255
-    }
   }
 
   /**

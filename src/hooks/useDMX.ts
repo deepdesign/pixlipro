@@ -7,7 +7,7 @@ interface UseDMXOptions {
   onStateUpdate?: (state: GeneratorState) => void;
 }
 
-export function useDMX(options: UseDMXOptions = {}) {
+export function useDMX(_options: UseDMXOptions = {}) {
   const clientRef = useRef<DMXClient | null>(null);
   const settingsRef = useRef<DMXSettings | null>(null);
   const lastStateRef = useRef<GeneratorState | null>(null);
@@ -77,7 +77,6 @@ export function useDMX(options: UseDMXOptions = {}) {
               clientRef.current.mapGeneratorState({
                 palette: { colors: palette.colors },
                 motionIntensity: state.motionIntensity,
-                paletteCycleProgress: state.paletteCycleProgress || 0,
               });
               clientRef.current.sendAllChannels();
             }
@@ -86,7 +85,6 @@ export function useDMX(options: UseDMXOptions = {}) {
             if (clientRef.current) {
               clientRef.current.mapGeneratorState({
                 motionIntensity: state.motionIntensity,
-                paletteCycleProgress: state.paletteCycleProgress || 0,
               });
               clientRef.current.sendAllChannels();
             }
@@ -94,7 +92,6 @@ export function useDMX(options: UseDMXOptions = {}) {
         } else {
           clientRef.current.mapGeneratorState({
             motionIntensity: state.motionIntensity,
-            paletteCycleProgress: state.paletteCycleProgress || 0,
           });
           clientRef.current.sendAllChannels();
         }

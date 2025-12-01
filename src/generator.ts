@@ -11,7 +11,7 @@ import {
 } from "./data/palettes";
 import { getGradientsForPalette } from "./data/gradients";
 import { calculateGradientLine } from "./lib/utils";
-import { getCollection, getSpriteInCollection, getAllCollections, findSpriteByIdentifier, getSpriteIdentifierFromMode } from "./constants/spriteCollections";
+import { getCollection, getSpriteInCollection, getAllCollections, getSpriteIdentifier } from "./constants/spriteCollections";
 import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache, preloadSpriteImages } from "./lib/services/spriteImageLoader";
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 import { applyNoiseOverlay } from "./lib/utils/fxNoise";
@@ -597,7 +597,6 @@ const computeMovementOffsets = (
     layerTileSize,
     speedFactor,
   } = data;
-  const layerFactor = 1 + layerIndex * 0.12;
   // Speed is already applied to the time parameter, so use speedFactor directly
   const velocity = Math.max(speedFactor, 0);
   const baseTime = velocity === 0 ? 0 : time * velocity;
@@ -1297,7 +1296,7 @@ export interface SpriteController {
   setBloomRadius: (radius: number) => void;
   // Noise
   setNoiseEnabled: (enabled: boolean) => void;
-  setNoiseType: (type: "grain" | "crt" | "bayer" | "static") => void;
+  setNoiseType: (type: "grain" | "crt" | "bayer" | "static" | "scanlines") => void;
   setNoiseStrength: (strength: number) => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
@@ -1330,28 +1329,27 @@ export const createSpriteController = (
   // Load settings from localStorage
   let initialAspectRatio = DEFAULT_STATE.aspectRatio; // Defaults to "16:9"
   let initialCustomAspectRatio = DEFAULT_STATE.customAspectRatio;
-  let canvasBlackBackground = false;
   try {
     const settingsJson = localStorage.getItem("pixli-settings");
     if (settingsJson) {
       const settings = JSON.parse(settingsJson);
       if (settings.aspectRatio) {
-        // Force 16:9 if "square" is saved (remove square support)
-        initialAspectRatio = settings.aspectRatio === "square" ? "16:9" : settings.aspectRatio;
+        // Force 16:9 if "square" is saved (remove square support - backward compatibility)
+        const loadedRatio = settings.aspectRatio;
+        initialAspectRatio = (loadedRatio === "square" || !["16:9", "21:9", "16:10", "custom"].includes(loadedRatio)) 
+          ? "16:9" 
+          : loadedRatio as "16:9" | "21:9" | "16:10" | "custom";
       }
       if (settings.customAspectRatio) {
         initialCustomAspectRatio = settings.customAspectRatio;
-      }
-      if (settings.canvasBlackBackground) {
-        canvasBlackBackground = settings.canvasBlackBackground;
       }
     }
   } catch (error) {
     console.error("Failed to load aspect ratio settings:", error);
   }
   
-  // Always default to 16:9, never square
-  if (initialAspectRatio === "square") {
+  // Always default to 16:9, never square (backward compatibility check)
+  if (!["16:9", "21:9", "16:10", "custom"].includes(initialAspectRatio)) {
     initialAspectRatio = "16:9";
   }
 
@@ -2629,9 +2627,6 @@ export const createSpriteController = (
               p.rotate(rotationAngle);
             }
             
-            const tileKey = `${layerIndex}-${tileIndex}`;
-            
-            
             // Determine if we should use canvas context for gradients
             const useGradient = currentState.spriteFillMode === "gradient";
             let gradientObj: CanvasGradient | null = null;
@@ -2895,7 +2890,7 @@ export const createSpriteController = (
                         ctx.fill(path);
                       }
                     }
-                  }
+                }
                 
                 ctx.restore();
               } else {
@@ -3758,8 +3753,9 @@ export const createSpriteController = (
       applyState({ canvasHueRotationSpeed: clamp(speed, 0.1, 100) }, { recompute: false });
     },
     setAspectRatio: (ratio: "16:9" | "21:9" | "16:10" | "custom") => {
-      // Force 16:9 if somehow "square" is passed (backward compatibility)
-      const safeRatio = ratio === "square" ? "16:9" : ratio;
+      // Force 16:9 if invalid ratio is passed (backward compatibility)
+      const safeRatio: "16:9" | "21:9" | "16:10" | "custom" = 
+        ["16:9", "21:9", "16:10", "custom"].includes(ratio) ? ratio : "16:9";
       applyState({ aspectRatio: safeRatio }, { recompute: false });
       
       // Update CSS variable for container aspect ratio

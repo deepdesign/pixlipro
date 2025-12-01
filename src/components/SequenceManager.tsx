@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   DndContext,
   closestCenter,
@@ -6,7 +6,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
+  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import { Field, Label, Description } from "@/components/catalyst/fieldset";
 import {
   getAllSequences,
   saveSequence,
@@ -43,8 +42,6 @@ import { GripVertical, Trash2, Plus, Copy, Download, Upload } from "lucide-react
 import { getPalette } from "@/data/palettes";
 import { SPRITE_MODES } from "@/constants/sprites";
 import { formatMovementMode } from "@/constants/movement";
-import { createSpriteController, getCanvasFromP5 } from "@/generator";
-import { createThumbnail } from "@/lib/services/exportService";
 import type { GeneratorState } from "@/types/generator";
 import { PresetThumbnail } from "./SequenceManager/PresetThumbnail";
 
@@ -236,7 +233,7 @@ function SortableTableRow({ item, preset, presets, onUpdate, onDelete }: Sortabl
   );
 }
 
-export function SequenceManager({ onLoadPreset, currentState, onClose }: SequenceManagerProps) {
+export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose }: SequenceManagerProps) {
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -419,7 +416,7 @@ export function SequenceManager({ onLoadPreset, currentState, onClose }: Sequenc
         const newIndex = items.findIndex((item: SequenceItem) => item.id === over.id);
         if (oldIndex === -1 || newIndex === -1) return;
 
-        const reordered = arrayMove(items, oldIndex, newIndex);
+        const reordered = arrayMove(items, oldIndex, newIndex) as SequenceItem[];
         const updated = {
           ...selectedSequence,
           items: reordered.map((item: SequenceItem, index: number) => ({ ...item, order: index })),
@@ -471,6 +468,9 @@ export function SequenceManager({ onLoadPreset, currentState, onClose }: Sequenc
           const sequence: Sequence = {
             id: generateSequenceId(),
             name: result.name || "Imported Sequence",
+            backgroundColour: result.backgroundColour || "#000000",
+            defaultFadeType: result.defaultFadeType || "cut",
+            scenes: result.scenes || [],
             items: result.items || [],
             createdAt: Date.now(),
             updatedAt: Date.now(),
@@ -492,7 +492,7 @@ export function SequenceManager({ onLoadPreset, currentState, onClose }: Sequenc
     : { valid: true, missingPresets: [] };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 dark:bg-slate-950 px-6">
+    <div className="h-full w-full flex flex-col px-6">
       {/* Top Bar with Sequence Selector and Actions */}
       <div className="py-6 bg-white dark:bg-slate-900 mt-6 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm px-6 mb-6">
         <div className="flex items-center justify-between gap-4">
@@ -652,7 +652,7 @@ export function SequenceManager({ onLoadPreset, currentState, onClose }: Sequenc
                                   order: item.order,
                                 }
                               : item;
-                            const preset = presets.find((p) => p.id === itemForRow.presetId);
+                            const preset = presets.find((p) => p.id === itemForRow.presetId) || null;
                             return (
                               <SortableTableRow
                                 key={itemForRow.id}

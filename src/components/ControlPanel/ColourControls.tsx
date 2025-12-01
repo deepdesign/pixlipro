@@ -1,9 +1,9 @@
-import { useRef, useState, useMemo, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/Button";
 import { Switch } from "@/components/catalyst/switch-adapter";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ChevronDown } from "lucide-react";
 import { BLEND_MODES } from "@/constants/blend";
-import { ControlSlider, ControlSelect, TooltipIcon, TextWithTooltip } from "./shared";
+import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
 import { varianceToUi, uiToVariance, formatBlendMode } from "@/lib/utils";
 import { animatePulse } from "@/lib/utils/animations";
 import type {
@@ -65,7 +65,7 @@ export function ColourControls({
   onLockCanvasPalette,
   onLockBlendMode,
   onPaletteSelection,
-  onPaletteOptionSelect,
+  onPaletteOptionSelect: _onPaletteOptionSelect,
   onBlendSelect,
   onBlendAutoToggle,
   onOpenSettings,
@@ -81,29 +81,7 @@ export function ColourControls({
 
   // Smart collapse for Blend & opacity section
   // Show toggle when: opacity is 100%, blend mode is NONE, and random sprite blend is off
-  const canCollapseBlendSection = useMemo(() => {
-    if (spriteState.outlineMixed) {
-      // In mixed mode, check both opacities
-      return (
-        spriteState.filledOpacity === 100 &&
-        spriteState.outlinedOpacity === 100 &&
-        spriteState.blendMode === "NONE" &&
-        !spriteState.blendModeAuto
-      );
-    }
-    return (
-      spriteState.layerOpacity === 100 &&
-      spriteState.blendMode === "NONE" &&
-      !spriteState.blendModeAuto
-    );
-  }, [
-    spriteState.outlineMixed,
-    spriteState.layerOpacity,
-    spriteState.filledOpacity,
-    spriteState.outlinedOpacity,
-    spriteState.blendMode,
-    spriteState.blendModeAuto,
-  ]);
+  // Smart collapse logic removed - toggle always visible
 
   // Toggle is always visible - allows user to collapse/expand the section
   const blendToggleVisible = true;
@@ -111,49 +89,25 @@ export function ColourControls({
 
   // Smart collapse for Canvas section
   // Show toggle when: solid mode (not gradient), hue shift is 0, brightness is 50
-  const canCollapseCanvasSection = useMemo(() => {
-    return (
-      spriteState.canvasFillMode === "solid" &&
-      spriteState.backgroundHueShift === 0 &&
-      spriteState.backgroundBrightness === 50
-    );
-  }, [
-    spriteState.canvasFillMode,
-    spriteState.backgroundHueShift,
-    spriteState.backgroundBrightness,
-  ]);
+  // Smart collapse logic removed - toggle always visible
 
   // Toggle is always visible - allows user to collapse/expand the section
   const canvasToggleVisible = true;
   const [canvasSectionCollapsed, setCanvasSectionCollapsed] = useState(true);
 
   // Smart collapse for Color Adjustments section
-  const canCollapseColorAdjustmentsSection = useMemo(() => {
-    return (
-      (spriteState.hueShift ?? 0) === 0 &&
-      (spriteState.saturation ?? 100) === 100 &&
-      (spriteState.brightness ?? 100) === 100 &&
-      (spriteState.contrast ?? 100) === 100
-    );
-  }, [
-    spriteState.hueShift,
-    spriteState.saturation,
-    spriteState.brightness,
-    spriteState.contrast,
-  ]);
+  // Smart collapse logic removed - toggle always visible
 
   // Toggle is always visible - allows user to collapse/expand the section
   const colorAdjustmentsToggleVisible = true;
   const [colorAdjustmentsSectionCollapsed, setColorAdjustmentsSectionCollapsed] = useState(true);
 
   // Smart collapse for Gradients section
-  const canCollapseGradientsSection = useMemo(() => {
-    return spriteState.spriteFillMode === "solid";
-  }, [spriteState.spriteFillMode]);
+  // Smart collapse logic removed - toggle always visible
 
   // Toggle visible when section can be collapsed
-  const gradientsToggleVisible = canCollapseGradientsSection;
-  const [gradientsSectionCollapsed, setGradientsSectionCollapsed] = useState(true);
+  // Toggle always visible
+  const [gradientsSectionCollapsed, _setGradientsSectionCollapsed] = useState(true);
 
   // Sync collapsed state with enable flags in GeneratorState
   useEffect(() => {
@@ -268,17 +222,28 @@ export function ColourControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="section-title">Colour adjustments</h3>
-          {colorAdjustmentsToggleVisible && (
-            <Switch
-              checked={!colorAdjustmentsSectionCollapsed}
-              onCheckedChange={(checked) => setColorAdjustmentsSectionCollapsed(!checked)}
-              disabled={!ready}
-              aria-label={colorAdjustmentsSectionCollapsed ? "Show colour adjustments" : "Hide colour adjustments"}
+        {colorAdjustmentsToggleVisible && (
+          <button
+            type="button"
+            onClick={() => setColorAdjustmentsSectionCollapsed(!colorAdjustmentsSectionCollapsed)}
+            disabled={!ready}
+            className="flex items-center justify-between gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label={colorAdjustmentsSectionCollapsed ? "Expand colour adjustments section" : "Collapse colour adjustments section"}
+            aria-expanded={!colorAdjustmentsSectionCollapsed}
+          >
+            <TextWithTooltip
+              id="color-adjustments-tip"
+              text="Adjust hue, saturation, brightness, and contrast for all sprites."
+            >
+              <h3 className="section-title">Colour adjustments</h3>
+            </TextWithTooltip>
+            <ChevronDown
+              className={`h-5 w-5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${
+                !colorAdjustmentsSectionCollapsed ? "rotate-180" : ""
+              }`}
             />
-          )}
-        </div>
+          </button>
+        )}
         {!colorAdjustmentsSectionCollapsed && (
           <>
             <ControlSlider
@@ -353,17 +318,28 @@ export function ColourControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="section-title">Blend &amp; opacity</h3>
-          {blendToggleVisible && (
-            <Switch
-              checked={!blendSectionCollapsed}
-              onCheckedChange={(checked) => setBlendSectionCollapsed(!checked)}
-              disabled={!ready}
-              aria-label={blendSectionCollapsed ? "Show blend and opacity controls" : "Hide blend and opacity controls"}
+        {blendToggleVisible && (
+          <button
+            type="button"
+            onClick={() => setBlendSectionCollapsed(!blendSectionCollapsed)}
+            disabled={!ready}
+            className="flex items-center justify-between gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label={blendSectionCollapsed ? "Expand blend and opacity section" : "Collapse blend and opacity section"}
+            aria-expanded={!blendSectionCollapsed}
+          >
+            <TextWithTooltip
+              id="blend-opacity-tip"
+              text="Control layer opacity and blending modes for compositing effects."
+            >
+              <h3 className="section-title">Blend &amp; opacity</h3>
+            </TextWithTooltip>
+            <ChevronDown
+              className={`h-5 w-5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${
+                !blendSectionCollapsed ? "rotate-180" : ""
+              }`}
             />
-          )}
-        </div>
+          </button>
+        )}
         {!blendSectionCollapsed && (
           <>
             {spriteState.outlineMixed ? (
@@ -483,17 +459,28 @@ export function ColourControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="section-title">Canvas</h3>
-          {canvasToggleVisible && (
-            <Switch
-              checked={!canvasSectionCollapsed}
-              onCheckedChange={(checked) => setCanvasSectionCollapsed(!checked)}
-              disabled={!ready}
-              aria-label={canvasSectionCollapsed ? "Show canvas controls" : "Hide canvas controls"}
+        {canvasToggleVisible && (
+          <button
+            type="button"
+            onClick={() => setCanvasSectionCollapsed(!canvasSectionCollapsed)}
+            disabled={!ready}
+            className="flex items-center justify-between gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label={canvasSectionCollapsed ? "Expand canvas section" : "Collapse canvas section"}
+            aria-expanded={!canvasSectionCollapsed}
+          >
+            <TextWithTooltip
+              id="canvas-tip"
+              text="Configure the canvas background color, gradients, hue shift, and brightness."
+            >
+              <h3 className="section-title">Canvas</h3>
+            </TextWithTooltip>
+            <ChevronDown
+              className={`h-5 w-5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${
+                !canvasSectionCollapsed ? "rotate-180" : ""
+              }`}
             />
-          )}
-        </div>
+          </button>
+        )}
         {!canvasSectionCollapsed && (
           <>
             <ControlSelect

@@ -4,6 +4,7 @@ import { ColourControls } from "@/components/ControlPanel/ColourControls";
 import { FxControls } from "@/components/ControlPanel/FxControls";
 import { MotionControls } from "@/components/ControlPanel/MotionControls";
 import { Shapes, Palette, Zap, Settings, Moon, Monitor, Sun, Sparkles } from "lucide-react";
+import { PixliLogo } from "@/components/Header/PixliLogo";
 import { useMemo } from "react";
 import type { GeneratorState, SpriteController, SpriteMode, MovementMode } from "@/types/generator";
 import type { BlendModeOption } from "@/types/generator";
@@ -154,35 +155,70 @@ export const AppSidebar = ({
     { value: "fx" as const, label: "FX", icon: Sparkles },
   ];
 
-  const showRightColumn = isExpanded || isHovered || isMobileOpen;
+  const showRightColumn = (isExpanded || isHovered || isMobileOpen) && currentPage !== "settings";
   const sidebarWidth = showRightColumn ? 370 : 64; // 64px left column (was 80px, reduced by 16px/spacing.4) + 290px right column = 370px total
+  // Disable width transition when switching between canvas and settings
+  const isCanvasOrSettings = currentPage === "create" || currentPage === "settings" || currentPage === null;
 
   return (
     <aside
-      className={`fixed flex top-[var(--header-height)] left-0 h-[calc(100vh-var(--header-height)-var(--footer-height))] transition-all duration-300 ease-in-out z-50 border-r
+      className={`fixed flex top-[var(--header-height)] left-0 h-[calc(100vh-var(--header-height)-var(--footer-height))] z-50 border-r
         bg-white border-slate-200 text-slate-900
         dark:bg-slate-900 dark:border-slate-800 dark:text-white
         ${sidebarWidth === 370 ? "w-[370px]" : "w-[64px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0`}
+        lg:translate-x-0
+        transition-[opacity,transform] duration-300 ease-in-out`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      style={{ zIndex: 50 }}
+      style={{ 
+        zIndex: 50,
+        willChange: sidebarWidth === 370 || isHovered ? 'width, opacity' : 'auto',
+        transition: isCanvasOrSettings ? 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out' : 'width 0.3s ease-in-out, opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
+      }}
     >
       {/* Left Column - Icon Navigation */}
       <div className="flex flex-col w-[64px] border-r border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+        {/* Logo at top */}
+        <div className="flex items-center justify-center pt-4 pb-6 px-2">
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (onNavigate) {
+                onNavigate("create");
+              }
+            }}
+            aria-label="Pixli: generative art toy"
+            className="flex items-center justify-center"
+          >
+            <PixliLogo className="h-7 w-7" />
+          </a>
+        </div>
+        
         {/* Navigation Icons */}
-        <div className="flex flex-col gap-2 px-[14px] pt-8 flex-1">
+        <div className="flex flex-col gap-2 px-[14px] flex-1">
           {navigationItems.map((item) => {
             const Icon = item.icon;
+            // Deselect all control panel buttons when on settings page
+            const isSelected = currentPage !== "settings" && activePanel === item.value;
             return (
               <button
                 key={item.value}
                 type="button"
-                onClick={() => onPanelChange(item.value)}
+                onClick={() => {
+                  // If on settings page, navigate to canvas and activate the panel
+                  if (currentPage === "settings" && onNavigate) {
+                    onNavigate("create");
+                    onPanelChange(item.value);
+                  } else {
+                    // Normal behavior: just change the panel
+                    onPanelChange(item.value);
+                  }
+                }}
                 disabled={!ready}
                 className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button ${
-                  activePanel === item.value
+                  isSelected
                     ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)]"
                     : "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
                 }`}
@@ -237,7 +273,7 @@ export const AppSidebar = ({
         <div className="flex flex-col w-[282px] px-5 overflow-y-auto overflow-x-visible no-scrollbar flex-1 transition-opacity duration-300 border-t border-slate-200 dark:border-slate-800">
           {/* Control Panel Content */}
           {spriteState && (
-            <div className="flex-1 pt-8 overflow-x-visible">
+            <div className="flex-1 pt-8 pb-6 overflow-x-visible">
               {activePanel === "sprites" && (
                 <SpriteControls
                   spriteState={spriteState}

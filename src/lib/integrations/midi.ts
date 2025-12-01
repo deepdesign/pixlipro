@@ -24,6 +24,7 @@ export interface MIDISettings {
   learnMode: boolean;
   mappings: {
     [key: string]: {
+      parameter: string;
       type: "cc" | "note";
       channel: number;
       number: number;
@@ -98,33 +99,36 @@ export class MIDIClient {
 
     // Listen for device connections/disconnections
     this.access.onstatechange = (event) => {
-      if (event.port.type === "input") {
-        const device = {
-          id: event.port.id,
-          name: event.port.name || "Unknown Device",
-          manufacturer: event.port.manufacturer || "Unknown",
-          state: event.port.state === "connected" ? "connected" : "disconnected",
-        };
+      const port = event.port;
+      if (!port || port.type !== "input") {
+        return;
+      }
+      
+      const device: MIDIDevice = {
+        id: port.id,
+        name: port.name || "Unknown Device",
+        manufacturer: port.manufacturer || "Unknown",
+        state: (port.state === "connected" ? "connected" : "disconnected") as "connected" | "disconnected",
+      };
 
-        if (event.port.state === "connected") {
-          // Add new device
-          if (!this.devices.find((d) => d.id === device.id)) {
-            this.devices.push(device);
-          }
-
-          // Setup listener for new device
-          if (!this.settings.deviceId || event.port.id === this.settings.deviceId) {
-            const input = this.access?.inputs.get(event.port.id);
-            if (input) {
-              input.onmidimessage = (event) => {
-                this.handleMIDIMessage(event);
-              };
-            }
-          }
-        } else {
-          // Remove disconnected device
-          this.devices = this.devices.filter((d) => d.id !== device.id);
+      if (port.state === "connected") {
+        // Add new device
+        if (!this.devices.find((d) => d.id === device.id)) {
+          this.devices.push(device);
         }
+
+        // Setup listener for new device
+        if (!this.settings.deviceId || port.id === this.settings.deviceId) {
+          const input = this.access?.inputs.get(port.id);
+          if (input) {
+            input.onmidimessage = (event) => {
+              this.handleMIDIMessage(event);
+            };
+          }
+        }
+      } else {
+        // Remove disconnected device
+        this.devices = this.devices.filter((d) => d.id !== device.id);
       }
     };
   }
@@ -140,7 +144,10 @@ export class MIDIClient {
    * Handle incoming MIDI message
    */
   private handleMIDIMessage(event: MIDIMessageEvent): void {
-    const [status, number, value] = event.data;
+    if (!event.data || event.data.length < 3) {
+      return;
+    }
+    const [status, number, value] = Array.from(event.data);
     const messageType = status & 0xf0;
     const channel = status & 0x0f;
 

@@ -126,7 +126,7 @@ export const generateStaticNoise = (
   width: number,
   height: number,
   strength: number, // 0-100
-  time: number, // Animation time (for animated static)
+  _time: number, // Animation time (for animated static)
 ): ImageData => {
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -139,9 +139,6 @@ export const generateStaticNoise = (
   const strengthFactor = strength / 100;
   const imageData = ctx.createImageData(width, height);
   const data = imageData.data;
-
-  // Use time-based seed for animated static
-  const seed = Math.floor(time * 30) % 10000;
 
   for (let i = 0; i < data.length; i += 4) {
     // Create high-contrast random noise

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Field, Label, Description } from "@/components/catalyst/fieldset";
+import { Field, Label } from "@/components/catalyst/fieldset";
 import { Badge } from "@/components/catalyst/badge";
 import { Activity, AlertTriangle, CheckCircle } from "lucide-react";
 
@@ -62,9 +62,9 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
 
     const getGPUInfo = async () => {
       try {
-        const adapter = await navigator.gpu?.requestAdapter();
+        const adapter = await (navigator as any).gpu?.requestAdapter();
         if (adapter) {
-          const info = await adapter.requestDevice();
+          await adapter.requestDevice();
           setGpuInfo(adapter.info?.description || "WebGPU Available");
         }
       } catch (error) {
@@ -92,7 +92,7 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
   const StatusIcon = perfStatus.icon;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6">
       {/* Performance Overview Card */}
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
@@ -107,7 +107,6 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
               </p>
             </div>
             <Badge
-              variant="surface"
               color={perfStatus.color as any}
               className="flex items-center gap-1"
             >
@@ -120,9 +119,9 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* FPS */}
             <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <Label className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">
                 Frame Rate
-              </Label>
+              </span>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-semibold text-slate-900 dark:text-white">
                   {frameRate.toFixed(1)}
@@ -136,9 +135,9 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
 
             {/* Frame Time */}
             <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <Label className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">
                 Frame Time
-              </Label>
+              </span>
               <div className="mt-1 flex items-baseline gap-2">
                 <span className="text-2xl font-semibold text-slate-900 dark:text-white">
                   {frameTime.toFixed(1)}
@@ -152,9 +151,9 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
 
             {/* Memory Usage */}
             <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <Label className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-slate-500 dark:text-slate-400 block">
                 Memory Usage
-              </Label>
+              </span>
               <div className="mt-1 flex items-baseline gap-2">
                 {memoryUsage !== null ? (
                   <>

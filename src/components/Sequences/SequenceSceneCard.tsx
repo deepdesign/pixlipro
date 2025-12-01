@@ -6,7 +6,7 @@ import { Button } from "@/components/Button";
 import { DurationControl } from "./DurationControl";
 import { FadeControl } from "./FadeControl";
 import type { Sequence, SequenceScene } from "@/lib/storage/sequenceStorage";
-import { getAllPresets, type Preset } from "@/lib/storage/presetStorage";
+import type { Preset } from "@/lib/storage/presetStorage";
 import { GripVertical, Trash2, Copy } from "lucide-react";
 
 interface SequenceSceneCardProps {

@@ -6,7 +6,6 @@
  */
 
 import { optimize, type Config } from 'svgo';
-import getBounds from 'svg-path-bounds';
 
 /**
  * SVGO configuration optimized for sprite SVGs
@@ -18,87 +17,63 @@ const svgoConfig: Config = {
     // Remove metadata and editor-specific content
     {
       name: 'removeDoctype',
-      active: true,
     },
     {
       name: 'removeXMLProcInst',
-      active: true,
     },
     {
       name: 'removeComments',
-      active: true,
     },
     {
       name: 'removeMetadata',
-      active: true,
     },
     {
       name: 'removeTitle',
-      active: true,
     },
     {
       name: 'removeDesc',
-      active: true,
     },
     {
       name: 'removeUselessDefs',
-      active: true, // Remove unused definitions (important for removing clipping masks)
+ // Remove unused definitions (important for removing clipping masks)
     },
     {
       name: 'removeEditorsNSData',
-      active: true,
     },
     {
       name: 'removeEmptyAttrs',
-      active: true,
     },
     {
       name: 'removeHiddenElems',
-      active: true, // Remove hidden elements
+ // Remove hidden elements
     },
     {
       name: 'removeEmptyText',
-      active: true,
     },
     {
       name: 'removeEmptyContainers',
-      active: true,
     },
     // Clean up IDs (can break references to removed clipPaths)
     {
       name: 'cleanupIds',
-      active: true,
       params: {
         remove: true,
         minify: false,
       },
     },
-    // Remove viewBox artifacts
-    {
-      name: 'removeViewBox',
-      active: false, // Keep viewBox for proper scaling
-    },
     // Simplify paths and shapes
     {
       name: 'convertPathData',
-      active: true,
-    },
-    {
-      name: 'convertShapeToPath',
-      active: false, // Keep shapes as shapes for better compatibility
     },
     {
       name: 'cleanupNumericValues',
-      active: true,
     },
     // Remove unused attributes
     {
       name: 'removeUselessStrokeAndFill',
-      active: true,
     },
     {
       name: 'removeUnknownsAndDefaults',
-      active: true,
     },
   ],
 };

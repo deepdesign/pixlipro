@@ -4152,6 +4152,34 @@ aside[class*="sidebar"],
   overflow-x: visible !important;
   overflow-y: auto !important; /* Keep scrolling */
   contain: layout style paint; /* Allow tooltips to escape */
+  /* Prevent height and top from transitioning during resize */
+  transition-property: width, opacity, transform !important;
+  transition-duration: 300ms !important;
+  transition-timing-function: ease-in-out !important;
+}
+
+/* Settings sidebar icons - stroke only, no fill - override all Catalyst fill rules */
+.settings-sidebar-nav [data-slot="icon"] svg *,
+.settings-sidebar-nav [data-slot="icon"] svg path,
+.settings-sidebar-nav [data-slot="icon"] svg circle,
+.settings-sidebar-nav [data-slot="icon"] svg rect,
+.settings-sidebar-nav [data-slot="icon"] svg polygon,
+.settings-sidebar-nav [data-slot="icon"] svg {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+/* Override Catalyst's fill rules for selected/current items in settings sidebar */
+.settings-sidebar-nav [data-current] [data-slot="icon"] svg *,
+.settings-sidebar-nav [data-current="true"] [data-slot="icon"] svg *,
+.settings-sidebar-nav [data-current] [data-slot="icon"] svg path,
+.settings-sidebar-nav [data-current="true"] [data-slot="icon"] svg path,
+.settings-sidebar-nav [data-current] [data-slot="icon"] svg,
+.settings-sidebar-nav [data-current="true"] [data-slot="icon"] svg,
+.settings-sidebar-nav button[data-current] [data-slot="icon"] svg *,
+.settings-sidebar-nav button[data-current="true"] [data-slot="icon"] svg * {
+  fill: none !important;
+  stroke: currentColor !important;
 }
 
 /* Ensure control panel containers allow tooltip overflow */
@@ -6274,7 +6302,8 @@ body:has(.app-frame--stacked) .app-frame--header {
 
 /* Sidebar base styles */
 aside[class*="sidebar"] {
-  transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
+  transition: width 0.3s ease-in-out, transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  /* Note: top and height are excluded from transition to prevent animation when header height changes */
 }
 
 /* Ensure sidebar doesn't interfere with main content on mobile when closed */

@@ -17,7 +17,7 @@ export function ShowTimer({ className }: ShowTimerProps) {
   const [remaining, setRemaining] = useState<number>(3600);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState<number>(0);
-  const [alarmTime, setAlarmTime] = useState<number | null>(null);
+  const [alarmTime] = useState<number | null>(null); // Reserved for future alarm feature
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export function ShowTimer({ className }: ShowTimerProps) {
           </Label>
         </div>
         {state === "running" && remaining <= 300 && remaining > 0 && (
-          <Badge variant="surface" color="red" className="flex items-center gap-1">
+          <Badge color="red" className="flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             {remaining <= 60 ? "Final Minute" : "5 Min Warning"}
           </Badge>

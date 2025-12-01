@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import type React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import clsx from "clsx";
@@ -42,7 +43,7 @@ export const SelectContent = forwardRef<
   SelectPrimitive.SelectContentProps
 >(
   (
-    { className, children, position = "popper", sideOffset = 8, modal = false, ...props },
+    { className, children, position = "popper", sideOffset = 8, ...props },
     ref,
   ) => (
     <SelectPrimitive.Portal>
@@ -58,7 +59,6 @@ export const SelectContent = forwardRef<
         )}
         position={position}
         sideOffset={sideOffset}
-        modal={modal}
         {...props}
       >
         <SelectPrimitive.ScrollUpButton className="flex h-6 items-center justify-center bg-white text-slate-500 dark:bg-slate-800 dark:text-slate-400">
@@ -107,7 +107,7 @@ SelectItem.displayName = SelectPrimitive.Item.displayName;
 
 export const SelectLabel = forwardRef<
   HTMLDivElement,
-  SelectPrimitive.LabelProps
+  React.ComponentPropsWithoutRef<'div'>
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Label
     ref={ref}
@@ -120,7 +120,7 @@ export const SelectLabel = forwardRef<
     {...props}
   />
 ));
-SelectLabel.displayName = SelectPrimitive.Label.displayName;
+SelectLabel.displayName = "SelectLabel";
 
 export const SelectSeparator = SelectPrimitive.Separator;
 

@@ -4,10 +4,9 @@ import { Card } from "@/components/Card";
 import { Accordion } from "@/components/ui/Accordion";
 import { Input } from "@/components/catalyst/input";
 import { Label } from "@/components/ui/Label";
-import { ButtonGroup } from "@/components/ui/ButtonGroup";
 import { Settings2, Share2, Copy, Check, Download } from "lucide-react";
 import p5 from "p5";
-import { exportCanvas, downloadImage, createThumbnail, getCanvasFromP5, addLogoToCanvas, generateExportFilename } from "@/lib/services";
+import { exportCanvas, downloadImage, getCanvasFromP5, generateExportFilename, createThumbnail } from "@/lib/services";
 import { animateSuccess } from "@/lib/utils/animations";
 import type { SpriteController } from "../generator";
 // Loop recording uses MediaRecorder on the canvas stream
@@ -69,7 +68,7 @@ export const ExportModal = ({
   const exportButtonRef = useRef<HTMLButtonElement>(null);
   const shareButtonRef = useRef<HTMLButtonElement>(null);
   const copyButtonRef = useRef<HTMLButtonElement>(null);
-  const [exportType, setExportType] = useState<"image" | "movie">("image"); // Movie export not ready yet
+  const [exportType] = useState<"image" | "movie">("image"); // Movie export not ready yet
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -202,7 +201,8 @@ export const ExportModal = ({
     }
   }, [currentCanvasSize]);
 
-  const handleExport = useCallback(async () => {
+  // @ts-expect-error - intentionally unused, kept for future use
+  const _handleExport = useCallback(async () => {
     if (!p5Instance) {
       setError("Canvas not available");
       return;

@@ -43,9 +43,9 @@ export function useWebSocket(
   const onRandomizeRef = useRef(onRandomize);
   const getCurrentStateRef = useRef(getCurrentState);
   const getPresetsRef = useRef(getPresets);
-  const sendStateUpdateRef = useRef<() => void>();
-  const sendPresetListRef = useRef<() => void>();
-  const handleMessageRef = useRef<(message: WebSocketMessage) => void>();
+  const sendStateUpdateRef = useRef<(() => void) | undefined>(undefined);
+  const sendPresetListRef = useRef<(() => void) | undefined>(undefined);
+  const handleMessageRef = useRef<((message: WebSocketMessage) => void) | undefined>(undefined);
 
   // Update refs immediately when callbacks change (synchronous)
   onPresetLoadRef.current = onPresetLoad;

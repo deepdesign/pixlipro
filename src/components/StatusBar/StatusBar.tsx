@@ -178,19 +178,19 @@ export function StatusBar({
           aria-hidden="true"
           className="status-bar-badges-measure"
         >
-          <Badge variant="surface" size="sm">
+          <Badge>
             Sprite · {statusMode}
           </Badge>
-          <Badge variant="surface" size="sm">
+          <Badge>
             Palette · {statusPalette}
           </Badge>
-          <Badge variant="surface" size="sm">
+          <Badge>
             Blend · {statusBlend}
           </Badge>
-          <Badge variant="surface" size="sm">
+          <Badge>
             Motion · {statusMotion}
           </Badge>
-          <Badge variant="surface" size="sm">
+          <Badge>
             {frameRate.toFixed(0)} FPS
           </Badge>
         </div>
@@ -209,19 +209,19 @@ export function StatusBar({
             </Button>
             {showStatusInfo && (
               <div className="status-bar-info-mobile">
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Sprite · {statusMode}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Palette · {statusPalette}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Blend · {statusBlend}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Motion · {statusMotion}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   {frameRate.toFixed(0)} FPS
                 </Badge>
               </div>
@@ -250,19 +250,19 @@ export function StatusBar({
                     role="dialog"
                     ref={badgePopoverRef}
                   >
-                    <Badge variant="surface" size="sm">
+                    <Badge>
                       Sprite · {statusMode}
                     </Badge>
-                    <Badge variant="surface" size="sm">
+                    <Badge>
                       Palette · {statusPalette}
                     </Badge>
-                    <Badge variant="surface" size="sm">
+                    <Badge>
                       Blend · {statusBlend}
                     </Badge>
-                    <Badge variant="surface" size="sm">
+                    <Badge>
                       Motion · {statusMotion}
                     </Badge>
-                    <Badge variant="surface" size="sm">
+                    <Badge>
                       {frameRate.toFixed(0)} FPS
                     </Badge>
                   </div>
@@ -270,19 +270,19 @@ export function StatusBar({
               </div>
             ) : (
               <>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Sprite · {statusMode}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Palette · {statusPalette}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Blend · {statusBlend}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   Motion · {statusMotion}
                 </Badge>
-                <Badge variant="surface" size="sm">
+                <Badge>
                   {frameRate.toFixed(0)} FPS
                 </Badge>
               </>

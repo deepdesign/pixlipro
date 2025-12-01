@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Button } from "@/components/Button";
 import { SequenceHeader } from "./SequenceHeader";
 import { PresetLibraryPanel } from "./PresetLibraryPanel";
 import { SequenceTimeline } from "./SequenceTimeline";
@@ -21,7 +20,7 @@ interface SequenceEditorPageProps {
 
 export function SequenceEditorPage({
   sequence: initialSequence,
-  isNew = false,
+  isNew: _isNew = false,
   onBack,
   onUpdate,
 }: SequenceEditorPageProps) {
@@ -77,7 +76,7 @@ export function SequenceEditorPage({
       id: generateSequenceSceneId(),
       sequenceId: sequence.id,
       order: sequence.scenes.length,
-      name: "preset" in preset ? preset.name : "Imported Scene",
+      name: ("name" in preset && typeof (preset as any).name === "string") ? (preset as any).name : "Imported Scene",
       durationMode: "manual",
       ...("id" in preset && preset.id
         ? { presetId: preset.id }
