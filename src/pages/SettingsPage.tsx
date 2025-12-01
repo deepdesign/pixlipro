@@ -126,14 +126,9 @@ export const SettingsPage = ({
 
   return (
     <div className="relative isolate flex min-h-svh w-full flex-col bg-slate-50 dark:bg-slate-950">
-      {/* Breadcrumb header - full width */}
-      <div className="w-full py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
-        <SettingsBreadcrumb onNavigateHome={onClose} />
-      </div>
-
       {/* Main content area with sidebar */}
       <div className="flex flex-1 flex-col lg:flex-row min-h-0">
-        {/* Settings Sidebar - below breadcrumb */}
+        {/* Settings Sidebar */}
         <div className="w-full lg:w-64 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex-shrink-0">
           <SettingsSidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
         </div>
@@ -141,6 +136,11 @@ export const SettingsPage = ({
         {/* Content area */}
         <main className="flex-1 min-w-0 overflow-y-auto">
           <div className="w-full">
+            {/* Breadcrumb - at top of main container */}
+            <div className="w-full py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+              <SettingsBreadcrumb onNavigateHome={onClose} />
+            </div>
+
             {/* Content */}
             {isFullPage ? (
               <div className="h-full w-full" style={{ minHeight: 'calc(100vh - 12rem)' }}>
