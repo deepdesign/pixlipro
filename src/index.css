@@ -3364,18 +3364,18 @@ button.header-icon-button > svg {
   max-height: 1rem !important;
 }
 
-/* Sprite icon buttons use larger icons (20px) - but exclude lock button */
+/* Sprite icon buttons use 16px icons - but exclude lock button */
 .sprite-icon-buttons button:not(.control-lock-button) > svg,
 .sprite-icon-buttons button:not([aria-label*="lock" i]) > svg,
 .sprite-icon-buttons button:not([aria-label*="Lock" i]) > svg,
 .sprite-icon-buttons .icon-button:not(.control-lock-button) > svg,
 .sprite-icon-buttons svg[data-slot="icon"]:not(.control-lock-button svg) {
-  width: 1.25rem !important; /* 20px */
-  height: 1.25rem !important; /* 20px */
-  min-width: 1.25rem !important;
-  min-height: 1.25rem !important;
-  max-width: 1.25rem !important;
-  max-height: 1.25rem !important;
+  width: 1rem !important; /* 16px */
+  height: 1rem !important; /* 16px */
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
 }
 
 /* Default all icon-button SVGs to stroke-based (outline) rendering */
@@ -4159,14 +4159,33 @@ aside[class*="sidebar"],
 }
 
 /* Settings sidebar icons - stroke only, no fill - override all Catalyst fill rules */
+/* Force settings sidebar icons to 16px - override Catalyst's size-6 and size-5 classes */
+.settings-sidebar-nav *[data-slot="icon"],
+.settings-sidebar-nav *[data-slot="icon"] svg,
+.settings-sidebar-nav [data-slot="icon"],
+.settings-sidebar-nav [data-slot="icon"] svg,
 .settings-sidebar-nav [data-slot="icon"] svg *,
 .settings-sidebar-nav [data-slot="icon"] svg path,
 .settings-sidebar-nav [data-slot="icon"] svg circle,
 .settings-sidebar-nav [data-slot="icon"] svg rect,
-.settings-sidebar-nav [data-slot="icon"] svg polygon,
-.settings-sidebar-nav [data-slot="icon"] svg {
+.settings-sidebar-nav [data-slot="icon"] svg polygon {
+  width: 1rem !important; /* 16px - override size-6 (24px) and size-5 (20px) */
+  height: 1rem !important; /* 16px */
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
   fill: none !important;
   stroke: currentColor !important;
+}
+
+/* Override Tailwind size utilities for settings sidebar icons */
+.settings-sidebar-nav *[data-slot="icon"].size-6,
+.settings-sidebar-nav *[data-slot="icon"].size-5,
+.settings-sidebar-nav [data-slot="icon"].size-6,
+.settings-sidebar-nav [data-slot="icon"].size-5 {
+  width: 1rem !important; /* 16px */
+  height: 1rem !important; /* 16px */
 }
 
 /* Override Catalyst's fill rules for selected/current items in settings sidebar */

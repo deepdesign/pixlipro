@@ -17,7 +17,7 @@ export function SettingsFooter() {
       {/* Text on right */}
       <div className="text-right">
         <span>
-                © {new Date().getFullYear()} Pixli · generative art toy · v1.3.2 ·{" "}
+                © {new Date().getFullYear()} Pixli · generative art toy · v0.3.1 Beta ·{" "}
           <a 
             href="https://www.jamescutts.me/" 
             target="_blank" 

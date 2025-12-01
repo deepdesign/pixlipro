@@ -3,7 +3,7 @@ import { SpriteControls } from "@/components/ControlPanel/SpriteControls";
 import { ColourControls } from "@/components/ControlPanel/ColourControls";
 import { FxControls } from "@/components/ControlPanel/FxControls";
 import { MotionControls } from "@/components/ControlPanel/MotionControls";
-import { Shapes, Palette, Zap, Settings, Moon, Monitor, Sun, Sparkles } from "lucide-react";
+import { Shapes, Palette, PlayCircle, Settings, Moon, Monitor, Sun, Sparkles } from "lucide-react";
 import { PixliLogo } from "@/components/Header/PixliLogo";
 import { useMemo } from "react";
 import type { GeneratorState, SpriteController, SpriteMode, MovementMode } from "@/types/generator";
@@ -151,7 +151,7 @@ export const AppSidebar = ({
   const navigationItems = [
     { value: "sprites" as const, label: "Shape", icon: Shapes },
     { value: "colours" as const, label: "Colour", icon: Palette },
-    ...(isWideLayout ? [] : [{ value: "motion" as const, label: "Motion", icon: Zap }]),
+    ...(isWideLayout ? [] : [{ value: "motion" as const, label: "Animation", icon: PlayCircle }]),
     { value: "fx" as const, label: "FX", icon: Sparkles },
   ];
 

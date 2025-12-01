@@ -313,12 +313,19 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v1.3.1 (Latest)
+### v0.3.1 Beta (Latest)
+
+**New Features:**
+- Added Canvas adjustment sliders (Hue, Saturation, Brightness, Contrast) matching Palette section controls
+- Created "Black & White" category for Black Panther and Snow White palettes
 
 **Improvements:**
-- Established plan file management convention in `plans/` directory
-- Added plan file documentation and conventions (see `plans/README.md`)
-- Standardized plan file naming and location for better organization
+- Fixed background color bug for monochrome palettes (Black Panther, Snow White) - background now correctly uses palette colors
+- Fixed sprite icon button sizing to 16px (was incorrectly 20px)
+- Fixed animation thumbnail generation with proper primary/secondary sprite control
+- Improved animation calculations for zigzag, cascade, drift, and ripple modes
+- Added lazy loading for animation thumbnails to improve performance
+- Updated animation card UI with lock icons and waveform information
 
 ### v1.3.0
 

@@ -210,7 +210,7 @@ export function SpriteControls({
                     >
                       <ShapeIcon 
                         shape={mode.value} 
-                        size={20} 
+                        size={16} 
                         svgPath={mode.svgPath}
                         svgContent={(mode as any).svgContent}
                         data-slot="icon"

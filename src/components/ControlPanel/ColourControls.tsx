@@ -222,11 +222,11 @@ export function ColourControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        {colorAdjustmentsToggleVisible && (
+          {colorAdjustmentsToggleVisible && (
           <button
             type="button"
             onClick={() => setColorAdjustmentsSectionCollapsed(!colorAdjustmentsSectionCollapsed)}
-            disabled={!ready}
+              disabled={!ready}
             className="flex items-center justify-between gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
             aria-label={colorAdjustmentsSectionCollapsed ? "Expand colour adjustments section" : "Collapse colour adjustments section"}
             aria-expanded={!colorAdjustmentsSectionCollapsed}
@@ -318,11 +318,11 @@ export function ColourControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        {blendToggleVisible && (
+          {blendToggleVisible && (
           <button
             type="button"
             onClick={() => setBlendSectionCollapsed(!blendSectionCollapsed)}
-            disabled={!ready}
+              disabled={!ready}
             className="flex items-center justify-between gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
             aria-label={blendSectionCollapsed ? "Expand blend and opacity section" : "Collapse blend and opacity section"}
             aria-expanded={!blendSectionCollapsed}
@@ -459,11 +459,11 @@ export function ColourControls({
 
       <div className="section section--spaced">
         <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
-        {canvasToggleVisible && (
+          {canvasToggleVisible && (
           <button
             type="button"
             onClick={() => setCanvasSectionCollapsed(!canvasSectionCollapsed)}
-            disabled={!ready}
+              disabled={!ready}
             className="flex items-center justify-between gap-2 w-full cursor-pointer hover:opacity-80 transition-opacity"
             aria-label={canvasSectionCollapsed ? "Expand canvas section" : "Collapse canvas section"}
             aria-expanded={!canvasSectionCollapsed}
@@ -532,6 +532,17 @@ export function ColourControls({
               tooltip="Shifts the canvas colours around the colour wheel (0–360°)."
             />
             <ControlSlider
+              id="background-saturation"
+              label="Canvas saturation"
+              min={0}
+              max={200}
+              value={Math.round(spriteState.backgroundSaturation ?? 100)}
+              displayValue={`${Math.round(spriteState.backgroundSaturation ?? 100)}%`}
+              onChange={(value) => controller?.setBackgroundSaturation(value)}
+              disabled={!ready}
+              tooltip="Adjusts canvas colour saturation (0% = grayscale, 100% = normal, 200% = max saturation)."
+            />
+            <ControlSlider
               id="background-brightness"
               label="Canvas brightness"
               min={0}
@@ -541,6 +552,17 @@ export function ColourControls({
               onChange={(value) => controller?.setBackgroundBrightness(value)}
               disabled={!ready}
               tooltip="Adjusts the canvas brightness (0% = darkest, 100% = brightest)."
+            />
+            <ControlSlider
+              id="background-contrast"
+              label="Canvas contrast"
+              min={0}
+              max={200}
+              value={Math.round(spriteState.backgroundContrast ?? 100)}
+              displayValue={`${Math.round(spriteState.backgroundContrast ?? 100)}%`}
+              onChange={(value) => controller?.setBackgroundContrast(value)}
+              disabled={!ready}
+              tooltip="Adjusts canvas colour contrast (0% = no contrast, 100% = normal, 200% = max contrast)."
             />
           </>
         )}

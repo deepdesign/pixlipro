@@ -92,6 +92,53 @@ export function ShapeIcon({ shape, size = 24, svgPath, svgContent: providedSvgCo
     // Clean up any orphaned closing tags
     innerContent = innerContent.replace(/<\/rect>/gi, '');
     
+    // Special handling for 'line' sprite - make it twice as thick in icon buttons
+    if (shape === "line") {
+      // Handle path-based line (e.g., M0 75.99h160v4.38H0z)
+      innerContent = innerContent.replace(/<path([^>]*d=["'])([^"']+)(["'][^>]*>)/gi, (match, before, pathData, after) => {
+        // Match path pattern: M0 Y hWIDTH vHEIGHT H0 z (horizontal line)
+        // Flexible regex to handle various spacing - M, then two numbers, then h, v, H, z
+        const pathMatch = pathData.match(/M\s*([\d.]+)\s+([\d.]+)\s*h\s*([\d.]+)\s*v\s*([\d.]+)\s*H\s*([\d.]+)\s*z/i);
+        if (pathMatch) {
+          const startX = parseFloat(pathMatch[1]);
+          const startY = parseFloat(pathMatch[2]);
+          const width = parseFloat(pathMatch[3]);
+          const height = parseFloat(pathMatch[4]);
+          const endX = parseFloat(pathMatch[5]);
+          
+          // Double the height and adjust y to keep centered
+          const newHeight = height * 2;
+          const newStartY = startY - (newHeight - height) / 2;
+          
+          // Reconstruct path: M0 NEW_Y hWIDTH vNEW_HEIGHT H0 z
+          const newPathData = `M${startX} ${newStartY}h${width}v${newHeight}H${endX}z`;
+          return `<path${before}${newPathData}${after}`;
+        }
+        return match;
+      });
+      
+      // Also handle rect-based line (fallback)
+      innerContent = innerContent.replace(/<rect([^>]*?)>/gi, (match, attributes) => {
+        const heightMatch = attributes.match(/height=["']?([0-9.]+)["']?/i);
+        if (!heightMatch) return match;
+        
+        const currentHeight = parseFloat(heightMatch[1]);
+        const newHeight = currentHeight * 2;
+        
+        const yMatch = attributes.match(/y=["']?([0-9.-]+)["']?/i);
+        let newAttributes = attributes;
+        
+        if (yMatch) {
+          const currentY = parseFloat(yMatch[1]);
+          const newY = currentY - (newHeight - currentHeight) / 2;
+          newAttributes = newAttributes.replace(/y=["']?[0-9.-]+["']?/i, `y="${newY}"`);
+        }
+        
+        newAttributes = newAttributes.replace(/height=["']?[0-9.]+["']?/i, `height="${newHeight}"`);
+        return `<rect${newAttributes}>`;
+      });
+    }
+    
     // Replace fill colors with currentColor for theming (white/black based on theme)
     // Ensure all elements are filled, not stroked (for icon buttons)
     let processedContent = innerContent
@@ -117,10 +164,8 @@ export function ShapeIcon({ shape, size = 24, svgPath, svgContent: providedSvgCo
     
     return (
       <svg
-        width={size}
-        height={size}
         viewBox={viewBox}
-        style={{ display: "block", overflow: "visible" }}
+        style={{ display: "block", overflow: "visible", width: `${size}px`, height: `${size}px` }}
         fill="currentColor"
         data-slot={dataSlot}
         dangerouslySetInnerHTML={{ __html: processedContent }}
@@ -220,7 +265,7 @@ export function ShapeIcon({ shape, size = 24, svgPath, svgContent: providedSvgCo
       }
 
       case "line":
-        return <rect x={2} y={10} width={20} height={4} fill="currentColor" />;
+        return <rect x={2} y={8} width={20} height={8} fill="currentColor" />;
 
       case "pentagon": {
         const points = [];

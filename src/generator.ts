@@ -176,7 +176,9 @@ export interface GeneratorState {
   movementMode: MovementMode;
   backgroundMode: BackgroundMode;
   backgroundHueShift: number;
+  backgroundSaturation: number; // Canvas saturation adjustment (0-200, 100 = normal)
   backgroundBrightness: number;
+  backgroundContrast: number; // Canvas contrast adjustment (0-200, 100 = normal)
   backgroundColorIndex: number; // Index of palette color used for background (0-based)
   motionSpeed: number;
   rotationEnabled: boolean;
@@ -292,7 +294,9 @@ export const DEFAULT_STATE: GeneratorState = {
   movementMode: "drift",
   backgroundMode: "auto",
   backgroundHueShift: 0,
+  backgroundSaturation: 100, // Default 100% = normal saturation
   backgroundBrightness: 50,
+  backgroundContrast: 100, // Default 100% = normal contrast
   backgroundColorIndex: 0, // Default to first color for backward compatibility
   motionSpeed: 8.5,
   rotationEnabled: false,
@@ -485,6 +489,13 @@ const applyHueAndBrightness = (
   const [h, s, l] = hexToHsl(hex);
   const brightnessFactor = clamp(brightnessPercent, 0, 100) / 50;
   const adjustedLight = clamp(l * brightnessFactor, 0, 100);
+  
+  // For pure black (l=0) or pure white (l=100) with no saturation, don't apply hue shift
+  // Hue is undefined when saturation is 0, and shifting it can create unwanted colors
+  if (s === 0 && (l === 0 || l === 100 || adjustedLight === 0 || adjustedLight === 100)) {
+    return hslToHex(h, s, adjustedLight);
+  }
+  
   return hslToHex(h + hueShiftDegrees, s, adjustedLight);
 };
 
@@ -1433,7 +1444,9 @@ export interface SpriteController {
   usePalette: (paletteId: PaletteId) => void;
   setBackgroundMode: (mode: BackgroundMode) => void;
   setBackgroundHueShift: (value: number) => void;
+  setBackgroundSaturation: (value: number) => void;
   setBackgroundBrightness: (value: number) => void;
+  setBackgroundContrast: (value: number) => void;
   setSpriteFillMode: (mode: "solid" | "gradient") => void;
   setSpriteGradient: (gradientId: string) => void;
   setSpriteGradientDirection: (degrees: number) => void;
@@ -1662,8 +1675,31 @@ export const createSpriteController = (
     options.onStateChange?.({ ...stateRef.current });
   };
 
-  const updateSprite = () => {
+  const updateSprite = async () => {
     prepared = computeSprite(stateRef.current);
+    
+    // Preload all sprite images to prevent stuttering during rendering
+    // Collect all unique sprite paths from all layers and tiles
+    const spritePaths = new Set<string>();
+    prepared.layers.forEach(layer => {
+      layer.tiles.forEach(tile => {
+        if (tile.svgPath) {
+          spritePaths.add(tile.svgPath);
+        }
+      });
+    });
+    
+    // Preload all sprite images in parallel (non-blocking)
+    // This ensures images are cached before rendering starts
+    if (spritePaths.size > 0) {
+      preloadSpriteImages(Array.from(spritePaths)).catch((error) => {
+        // Non-fatal - sprites will load lazily during rendering if preload fails
+        if (import.meta.env.DEV) {
+          console.warn('Failed to preload some sprite images:', error);
+        }
+      });
+    }
+    
     notifyState();
   };
 
@@ -2420,12 +2456,26 @@ export const createSpriteController = (
           const validBgIndex = activePalette.colors.length > 0
             ? (bgColorIndex % activePalette.colors.length)
             : 0;
-          return activePalette.colors[validBgIndex] ?? activePalette.colors[0];
+          const color = activePalette.colors[validBgIndex] ?? activePalette.colors[0];
+          
+          // If all colors in palette are identical, always use the first color
+          // This prevents random color selection from causing issues with monochrome palettes
+          if (activePalette.colors.length > 0 && activePalette.colors.every(c => c === activePalette.colors[0])) {
+            return activePalette.colors[0];
+          }
+          return color;
         }
         
         // Otherwise use discrete palette
         const bgPaletteId = resolveBackgroundPaletteId();
         const bgPalette = getPalette(bgPaletteId);
+        
+        // Safety check: if palette not found, fall back to sprite palette
+        if (!bgPalette || bgPalette.colors.length === 0) {
+          const fallbackPalette = getPalette(currentState.paletteId);
+          return fallbackPalette?.colors[0] ?? "#000000";
+        }
+        
         // Calculate background color index using seeded RNG with optional suffix
         const bgColorIndex = calculateBackgroundColorIndex(
           currentState.seed,
@@ -2436,11 +2486,29 @@ export const createSpriteController = (
         const validBgIndex = bgPalette.colors.length > 0
           ? (bgColorIndex % bgPalette.colors.length)
           : 0;
-        return bgPalette.colors[validBgIndex] ?? getPalette(currentState.paletteId).colors[0];
+        const color = bgPalette.colors[validBgIndex] ?? bgPalette.colors[0];
+        
+        // If all colors in palette are identical, always use the first color
+        // This prevents random color selection from causing issues with monochrome palettes
+        if (bgPalette.colors.length > 0 && bgPalette.colors.every(c => c === bgPalette.colors[0])) {
+          return bgPalette.colors[0];
+        }
+        return color;
       };
       
-      const applyCanvasAdjustments = (hex: string) =>
-        applyHueAndBrightness(hex, backgroundHueShiftDegrees, backgroundBrightness);
+      const applyCanvasAdjustments = (hex: string) => {
+        // Apply hue shift first
+        let adjusted = shiftHue(hex, backgroundHueShiftDegrees);
+        // Then apply saturation, brightness, and contrast adjustments
+        const saturation = currentState.backgroundSaturation ?? 100;
+        const brightness = currentState.backgroundBrightness ?? 50;
+        const contrast = currentState.backgroundContrast ?? 100;
+        // Convert brightness from 0-100 range (0=black, 50=normal, 100=white) 
+        // to 0-200 range (0=black, 100=normal, 200=white) for applyColorAdjustments
+        const brightnessPercent = brightness * 2; // Map 0-100 to 0-200
+        adjusted = applyColorAdjustments(adjusted, saturation, brightnessPercent, contrast);
+        return adjusted;
+      };
       
       // Helper function to get animated tile color
       // Handles palette cycling (updates color from animated palette) and sprite hue rotation
@@ -3722,6 +3790,10 @@ export const createSpriteController = (
     },
     setBackgroundBrightness: (value: number) => {
       applyState({ backgroundBrightness: clamp(value, 0, 100) });
+    },
+    setBackgroundContrast: (value: number) => {
+      // Background contrast affects background color rendering
+      applyState({ backgroundContrast: clamp(value, 0, 200) });
     },
     setSpriteFillMode: (mode: "solid" | "gradient") => {
       // Fill mode is applied during rendering, no regeneration needed

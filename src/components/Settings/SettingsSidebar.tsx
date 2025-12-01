@@ -46,11 +46,11 @@ const configurationItems: NavItem[] = [
 
 export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSidebarProps) {
   return (
-    <Sidebar className="settings-sidebar-nav bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 [&_*[data-slot='icon']]:fill-none [&_*[data-slot='icon']]:stroke-current">
+    <Sidebar className="settings-sidebar-nav bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 [&_*[data-slot='icon']]:!fill-none [&_*[data-slot='icon']]:stroke-2">
       <SidebarBody>
         {/* Canvas Section */}
         <SidebarSection>
-          <SidebarHeading>Canvas</SidebarHeading>
+          <SidebarHeading className="field-label">Canvas</SidebarHeading>
           {contentManagementItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -59,7 +59,7 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
                 current={activeSection === item.id}
                 onClick={() => onSectionChange(item.id)}
               >
-                <Icon data-slot="icon" className="fill-none stroke-current" />
+                <Icon data-slot="icon" className="stroke-current" />
                 <SidebarLabel>{item.label}</SidebarLabel>
               </SidebarItem>
             );
@@ -68,7 +68,7 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
 
         {/* Configuration Section */}
         <SidebarSection>
-          <SidebarHeading>Configuration</SidebarHeading>
+          <SidebarHeading className="field-label">Configuration</SidebarHeading>
           {configurationItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -77,7 +77,7 @@ export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSide
                 current={activeSection === item.id}
                 onClick={() => onSectionChange(item.id)}
               >
-                <Icon data-slot="icon" className="fill-none stroke-current" />
+                <Icon data-slot="icon" className="stroke-current" />
                 <SidebarLabel>{item.label}</SidebarLabel>
               </SidebarItem>
             );

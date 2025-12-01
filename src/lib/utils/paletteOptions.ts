@@ -14,15 +14,22 @@ export function generatePaletteOptions() {
     "Nature",
     "Soft/Pastel",
     "Dark/Mysterious",
+    "Black & White",
     "Custom",
   ];
 
   // Get all palettes (built-in + custom)
   const allPalettes = getAllPalettes();
 
+  // Filter out internal palettes that shouldn't be user-selectable
+  // These are used internally for animation thumbnails
+  const userPalettes = allPalettes.filter(
+    (palette) => palette.id !== "slate" && palette.id !== "slate-bg"
+  );
+
   // Group palettes by category
-  const byCategory = new Map<string, typeof allPalettes>();
-  for (const palette of allPalettes) {
+  const byCategory = new Map<string, typeof userPalettes>();
+  for (const palette of userPalettes) {
     const category = palette.category || "Other";
     if (!byCategory.has(category)) {
       byCategory.set(category, []);

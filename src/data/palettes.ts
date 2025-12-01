@@ -102,6 +102,12 @@ export const palettes: Palette[] = [
     category: "Soft/Pastel",
   },
   {
+    id: "snow-white",
+    name: "Snow White",
+    colors: ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
+    category: "Black & White",
+  },
+  {
     id: "candy",
     name: "Sweet Dreams",
     colors: ["#ff6b9d", "#c44569", "#f8b500", "#ffc93c", "#ff9ff3"],
@@ -115,16 +121,21 @@ export const palettes: Palette[] = [
     category: "Dark/Mysterious",
   },
   {
+    id: "black-panther",
+    name: "Black Panther",
+    colors: ["#000000", "#000000", "#000000", "#000000", "#000000"],
+    category: "Black & White",
+  },
+  // Internal palettes - used for animation thumbnails, not user-selectable
+  {
     id: "slate",
     name: "Slate Gray",
-    colors: ["#f8fafc", "#1e293b", "#1e293b", "#1e293b", "#1e293b"], // slate-50 (index 0) for main sprite, slate-800 (index 1+) for background sprites - two shades darker
-    category: "Dark/Mysterious",
+    colors: ["#f8fafc", "#1e293b", "#1e293b", "#1e293b", "#1e293b"], // slate-50 (index 0) for main sprite, slate-800 (index 1+) for background sprites
   },
   {
     id: "slate-bg",
     name: "Slate Background",
-    colors: ["#1e293b", "#1e293b", "#1e293b", "#1e293b", "#1e293b"], // slate-800 for background (dark mode) - one shade darker
-    category: "Dark/Mysterious",
+    colors: ["#1e293b", "#1e293b", "#1e293b", "#1e293b", "#1e293b"], // slate-800 for background (dark mode)
   },
 ];
 

@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Field, Label, Description } from "@/components/catalyst/fieldset";
 import { RadioGroup, RadioField, Radio } from "@/components/catalyst/radio";
 import { Input } from "@/components/catalyst/input";
-import { Switch, SwitchField } from "@/components/catalyst/switch";
+import { Switch } from "@/components/catalyst/switch";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
-import { Info, Monitor } from "lucide-react";
+import { Info } from "lucide-react";
 import { useDualMonitor } from "@/hooks/useDualMonitor";
 
 interface DisplayTabProps {
@@ -207,34 +207,23 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="p-6 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Dual monitor support</h3>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">Dual monitor support</h3>
+                <Switch
+                  checked={settings.dualMonitorEnabled}
+                  onChange={handleDualMonitorToggle}
+                />
+              </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Split the app across two monitors: controls on primary, canvas on secondary (projector)
               </p>
             </div>
-            <Monitor className="h-5 w-5 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
           </div>
         </div>
-        <div className="p-6">
-          <Field>
-            <SwitchField>
-              <Switch
-                checked={settings.dualMonitorEnabled}
-                onChange={handleDualMonitorToggle}
-              />
-              <div className="flex-1">
-                <Label>Enable dual monitor mode</Label>
-                <Description>
-                  When enabled, you can open a projector window on your secondary display. The primary monitor shows all controls, while the secondary shows only the canvas.
-                </Description>
-              </div>
-            </SwitchField>
-          </Field>
-
-          {settings.dualMonitorEnabled && (
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between">
+        {settings.dualMonitorEnabled && (
+          <div className="p-6">
+            <div className="flex items-center justify-between">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Projector window
@@ -270,24 +259,8 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                   </p>
                 </div>
               )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Resolution Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Resolution</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Configure canvas resolution presets
-          </p>
-        </div>
-        <div className="p-6">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Resolution presets coming soon...
-          </p>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
