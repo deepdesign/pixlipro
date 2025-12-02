@@ -95,11 +95,16 @@ const svgoConfig: Config = {
 async function processSvgContent(svgText: string): Promise<string> {
   // First, ensure all paths have fill attributes BEFORE SVGO processing
   // Paths without fill won't render on canvas, and SVGO might remove them
-  let preprocessedSvg = svgText.replace(/<path([^>]*?)>/gi, (match, attrs) => {
+  // Handle both self-closing tags (<path ... />) and regular tags (<path ... >)
+  let preprocessedSvg = svgText.replace(/<path([^>]*?)(\s*\/)?>/gi, (match, attrs, selfClose) => {
+    // Trim attributes to avoid double spaces
+    const trimmedAttrs = attrs.trim();
     // Check if fill attribute exists
-    if (!/fill\s*=/i.test(attrs)) {
+    if (!/fill\s*=/i.test(trimmedAttrs)) {
       // No fill attribute - add white fill
-      return `<path${attrs} fill="#ffffff">`;
+      // Preserve self-closing syntax if it was self-closing
+      const closing = selfClose ? ' />' : '>';
+      return `<path ${trimmedAttrs} fill="#ffffff"${closing}`;
     }
     return match;
   });
@@ -299,27 +304,36 @@ async function processSvgContent(svgText: string): Promise<string> {
   processedSvg = processedSvg.replace(/<\/polygon>/gi, '');
   
   // Ensure any remaining polygon or polyline elements have white fill
-  processedSvg = processedSvg.replace(/<polygon([^>]*?)>/gi, (match, attrs) => {
-    if (!/fill\s*=/i.test(attrs)) {
-      return `<polygon${attrs} fill="#ffffff">`;
+  // Handle both self-closing tags and regular tags
+  processedSvg = processedSvg.replace(/<polygon([^>]*?)(\s*\/)?>/gi, (match, attrs, selfClose) => {
+    const trimmedAttrs = attrs.trim();
+    const closing = selfClose ? ' />' : '>';
+    if (!/fill\s*=/i.test(trimmedAttrs)) {
+      return `<polygon ${trimmedAttrs} fill="#ffffff"${closing}`;
     }
     return match.replace(/fill=["'][^"']*["']/gi, 'fill="#ffffff"');
   });
-  
-  processedSvg = processedSvg.replace(/<polyline([^>]*?)>/gi, (match, attrs) => {
-    if (!/fill\s*=/i.test(attrs)) {
-      return `<polyline${attrs} fill="#ffffff">`;
+
+  processedSvg = processedSvg.replace(/<polyline([^>]*?)(\s*\/)?>/gi, (match, attrs, selfClose) => {
+    const trimmedAttrs = attrs.trim();
+    const closing = selfClose ? ' />' : '>';
+    if (!/fill\s*=/i.test(trimmedAttrs)) {
+      return `<polyline ${trimmedAttrs} fill="#ffffff"${closing}`;
     }
     return match.replace(/fill=["'][^"']*["']/gi, 'fill="#ffffff"');
   });
-  
+
   // Ensure all existing paths have fill attributes before extraction
   // Paths without fill won't render on canvas
-  processedSvg = processedSvg.replace(/<path([^>]*?)>/gi, (match, attrs) => {
+  // Handle both self-closing tags and regular tags
+  processedSvg = processedSvg.replace(/<path([^>]*?)(\s*\/)?>/gi, (match, attrs, selfClose) => {
+    // Trim attributes to avoid double spaces
+    const trimmedAttrs = attrs.trim();
     // Check if fill attribute exists
-    if (!/fill\s*=/i.test(attrs)) {
+    const closing = selfClose ? ' />' : '>';
+    if (!/fill\s*=/i.test(trimmedAttrs)) {
       // No fill attribute - add white fill
-      return `<path${attrs} fill="#ffffff">`;
+      return `<path ${trimmedAttrs} fill="#ffffff"${closing}`;
     }
     // Has fill attribute - ensure it's white (will be normalized later)
     return match;
@@ -423,9 +437,11 @@ async function processSvgContent(svgText: string): Promise<string> {
         } catch (error) {
           // If bounds calculation fails for a path (e.g., arcToCurve issue), skip it
           // This is non-critical - we'll fall back to viewBox dimensions
-          if (import.meta.env.DEV) {
-            console.warn('Failed to calculate bounds for path (will use viewBox):', error);
-          }
+          // The svg-path-bounds library may have issues with complex arc paths in browser environments
+          // Suppress warnings - the fallback to viewBox works fine
+          // if (import.meta.env.DEV) {
+          //   console.warn('Failed to calculate bounds for path (will use viewBox):', error);
+          // }
         }
       }
       

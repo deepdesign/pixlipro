@@ -4,29 +4,30 @@ import { Card } from "@/components/Card";
 import { Download, Upload, Trash2 } from "lucide-react";
 import { animateSuccess, animateShake } from "@/lib/utils/animations";
 import {
-  getAllPresets,
-  savePreset,
-  deletePreset,
-  loadPresetState,
-  exportPresetsAsJSON,
-  exportPresetAsJSON,
-  importPresetsFromJSON,
-  type Preset,
+  getAllScenes,
+  saveScene,
+  deleteScene,
+  loadSceneState,
+  exportScenesAsJSON,
+  exportSceneAsJSON,
+  importScenesFromJSON,
+  type Scene,
 } from "@/lib/storage";
 import type { GeneratorState } from "@/generator";
+import { SceneThumbnail } from "@/components/SequenceManager/SceneThumbnail";
 
-interface PresetManagerProps {
+interface SceneManagerProps {
   currentState: GeneratorState | null;
-  onLoadPreset: (state: GeneratorState) => void;
+  onLoadScene: (state: GeneratorState) => void;
   onClose: () => void;
 }
 
-export const PresetManager = ({
+export const SceneManager = ({
   currentState,
-  onLoadPreset,
+  onLoadScene,
   onClose,
-}: PresetManagerProps) => {
-  const [presets, setPresets] = useState<Preset[]>(getAllPresets());
+}: SceneManagerProps) => {
+  const [scenes, setScenes] = useState<Scene[]>(getAllScenes());
   const [saveName, setSaveName] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -35,8 +36,8 @@ export const PresetManager = ({
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const deleteButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
-  const refreshPresets = useCallback(() => {
-    setPresets(getAllPresets());
+  const refreshScenes = useCallback(() => {
+    setScenes(getAllScenes());
   }, []);
 
   const handleSave = useCallback(() => {
@@ -45,39 +46,39 @@ export const PresetManager = ({
     }
     setSaveError(null);
     try {
-      savePreset(saveName, currentState);
+      saveScene(saveName, currentState);
       setSaveName("");
-      refreshPresets();
+      refreshScenes();
       // Animate success on save button
       if (saveButtonRef.current) {
         animateSuccess(saveButtonRef.current);
       }
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Failed to save preset");
+      setSaveError(error instanceof Error ? error.message : "Failed to save scene");
       // Animate shake on error
       if (saveButtonRef.current) {
         animateShake(saveButtonRef.current);
       }
     }
-  }, [currentState, saveName, refreshPresets]);
+  }, [currentState, saveName, refreshScenes]);
 
   const handleLoad = useCallback(
-    (preset: Preset) => {
-    const state = loadPresetState(preset);
+    (scene: Scene) => {
+    const state = loadSceneState(scene);
     if (state) {
-      onLoadPreset(state);
+      onLoadScene(state);
       onClose();
     }
     },
-    [onLoadPreset, onClose],
+    [onLoadScene, onClose],
   );
 
   const handleDelete = useCallback(
     (id: string) => {
-      if (confirm("Delete this preset?")) {
+      if (confirm("Delete this scene?")) {
         try {
-          deletePreset(id);
-          refreshPresets();
+          deleteScene(id);
+          refreshScenes();
           // Animate success on delete button
           const deleteButton = deleteButtonRefs.current.get(id);
           if (deleteButton) {
@@ -92,29 +93,29 @@ export const PresetManager = ({
         }
       }
     },
-    [refreshPresets],
+    [refreshScenes],
   );
 
   const handleExportAll = useCallback(() => {
-    const json = exportPresetsAsJSON();
+    const json = exportScenesAsJSON();
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `pixli-presets-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `pixli-scenes-${new Date().toISOString().split("T")[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, []);
 
-  const handleExportPreset = useCallback((preset: Preset) => {
-    const json = exportPresetAsJSON(preset);
+  const handleExportScene = useCallback((scene: Scene) => {
+    const json = exportSceneAsJSON(scene);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `pixli-preset-${preset.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.json`;
+    a.download = `pixli-scene-${scene.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -139,10 +140,10 @@ export const PresetManager = ({
           return;
         }
 
-        const result = importPresetsFromJSON(text);
+        const result = importScenesFromJSON(text);
         if (result.success) {
-          setImportSuccess(`Successfully imported ${result.imported} preset(s)`);
-          refreshPresets();
+          setImportSuccess(`Successfully imported ${result.imported} scene(s)`);
+          refreshScenes();
           if (result.errors.length > 0) {
             setImportError(`Some errors: ${result.errors.join("; ")}`);
           }
@@ -150,7 +151,7 @@ export const PresetManager = ({
           setImportError(
             result.errors.length > 0
               ? result.errors.join("; ")
-              : "Failed to import presets",
+              : "Failed to import scenes",
           );
         }
       };
@@ -162,7 +163,7 @@ export const PresetManager = ({
       // Reset input so same file can be imported again
       event.target.value = "";
     },
-    [refreshPresets],
+    [refreshScenes],
   );
 
   const handleOverlayClick = useCallback(
@@ -173,16 +174,16 @@ export const PresetManager = ({
   );
 
   return (
-    <div className="preset-manager-overlay" onClick={handleOverlayClick}>
+    <div className="scene-manager-overlay" onClick={handleOverlayClick}>
       <Card
-        className="preset-manager-modal"
+        className="scene-manager-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="preset-manager-header">
-          <h2 className="preset-manager-title">Preset management</h2>
+        <div className="scene-manager-header">
+          <h2 className="scene-manager-title">Scene management</h2>
           <button
             type="button"
-            className="preset-manager-close"
+            className="scene-manager-close"
             onClick={onClose}
             aria-label="Close"
           >
@@ -190,17 +191,17 @@ export const PresetManager = ({
           </button>
         </div>
 
-        <div className="preset-manager-content">
+        <div className="scene-manager-content">
           {/* Save Section */}
           <div className="section">
             <h3 className="section-title">
-              Save preset
+              Save scene
             </h3>
-            <div className="preset-save-form">
+            <div className="scene-save-form">
               <input
                 type="text"
-                className="preset-name-input"
-                placeholder="Preset name..."
+                className="scene-name-input"
+                placeholder="Scene name..."
                 value={saveName}
                 onChange={(e) => setSaveName(e.target.value)}
                 onKeyDown={(e) => {
@@ -222,7 +223,7 @@ export const PresetManager = ({
               </Button>
             </div>
             {saveError && (
-              <div className="preset-error mt-[theme(spacing.2)]" role="alert">
+              <div className="scene-error mt-[theme(spacing.2)]" role="alert">
                 {saveError}
               </div>
             )}
@@ -231,7 +232,7 @@ export const PresetManager = ({
           {/* Import Section */}
           <div className="section">
             <h3 className="section-title">
-              Import preset
+              Import scene
             </h3>
             <div className="flex gap-2">
               <input
@@ -239,7 +240,7 @@ export const PresetManager = ({
                 type="file"
                 accept=".json"
                 onChange={handleImport}
-                className="preset-import-input"
+                className="scene-import-input"
               />
               <Button
                 type="button"
@@ -249,56 +250,63 @@ export const PresetManager = ({
                 className="flex-1"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Import preset
+                Import scene
               </Button>
             </div>
             {importSuccess && (
-              <div className="preset-success mt-[theme(spacing.2)]" role="alert">
+              <div className="scene-success mt-[theme(spacing.2)]" role="alert">
                 {importSuccess}
               </div>
             )}
             {importError && (
-              <div className="preset-error mt-[theme(spacing.2)]" role="alert">
+              <div className="scene-error mt-[theme(spacing.2)]" role="alert">
                 {importError}
               </div>
             )}
           </div>
 
-          {/* Presets List */}
+          {/* Scenes List */}
           <div className="section">
             <div className="flex items-center justify-between">
               <h3 className="section-title">
-                Your presets ({presets.length})
+                Your scenes ({scenes.length})
               </h3>
-              {presets.length > 0 && (
+              {scenes.length > 0 && (
                 <Button
                   type="button"
                   size="md"
                   variant="link"
                   onClick={handleExportAll}
-                  className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white text-xs"
+                  className="text-theme-muted hover:text-theme-primary text-xs"
                 >
                   Export all
                 </Button>
               )}
             </div>
-            {presets.length === 0 ? (
-              <p className="preset-empty">No saved presets</p>
+            {scenes.length === 0 ? (
+              <p className="scene-empty">No saved scenes</p>
             ) : (
               <div className="flex flex-col gap-3">
-                {presets.map((preset) => (
-                  <div
-                    key={preset.id}
-                    className="flex items-center gap-3"
-                  >
-                    <span style={{ flex: 1, fontSize: "0.875rem", textTransform: "uppercase", fontWeight: 500 }}>
-                      {preset.name}
-                    </span>
+                {scenes.map((scene) => {
+                  const sceneState = loadSceneState(scene);
+                  return (
+                    <div
+                      key={scene.id}
+                      className="flex items-center gap-3"
+                    >
+                      {sceneState && (
+                        <div className="flex-shrink-0">
+                          <SceneThumbnail state={sceneState} size={60} />
+                        </div>
+                      )}
+                      <span style={{ flex: 1, fontSize: "0.875rem", textTransform: "uppercase", fontWeight: 500 }}>
+                        {scene.name}
+                      </span>
                     <Button
                       type="button"
                       size="md"
                       variant="outline"
-                      onClick={() => handleLoad(preset)}
+                      onClick={() => handleLoad(scene)}
                     >
                       Load
                     </Button>
@@ -306,30 +314,31 @@ export const PresetManager = ({
                       type="button"
                       size="icon"
                       variant="outline"
-                      onClick={() => handleExportPreset(preset)}
-                      title="Export preset as JSON"
-                      aria-label="Export preset"
+                      onClick={() => handleExportScene(scene)}
+                      title="Export scene as JSON"
+                      aria-label="Export scene"
                     >
                       <Download className="h-6 w-6" />
                     </Button>
                     <Button
                       ref={(el) => {
                         if (el) {
-                          deleteButtonRefs.current.set(preset.id, el);
+                          deleteButtonRefs.current.set(scene.id, el);
                         }
                       }}
                       type="button"
                       size="icon"
                       variant="outline"
-                      onClick={() => handleDelete(preset.id)}
-                      title="Delete preset"
-                      aria-label="Delete preset"
+                      onClick={() => handleDelete(scene.id)}
+                      title="Delete scene"
+                      aria-label="Delete scene"
                       className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-950/20"
                     >
                       <Trash2 className="h-6 w-6" />
                     </Button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

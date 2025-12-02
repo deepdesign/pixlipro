@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { GeneratorState } from "@/types/generator";
-import type { Preset } from "@/lib/storage/presetStorage";
+import type { Scene } from "@/lib/storage/sceneStorage";
 
 export interface WebSocketMessage {
   type: string;
@@ -21,10 +21,12 @@ export interface WebSocketState {
 export function useWebSocket(
   port: number = 8080,
   enabled: boolean = false,
-  onPresetLoad?: (presetId: string) => void,
+  onSceneLoad?: (sceneId: string) => void,
+  onPresetLoad?: (presetId: string) => void, // Backward compatibility
   onRandomize?: () => void,
   getCurrentState?: () => GeneratorState | null,
-  getPresets?: () => Preset[]
+  getScenes?: () => Scene[],
+  getPresets?: () => Scene[] // Backward compatibility - maps to getScenes
 ) {
   const [state, setState] = useState<WebSocketState>({
     connected: false,
@@ -39,18 +41,23 @@ export function useWebSocket(
   const maxReconnectAttempts = 5;
 
   // Use refs for callbacks to prevent recreating connect on every render
-  const onPresetLoadRef = useRef(onPresetLoad);
+  const onSceneLoadRef = useRef(onSceneLoad || onPresetLoad);
+  const onPresetLoadRef = useRef(onPresetLoad); // Backward compatibility
   const onRandomizeRef = useRef(onRandomize);
   const getCurrentStateRef = useRef(getCurrentState);
-  const getPresetsRef = useRef(getPresets);
+  const getScenesRef = useRef(getScenes || getPresets);
+  const getPresetsRef = useRef(getPresets); // Backward compatibility
   const sendStateUpdateRef = useRef<(() => void) | undefined>(undefined);
-  const sendPresetListRef = useRef<(() => void) | undefined>(undefined);
+  const sendSceneListRef = useRef<(() => void) | undefined>(undefined);
+  const sendPresetListRef = useRef<(() => void) | undefined>(undefined); // Backward compatibility
   const handleMessageRef = useRef<((message: WebSocketMessage) => void) | undefined>(undefined);
 
   // Update refs immediately when callbacks change (synchronous)
+  onSceneLoadRef.current = onSceneLoad || onPresetLoad;
   onPresetLoadRef.current = onPresetLoad;
   onRandomizeRef.current = onRandomize;
   getCurrentStateRef.current = getCurrentState;
+  getScenesRef.current = getScenes || getPresets;
   getPresetsRef.current = getPresets;
 
   const connect = useCallback(() => {
@@ -86,10 +93,11 @@ export function useWebSocket(
           userAgent: navigator.userAgent,
         }));
 
-        // Send initial state and preset list
+        // Send initial state and scene list
         setTimeout(() => {
           sendStateUpdateRef.current?.();
-          sendPresetListRef.current?.();
+          sendSceneListRef.current?.();
+          sendPresetListRef.current?.(); // Backward compatibility
         }, 100);
       };
 
@@ -152,14 +160,19 @@ export function useWebSocket(
           if (message.type === "client-connected") {
             setTimeout(() => {
               sendStateUpdateRef.current?.();
-              sendPresetListRef.current?.();
+              sendSceneListRef.current?.();
+              sendPresetListRef.current?.(); // Backward compatibility
             }, 100);
           }
           break;
 
-        case "load-preset":
-          if (message.presetId && onPresetLoadRef.current) {
-            onPresetLoadRef.current(message.presetId);
+        case "load-scene":
+        case "load-preset": // Backward compatibility
+          const sceneId = message.sceneId || message.presetId;
+          if (sceneId && onSceneLoadRef.current) {
+            onSceneLoadRef.current(sceneId);
+          } else if (sceneId && onPresetLoadRef.current) {
+            onPresetLoadRef.current(sceneId);
           }
           break;
 
@@ -178,8 +191,10 @@ export function useWebSocket(
           sendStateUpdateRef.current?.();
           break;
 
-        case "request-presets":
-          sendPresetListRef.current?.();
+        case "request-scenes":
+        case "request-presets": // Backward compatibility
+          sendSceneListRef.current?.();
+          sendPresetListRef.current?.(); // Backward compatibility
           break;
 
         default:
@@ -207,17 +222,36 @@ export function useWebSocket(
     }
   }, []); // Empty deps - use ref instead
 
+  const sendSceneList = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN && getScenesRef.current) {
+      const scenes = getScenesRef.current();
+      wsRef.current.send(
+        JSON.stringify({
+          type: "scene-list",
+          scenes: scenes.map((s) => ({
+            id: s.id,
+            name: s.name,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
+          })),
+          timestamp: Date.now(),
+        })
+      );
+    }
+  }, []); // Empty deps - use ref instead
+
   const sendPresetList = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN && getPresetsRef.current) {
-      const presets = getPresetsRef.current();
+    // Backward compatibility - sends both scene-list and preset-list
+    if (wsRef.current?.readyState === WebSocket.OPEN && getScenesRef.current) {
+      const scenes = getScenesRef.current();
       wsRef.current.send(
         JSON.stringify({
           type: "preset-list",
-          presets: presets.map((p) => ({
-            id: p.id,
-            name: p.name,
-            createdAt: p.createdAt,
-            updatedAt: p.updatedAt,
+          presets: scenes.map((s) => ({
+            id: s.id,
+            name: s.name,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
           })),
           timestamp: Date.now(),
         })
@@ -227,17 +261,31 @@ export function useWebSocket(
   
   // Store send functions in refs synchronously
   sendStateUpdateRef.current = sendStateUpdate;
+  sendSceneListRef.current = sendSceneList;
   sendPresetListRef.current = sendPresetList;
 
-  const sendCurrentPreset = useCallback((preset: Preset | null) => {
+  const sendCurrentScene = useCallback((scene: Scene | null) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
-          type: "current-preset",
-          preset: preset
+          type: "current-scene",
+          scene: scene
             ? {
-                id: preset.id,
-                name: preset.name,
+                id: scene.id,
+                name: scene.name,
+              }
+            : null,
+          timestamp: Date.now(),
+        })
+      );
+      // Also send as current-preset for backward compatibility
+      wsRef.current.send(
+        JSON.stringify({
+          type: "current-preset",
+          preset: scene
+            ? {
+                id: scene.id,
+                name: scene.name,
               }
             : null,
           timestamp: Date.now(),
@@ -245,6 +293,8 @@ export function useWebSocket(
       );
     }
   }, []);
+
+  const sendCurrentPreset = sendCurrentScene; // Backward compatibility alias
 
   // Connect/disconnect based on enabled state
   useEffect(() => {
@@ -280,8 +330,10 @@ export function useWebSocket(
   return {
     ...state,
     sendStateUpdate,
-    sendPresetList,
-    sendCurrentPreset,
+    sendSceneList,
+    sendPresetList, // Backward compatibility
+    sendCurrentScene,
+    sendCurrentPreset, // Backward compatibility
     reconnect: connect,
   };
 }

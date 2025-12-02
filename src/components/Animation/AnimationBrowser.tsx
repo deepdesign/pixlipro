@@ -34,7 +34,7 @@ export function AnimationBrowser({
   if (filteredAnimations.length === 0) {
     return (
       <div className="w-full py-12 text-center">
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-theme-muted">
           No animations available. Create your first custom animation to get started.
         </p>
       </div>

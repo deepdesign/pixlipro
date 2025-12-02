@@ -26,7 +26,7 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideS
         </div>
       )}
       <div
-        className={`flex-1 min-w-0 h-full border-t border-slate-200 dark:border-slate-800 ${
+        className={`flex-1 min-w-0 h-full border-t border-theme-panel ${
           hideSidebar 
             ? "lg:ml-0" 
             : shouldUseWideMargin

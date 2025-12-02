@@ -188,17 +188,17 @@ export function SpritesPage() {
   }, [selectedCollectionId, refreshCollections]);
 
   return (
-    <div className="h-full w-full flex flex-col bg-slate-50 dark:bg-slate-950 min-h-0 overflow-hidden">
+    <div className="h-full w-full flex flex-col bg-theme-bg-base min-h-0 overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 flex-shrink-0">
-        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-50">
+        <h2 className="text-xl font-semibold text-theme-heading">
           Sprites
         </h2>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm h-full flex overflow-hidden">
+        <div className="bg-theme-card rounded-lg border border-theme-card shadow-sm h-full flex overflow-hidden">
           <div className="flex-1 flex overflow-hidden min-h-0">
             {/* Sidebar */}
             <CollectionSidebar
@@ -213,7 +213,7 @@ export function SpritesPage() {
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto overflow-x-visible p-6">
               {isFileBasedCollection ? (
-                <div className="flex items-center justify-center h-64 text-slate-500 dark:text-slate-400">
+                <div className="flex items-center justify-center h-64 text-theme-muted">
                   <div className="text-center">
                     <p className="mb-2">This is a read-only collection</p>
                     <p className="text-sm">File-based collections cannot be edited here.</p>

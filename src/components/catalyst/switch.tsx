@@ -153,8 +153,8 @@ export function Switch({
         // Base styles - standard Tailwind switch
         'group relative inline-flex h-6 w-11 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
-        // Unchecked state - filled background
-        'bg-slate-200 dark:bg-slate-700',
+        // Unchecked state - use icon-bg for consistency with slider and buttons
+        'bg-[var(--icon-bg)]',
         // Checked state - use primary UI theme color variable
         'data-checked:bg-[var(--accent-primary)]',
         // Disabled state
@@ -166,8 +166,8 @@ export function Switch({
       <span
         aria-hidden="true"
         className={clsx(
-          // Thumb - standard Tailwind switch thumb
-          'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+          // Thumb - use theme slider thumb color for consistency
+          'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-[var(--slider-thumb-bg)] shadow ring-0 transition duration-200 ease-in-out',
           // Unchecked position
           'translate-x-0',
           // Checked position

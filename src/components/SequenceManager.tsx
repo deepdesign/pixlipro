@@ -36,30 +36,31 @@ import {
   type SequenceItem,
   validateSequenceItems,
 } from "@/lib/storage/sequenceStorage";
-import { getAllPresets, type Preset, loadPresetState } from "@/lib/storage/presetStorage";
+import { getAllScenes, type Scene, loadSceneState } from "@/lib/storage/sceneStorage";
 import { SequencePlayer } from "@/components/SequencePlayer";
 import { GripVertical, Trash2, Plus, Copy, Download, Upload } from "lucide-react";
 import { getPalette } from "@/data/palettes";
 import { SPRITE_MODES } from "@/constants/sprites";
 import { formatMovementMode } from "@/constants/movement";
 import type { GeneratorState } from "@/types/generator";
-import { PresetThumbnail } from "./SequenceManager/PresetThumbnail";
+import { SceneThumbnail } from "./SequenceManager/SceneThumbnail";
 
 interface SequenceManagerProps {
-  onLoadPreset?: (state: GeneratorState) => void;
+  onLoadScene?: (state: GeneratorState) => void;
+  onLoadPreset?: (state: GeneratorState) => void; // Backward compatibility
   currentState?: GeneratorState | null;
   onClose?: () => void;
 }
 
 interface SortableItemProps {
   item: SequenceItem;
-  preset: Preset | null;
-  presets: Preset[];
+  scene: Scene | null;
+  scenes: Scene[];
   onUpdate: (item: SequenceItem) => void;
   onDelete: (itemId: string) => void;
 }
 
-function SortableTableRow({ item, preset, presets, onUpdate, onDelete }: SortableItemProps) {
+function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -76,33 +77,33 @@ function SortableTableRow({ item, preset, presets, onUpdate, onDelete }: Sortabl
   };
 
   // Get palette colors
-  const palette = preset ? getPalette(preset.state.paletteId) : null;
+  const palette = scene ? getPalette(scene.state.paletteId) : null;
   
   // Get sprite label
-  const spriteLabel = preset
-    ? SPRITE_MODES.find((m) => m.value === preset.state.spriteMode)?.label || preset.state.spriteMode
+  const spriteLabel = scene
+    ? SPRITE_MODES.find((m) => m.value === scene.state.spriteMode)?.label || scene.state.spriteMode
     : "—";
 
   // Get motion label
-  const motionLabel = preset ? formatMovementMode(preset.state.movementMode) : "—";
+  const motionLabel = scene ? formatMovementMode(scene.state.movementMode) : "—";
 
-  // Get preset state for thumbnail
-  const presetState = preset ? loadPresetState(preset) : null;
+  // Get scene state for thumbnail
+  const sceneState = scene ? loadSceneState(scene) : null;
 
   return (
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b border-slate-200 dark:border-slate-800 ${
-        isDragging ? "bg-slate-50 dark:bg-slate-800/50" : "bg-white dark:bg-slate-900"
-      } hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors`}
+      className={`border-b border-theme-divider ${
+        isDragging ? "bg-theme-icon" : "bg-theme-card"
+      } hover:bg-theme-icon transition-colors`}
     >
       {/* Drag Handle */}
       <td className="px-4 py-3">
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+          className="cursor-grab active:cursor-grabbing text-theme-subtle hover:text-theme-muted"
         >
           <GripVertical className="h-4 w-4" />
         </button>
@@ -110,35 +111,35 @@ function SortableTableRow({ item, preset, presets, onUpdate, onDelete }: Sortabl
 
       {/* Thumbnail */}
       <td className="px-4 py-3">
-        {presetState ? (
-          <PresetThumbnail state={presetState} size={60} />
+        {sceneState ? (
+          <SceneThumbnail state={sceneState} size={60} />
         ) : (
-          <div className="w-[60px] h-[60px] bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 flex items-center justify-center">
-            <span className="text-xs text-slate-400">No preview</span>
+          <div className="w-[60px] h-[60px] bg-theme-panel rounded border border-theme-panel flex items-center justify-center">
+            <span className="text-xs text-theme-subtle">No preview</span>
           </div>
         )}
       </td>
 
-      {/* Preset Name */}
+      {/* Scene Name */}
       <td className="px-4 py-3">
         <Select
-          value={item.presetId}
-          onValueChange={(value) => onUpdate({ ...item, presetId: value })}
+          value={item.sceneId}
+          onValueChange={(value) => onUpdate({ ...item, sceneId: value })}
         >
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {presets.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
+            {scenes.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        {!preset && (
+        {!scene && (
           <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-            Preset not found
+            Scene not found
           </p>
         )}
       </td>
@@ -157,24 +158,24 @@ function SortableTableRow({ item, preset, presets, onUpdate, onDelete }: Sortabl
               />
             ))}
             {palette.colors.length > 5 && (
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-theme-muted">
                 +{palette.colors.length - 5}
               </span>
             )}
           </div>
         ) : (
-          <span className="text-sm text-slate-400">—</span>
+          <span className="text-sm text-theme-subtle">—</span>
         )}
       </td>
 
       {/* Sprite */}
       <td className="px-4 py-3">
-        <span className="text-sm text-slate-900 dark:text-white">{spriteLabel}</span>
+        <span className="text-sm text-theme-heading">{spriteLabel}</span>
       </td>
 
       {/* Motion */}
       <td className="px-4 py-3">
-        <span className="text-sm text-slate-900 dark:text-white">{motionLabel}</span>
+        <span className="text-sm text-theme-heading">{motionLabel}</span>
       </td>
 
       {/* Duration */}
@@ -193,7 +194,7 @@ function SortableTableRow({ item, preset, presets, onUpdate, onDelete }: Sortabl
             max={300}
             className="w-20"
           />
-          <span className="text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-xs text-theme-muted">
             {item.duration === 0 ? "Manual" : `${item.duration}s`}
           </span>
         </div>
@@ -233,10 +234,11 @@ function SortableTableRow({ item, preset, presets, onUpdate, onDelete }: Sortabl
   );
 }
 
-export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose }: SequenceManagerProps) {
+export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClose: _onClose }: SequenceManagerProps) {
+  const handleLoadScene = onLoadScene || onLoadPreset; // Use onLoadScene if provided, fallback to onLoadPreset for backward compatibility
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
-  const [presets, setPresets] = useState<Preset[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>([]);
   const [newSequenceName, setNewSequenceName] = useState("");
 
   const sensors = useSensors(
@@ -252,7 +254,7 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
 
   const loadData = () => {
     setSequences(getAllSequences());
-    setPresets(getAllPresets());
+    setScenes(getAllScenes());
   };
 
   const handleCreateSequence = () => {
@@ -288,33 +290,33 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
   };
 
   const handleAddItem = () => {
-    if (!selectedSequence || presets.length === 0) return;
+    if (!selectedSequence || scenes.length === 0) return;
     
     // Support both old format (items) and new format (scenes)
     const items = (selectedSequence as any).items || [];
-    const scenes = (selectedSequence as any).scenes || [];
-    const isNewFormat = scenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
+    const sequenceScenes = (selectedSequence as any).scenes || [];
+    const isNewFormat = sequenceScenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
     
     if (isNewFormat) {
       // New format - use scenes
       const newScene = {
         id: generateSequenceItemId(),
         sequenceId: selectedSequence.id,
-        presetId: presets[0].id,
-        name: presets[0].name,
+        sceneId: scenes[0].id,
+        name: scenes[0].name,
         durationMode: "manual" as const,
-        order: scenes.length,
+        order: sequenceScenes.length,
       };
       const updated = {
         ...selectedSequence,
-        scenes: [...scenes, newScene],
+        scenes: [...sequenceScenes, newScene],
       };
       handleUpdateSequence(updated);
     } else {
-      // Old format - use items
+      // Old format - use items (backward compatibility - still uses sceneId)
       const newItem: SequenceItem = {
         id: generateSequenceItemId(),
-        presetId: presets[0].id,
+        sceneId: scenes[0].id,
         duration: 0,
         transition: "instant",
         order: items.length,
@@ -333,16 +335,16 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
       
       // Support both formats
       const items = (selectedSequence as any).items || [];
-      const scenes = (selectedSequence as any).scenes || [];
-      const isNewFormat = scenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
+      const sequenceScenes = (selectedSequence as any).scenes || [];
+      const isNewFormat = sequenceScenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
       
       if (isNewFormat) {
         // For new format, try to find matching scene and update it
         const updated = {
           ...selectedSequence,
-          scenes: scenes.map((scene: any) =>
+          scenes: sequenceScenes.map((scene: any) =>
             scene.id === updatedItem.id 
-              ? { ...scene, presetId: updatedItem.presetId, durationSeconds: updatedItem.duration, durationMode: updatedItem.duration === 0 ? "manual" : "seconds" }
+              ? { ...scene, sceneId: updatedItem.sceneId || updatedItem.presetId, presetId: updatedItem.presetId, durationSeconds: updatedItem.duration, durationMode: updatedItem.duration === 0 ? "manual" : "seconds" }
               : scene
           ),
         };
@@ -366,13 +368,13 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
       
       // Support both formats
       const items = (selectedSequence as any).items || [];
-      const scenes = (selectedSequence as any).scenes || [];
-      const isNewFormat = scenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
+      const sequenceScenes = (selectedSequence as any).scenes || [];
+      const isNewFormat = sequenceScenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
       
       if (isNewFormat) {
         const updated = {
           ...selectedSequence,
-          scenes: scenes
+          scenes: sequenceScenes
             .filter((scene: any) => scene.id !== itemId)
             .map((scene: any, index: number) => ({ ...scene, order: index })),
         };
@@ -397,15 +399,15 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
 
       // Support both formats
       const items = (selectedSequence as any).items || [];
-      const scenes = (selectedSequence as any).scenes || [];
-      const isNewFormat = scenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
+      const sequenceScenes = (selectedSequence as any).scenes || [];
+      const isNewFormat = sequenceScenes.length > 0 || (items.length === 0 && !(selectedSequence as any).items);
       
       if (isNewFormat) {
-        const oldIndex = scenes.findIndex((scene: any) => scene.id === active.id);
-        const newIndex = scenes.findIndex((scene: any) => scene.id === over.id);
+        const oldIndex = sequenceScenes.findIndex((scene: any) => scene.id === active.id);
+        const newIndex = sequenceScenes.findIndex((scene: any) => scene.id === over.id);
         if (oldIndex === -1 || newIndex === -1) return;
 
-        const reordered = arrayMove(scenes, oldIndex, newIndex);
+        const reordered = arrayMove(sequenceScenes, oldIndex, newIndex);
         const updated = {
           ...selectedSequence,
           scenes: reordered.map((scene: any, index: number) => ({ ...scene, order: index })),
@@ -488,17 +490,17 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
   };
 
   const validation = selectedSequence
-    ? validateSequenceItems(selectedSequence, presets)
-    : { valid: true, missingPresets: [] };
+    ? validateSequenceItems(selectedSequence, scenes)
+    : { valid: true, missingScenes: [] };
 
   return (
     <div className="h-full w-full flex flex-col px-6">
       {/* Top Bar with Sequence Selector and Actions */}
-      <div className="py-6 bg-white dark:bg-slate-900 mt-6 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm px-6 mb-6">
+      <div className="py-6 bg-theme-card mt-6 rounded-lg border border-theme-panel shadow-sm px-6 mb-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+              <label className="text-sm font-medium text-theme-muted whitespace-nowrap">
                 Sequence:
               </label>
               <Select
@@ -587,7 +589,7 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
         {selectedSequence && !validation.valid && (
           <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900">
             <p className="text-sm text-yellow-900 dark:text-yellow-200">
-              <span className="font-medium">Warning:</span> {validation.missingPresets.length} preset(s) not found
+              <span className="font-medium">Warning:</span> {validation.missingScenes?.length || validation.missingPresets?.length || 0} scene(s) not found
             </p>
           </div>
         )}
@@ -597,7 +599,7 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
       {selectedSequence ? (
         <div className="flex-1 flex flex-col overflow-hidden pb-6">
           <div className="flex-1 overflow-auto pt-6">
-            <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+            <div className="bg-theme-card rounded-lg border border-theme-panel shadow-sm p-6">
               <div className="overflow-x-auto w-full">
                   <DndContext
                     sensors={sensors}
@@ -609,33 +611,33 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
                       strategy={verticalListSortingStrategy}
                     >
                       <table className="w-full">
-                        <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                        <thead className="bg-theme-icon border-b border-theme-divider">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               <span className="sr-only">Drag</span>
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               Preview
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                              Preset
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
+                              Scene
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               Colors
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               Sprite
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               Motion
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               Duration (sec)
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               Transition
                             </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               <span className="sr-only">Actions</span>
                             </th>
                           </tr>
@@ -643,22 +645,23 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                           {((selectedSequence as any).scenes || (selectedSequence as any).items || []).map((item: any) => {
                             // Convert scene to item format for backward compatibility
-                            const itemForRow: SequenceItem = (item as any).presetId 
+                            const itemForRow: SequenceItem = (item as any).sceneId || (item as any).presetId
                               ? {
                                   id: item.id,
-                                  presetId: item.presetId,
+                                  sceneId: item.sceneId || item.presetId,
+                                  presetId: item.presetId, // Keep for backward compatibility
                                   duration: item.durationSeconds || (item.durationMode === "manual" ? 0 : item.durationSeconds || 0),
                                   transition: item.fadeTypeOverride === "cut" ? "instant" : item.fadeTypeOverride === "crossfade" ? "fade" : "instant",
                                   order: item.order,
                                 }
                               : item;
-                            const preset = presets.find((p) => p.id === itemForRow.presetId) || null;
+                            const scene = scenes.find((s) => s.id === itemForRow.sceneId) || null;
                             return (
                               <SortableTableRow
                                 key={itemForRow.id}
                                 item={itemForRow}
-                                preset={preset}
-                                presets={presets}
+                                scene={scene}
+                                scenes={scenes}
                                 onUpdate={handleUpdateItem}
                                 onDelete={handleDeleteItem}
                               />
@@ -675,28 +678,28 @@ export function SequenceManager({ onLoadPreset, currentState, onClose: _onClose 
                   type="button"
                   variant="outline"
                   onClick={handleAddItem}
-                  disabled={presets.length === 0}
+                  disabled={scenes.length === 0}
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Preset
+                  Add Scene
                 </Button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-500 dark:text-slate-400 p-6">
+          <div className="flex-1 flex items-center justify-center text-theme-muted p-6">
             <p>Select a sequence to edit or create a new one</p>
           </div>
         )}
 
       {/* Sequence Player */}
-      {selectedSequence && onLoadPreset && (
-        <div className="p-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+      {selectedSequence && handleLoadScene && (
+        <div className="p-6 pt-6 border-t border-theme-divider">
           <SequencePlayer
             sequence={selectedSequence}
             currentState={currentState || null}
-            onLoadPreset={(state) => {
-              onLoadPreset(state);
+            onLoadScene={(state) => {
+              handleLoadScene(state);
             }}
             onRandomize={() => {
               // Randomize is handled by the main app

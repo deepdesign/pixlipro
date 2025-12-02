@@ -236,7 +236,7 @@ export function downloadImage(dataUrl: string, filename: string): void {
 }
 
 /**
- * Creates a thumbnail from a canvas
+ * Creates a thumbnail from a canvas by cropping to square
  * 
  * @param canvas - The source canvas
  * @param size - Thumbnail size (width and height)
@@ -257,7 +257,20 @@ export function createThumbnail(
 
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(canvas, 0, 0, size, size);
+  
+  // Crop center square from source canvas
+  const sourceWidth = canvas.width;
+  const sourceHeight = canvas.height;
+  const sourceSize = Math.min(sourceWidth, sourceHeight);
+  const sourceX = (sourceWidth - sourceSize) / 2;
+  const sourceY = (sourceHeight - sourceSize) / 2;
+  
+  // Draw cropped square to thumbnail
+  ctx.drawImage(
+    canvas,
+    sourceX, sourceY, sourceSize, sourceSize, // Source: center square
+    0, 0, size, size // Destination: full thumbnail
+  );
   
   return thumbnailCanvas.toDataURL("image/png");
 }

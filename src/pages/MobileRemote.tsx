@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/Button";
 import { ChevronLeft, ChevronRight, RotateCcw, Wifi, WifiOff } from "lucide-react";
-import type { Preset } from "@/lib/storage/presetStorage";
+import type { Scene } from "@/lib/storage/sceneStorage";
 import type { GeneratorState } from "@/types/generator";
 
 interface MobileRemoteProps {
@@ -10,8 +10,8 @@ interface MobileRemoteProps {
 
 export function MobileRemote({ wsUrl }: MobileRemoteProps) {
   const [connected, setConnected] = useState(false);
-  const [presets, setPresets] = useState<Preset[]>([]);
-  const [currentPreset, setCurrentPreset] = useState<Preset | null>(null);
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [currentScene, setCurrentScene] = useState<Scene | null>(null);
   const [, setCurrentState] = useState<GeneratorState | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,9 +36,9 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
       ws.onopen = () => {
         console.log("Connected to Pixli");
         setConnected(true);
-        // Request preset list and current state after a short delay
+        // Request scene list and current state after a short delay
         setTimeout(() => {
-          ws.send(JSON.stringify({ type: "request-presets" }));
+          ws.send(JSON.stringify({ type: "request-scenes" })); // Backward compatibility: server may still use "request-presets"
           ws.send(JSON.stringify({ type: "request-state" }));
         }, 100);
       };
@@ -48,11 +48,13 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
           const message = JSON.parse(event.data);
           
           switch (message.type) {
-            case "preset-list":
-              setPresets(message.presets || []);
+            case "scene-list":
+            case "preset-list": // Backward compatibility
+              setScenes(message.scenes || message.presets || []);
               break;
-            case "current-preset":
-              setCurrentPreset(message.preset || null);
+            case "current-scene":
+            case "current-preset": // Backward compatibility
+              setCurrentScene(message.scene || message.preset || null);
               break;
             case "state-update":
               setCurrentState(message.state || null);
@@ -103,26 +105,26 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
     }
   };
 
-  const handleLoadPreset = (presetId: string) => {
-    sendCommand("load-preset", { presetId });
+  const handleLoadScene = (sceneId: string) => {
+    sendCommand("load-scene", { sceneId }); // Backward compatibility: server may still use "load-preset"
   };
 
-  const handleNextPreset = () => {
-    if (presets.length === 0) return;
-    const currentIndex = currentPreset
-      ? presets.findIndex((p) => p.id === currentPreset.id)
+  const handleNextScene = () => {
+    if (scenes.length === 0) return;
+    const currentIndex = currentScene
+      ? scenes.findIndex((s) => s.id === currentScene.id)
       : -1;
-    const nextIndex = (currentIndex + 1) % presets.length;
-    handleLoadPreset(presets[nextIndex].id);
+    const nextIndex = (currentIndex + 1) % scenes.length;
+    handleLoadScene(scenes[nextIndex].id);
   };
 
-  const handlePreviousPreset = () => {
-    if (presets.length === 0) return;
-    const currentIndex = currentPreset
-      ? presets.findIndex((p) => p.id === currentPreset.id)
+  const handlePreviousScene = () => {
+    if (scenes.length === 0) return;
+    const currentIndex = currentScene
+      ? scenes.findIndex((s) => s.id === currentScene.id)
       : -1;
-    const prevIndex = currentIndex <= 0 ? presets.length - 1 : currentIndex - 1;
-    handleLoadPreset(presets[prevIndex].id);
+    const prevIndex = currentIndex <= 0 ? scenes.length - 1 : currentIndex - 1;
+    handleLoadScene(scenes[prevIndex].id);
   };
 
   const handleRandomize = () => {
@@ -152,63 +154,63 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
           </div>
         </div>
 
-        {/* Current Preset */}
-        {currentPreset && (
+        {/* Current Scene */}
+        {currentScene && (
           <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 mb-4 shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Preset</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Scene</p>
             <p className="text-lg font-semibold text-gray-900 dark:text-white">
-              {currentPreset.name}
+              {currentScene.name}
             </p>
           </div>
         )}
 
-        {/* Preset Navigation */}
+        {/* Scene Navigation */}
         <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 mb-4 shadow-sm">
           <div className="flex items-center justify-between gap-2 mb-4">
             <Button
               type="button"
               variant="outline"
               size="icon"
-              onClick={handlePreviousPreset}
-              disabled={!connected || presets.length === 0}
+              onClick={handlePreviousScene}
+              disabled={!connected || scenes.length === 0}
               className="flex-1"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1 text-center">
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {presets.length > 0
-                  ? `${(currentPreset ? presets.findIndex((p) => p.id === currentPreset.id) : 0) + 1} / ${presets.length}`
-                  : "No presets"}
+                {scenes.length > 0
+                  ? `${(currentScene ? scenes.findIndex((s) => s.id === currentScene.id) : 0) + 1} / ${scenes.length}`
+                  : "No scenes"}
               </p>
             </div>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              onClick={handleNextPreset}
-              disabled={!connected || presets.length === 0}
+              onClick={handleNextScene}
+              disabled={!connected || scenes.length === 0}
               className="flex-1"
             >
               <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
 
-          {/* Preset List */}
-          {presets.length > 0 && (
+          {/* Scene List */}
+          {scenes.length > 0 && (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {presets.map((preset) => (
+              {scenes.map((scene) => (
                 <button
-                  key={preset.id}
+                  key={scene.id}
                   type="button"
-                  onClick={() => handleLoadPreset(preset.id)}
+                  onClick={() => handleLoadScene(scene.id)}
                   className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                    currentPreset?.id === preset.id
+                    currentScene?.id === scene.id
                       ? "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
                       : "bg-gray-50 dark:bg-zinc-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-600"
                   }`}
                 >
-                  <p className="font-medium">{preset.name}</p>
+                  <p className="font-medium">{scene.name}</p>
                 </button>
               ))}
             </div>

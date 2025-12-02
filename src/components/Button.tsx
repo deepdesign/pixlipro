@@ -46,14 +46,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const variantClasses = {
       default: size === "icon" 
         ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)] hover:bg-[var(--accent-primary)]/90 border-0"
-        : "bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200",
-      secondary: "bg-slate-600 text-white hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-600",
-      outline: "border border-slate-300 bg-transparent text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-900",
-      link: "text-slate-900 underline-offset-4 hover:underline dark:text-slate-100",
-      background: "bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-700 border-0",
-      naked: "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50 border-0",
-      lock: "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50 border-0 data-[locked=true]:bg-red-600 data-[locked=true]:text-white data-[locked=true]:hover:bg-red-700 dark:data-[locked=true]:bg-red-600 dark:data-[locked=true]:hover:bg-red-700",
-      circle: "bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-700 border-0 rounded-full icon-button h-6 w-6 p-0 flex items-center justify-center aspect-square",
+        : "bg-theme-icon text-theme-primary hover:bg-theme-icon/80",
+      secondary: "bg-theme-icon text-theme-primary hover:bg-[var(--icon-hover)]",
+      outline: "border border-theme-panel bg-transparent text-theme-primary hover:bg-[var(--icon-hover)] border-0",
+      link: "text-theme-primary underline-offset-4 hover:underline",
+      background: "bg-theme-icon text-theme-muted hover:bg-[var(--icon-hover)] border-0",
+      naked: "bg-transparent text-theme-muted hover:bg-[var(--icon-hover)] border-0",
+      lock: "bg-transparent text-theme-muted hover:bg-theme-icon border-0 data-[locked=true]:bg-red-600 data-[locked=true]:text-white data-[locked=true]:hover:bg-red-700",
+      circle: "bg-theme-icon text-theme-muted hover:bg-[var(--icon-hover)] border-0 rounded-full icon-button h-6 w-6 p-0 flex items-center justify-center aspect-square",
     };
 
     // Size classes

@@ -4,7 +4,7 @@
  */
 export function SettingsFooter() {
   return (
-    <footer className="flex items-center justify-between w-full text-[0.65rem] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+    <footer className="flex items-center justify-between w-full text-[0.65rem] uppercase tracking-[0.18em] text-theme-muted">
       {/* Logo on left */}
       <div className="flex-shrink-0">
         <img

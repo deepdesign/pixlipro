@@ -92,23 +92,23 @@ export function AnimationCard({
 
   return (
     <div
-      className={`group relative bg-white dark:bg-slate-800 rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
+      className={`group relative bg-theme-card rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
         isSelected
           ? "border-[var(--accent-primary)] shadow-lg"
-          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md"
+          : "border-theme-card hover:border-theme-panel hover:shadow-md"
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleSelect}
     >
       {/* Thumbnail Preview */}
-      <div className="w-full aspect-video bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden relative">
+      <div className="w-full aspect-video bg-theme-card flex items-center justify-center overflow-hidden relative">
         <AnimationThumbnail animation={animation} size={320} />
         
         {/* Lock icon for default animations */}
         {isDefault && (
           <div className="absolute top-2 left-2">
-            <Lock className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <Lock className="h-4 w-4 text-theme-subtle" />
           </div>
         )}
 
@@ -121,7 +121,7 @@ export function AnimationCard({
                 variant="background"
                 size="icon"
                 onClick={handleDuplicate}
-                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 shadow-md"
+                className="bg-theme-panel/90 backdrop-blur-sm hover:bg-theme-panel shadow-md"
                 title="Duplicate animation"
                 aria-label="Duplicate animation"
               >
@@ -134,7 +134,7 @@ export function AnimationCard({
                 variant="background"
                 size="icon"
                 onClick={handleEdit}
-                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 shadow-md"
+                className="bg-theme-panel/90 backdrop-blur-sm hover:bg-theme-panel shadow-md"
                 title="Edit animation"
                 aria-label="Edit animation"
               >
@@ -147,7 +147,7 @@ export function AnimationCard({
                 variant="background"
                 size="icon"
                 onClick={handleDelete}
-                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-red-50 dark:hover:bg-red-900/20 shadow-md text-red-600 dark:text-red-400"
+                className="bg-theme-panel/90 backdrop-blur-sm hover:bg-red-50 hover:dark:bg-red-900/20 shadow-md text-red-600 dark:text-red-400"
                 title="Delete animation"
                 aria-label="Delete animation"
               >
@@ -160,15 +160,15 @@ export function AnimationCard({
 
       {/* Animation Info */}
       <div className="p-4">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1 truncate">
+        <h3 className="text-base font-semibold text-theme-primary mb-1 truncate">
           {animation.name}
         </h3>
         {'description' in animation && animation.description && (
-          <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">
+          <p className="text-sm text-theme-muted line-clamp-2">
             {animation.description}
           </p>
         )}
-        <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">
+        <p className="text-xs text-theme-subtle mt-2">
           Waveform: {getWaveformInfo(animation)}
         </p>
       </div>

@@ -272,7 +272,7 @@ export function SpriteControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <button
           type="button"
           onClick={() => controller?.setDensityScaleEnabled(!(spriteState.densityScaleEnabled ?? true))}
@@ -290,7 +290,7 @@ export function SpriteControls({
             </TextWithTooltip>
           </div>
           <ChevronDown
-            className={`h-5 w-5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${
+            className={`h-5 w-5 text-theme-subtle transition-transform duration-200 ${
               spriteState.densityScaleEnabled !== false ? "rotate-180" : ""
             }`}
           />
@@ -335,7 +335,7 @@ export function SpriteControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip
@@ -438,7 +438,7 @@ export function SpriteControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip

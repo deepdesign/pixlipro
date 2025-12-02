@@ -4,7 +4,6 @@ import { RadioGroup, RadioField, Radio } from "@/components/catalyst/radio";
 import { Input } from "@/components/catalyst/input";
 import { Switch } from "@/components/catalyst/switch";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
-import { Info } from "lucide-react";
 import { useDualMonitor } from "@/hooks/useDualMonitor";
 
 interface DisplayTabProps {
@@ -109,16 +108,13 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
   return (
     <div className="space-y-6 px-6">
       {/* Aspect Ratio Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Aspect ratio</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Set the canvas aspect ratio for projection displays. Match your projector's native aspect ratio to avoid distortion.
-              </p>
-            </div>
-            <Info className="h-5 w-5 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <div>
+            <h3 className="text-base font-semibold text-theme-primary">Aspect ratio</h3>
+            <p className="text-sm text-theme-muted mt-1">
+              Set the canvas aspect ratio for projection displays. Match your projector's native aspect ratio to avoid distortion.
+            </p>
           </div>
         </div>
         <div className="p-6">
@@ -135,12 +131,12 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                     <RadioField key={key}>
                       <Radio value={key} />
                       <div className="flex-1">
-                        <label className="font-medium text-slate-900 dark:text-white">{preset.label}</label>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                        <label className="font-medium text-theme-primary">{preset.label}</label>
+                        <p className="text-sm text-theme-muted mt-0.5">
                           {preset.description}
                         </p>
                         {"resolutions" in preset && preset.resolutions && (
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                          <p className="text-xs text-theme-subtle mt-1">
                             Recommended: {preset.resolutions.join(", ")}
                           </p>
                         )}
@@ -154,7 +150,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
 
           {/* Custom Aspect Ratio Inputs */}
           {settings.aspectRatio === "custom" && (
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-6 pt-6 border-t border-theme-divider">
               <Field>
                 <Label>Custom dimensions</Label>
                 <Description>
@@ -162,7 +158,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                 </Description>
                 <div data-slot="control" className="mt-4 flex gap-4">
                   <div className="flex-1">
-                    <label htmlFor="custom-width" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="custom-width" className="block text-sm font-medium text-theme-muted mb-1">
                       Width (px)
                     </label>
                     <Input
@@ -175,7 +171,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                     />
                   </div>
                   <div className="flex-1">
-                    <label htmlFor="custom-height" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    <label htmlFor="custom-height" className="block text-sm font-medium text-theme-muted mb-1">
                       Height (px)
                     </label>
                     <Input
@@ -194,8 +190,8 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
 
           {/* Recommended Resolution Display */}
           {recommendedResolution && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
-              <p className="text-sm text-blue-900 dark:text-blue-200">
+            <div className="mt-4 p-3 bg-theme-status rounded-lg border border-theme-divider">
+              <p className="text-sm text-theme-primary">
                     <span className="font-medium">Recommended resolution:</span> {recommendedResolution}
               </p>
             </div>
@@ -204,18 +200,18 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
       </div>
 
       {/* Dual Monitor Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-base font-semibold text-slate-900 dark:text-white">Dual monitor support</h3>
+                <h3 className="text-base font-semibold text-theme-primary">Dual monitor support</h3>
                 <Switch
                   checked={settings.dualMonitorEnabled}
                   onChange={handleDualMonitorToggle}
                 />
               </div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-sm text-theme-muted mt-1">
                 Split the app across two monitors: controls on primary, canvas on secondary (projector)
               </p>
             </div>
@@ -225,10 +221,10 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
           <div className="p-6">
             <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium text-theme-muted">
                     Projector window
                   </label>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-sm text-theme-muted mt-1">
                     {dualMonitor.isProjectorMode 
                       ? "Projector window is open on secondary display"
                       : "Click the button below to open the projector window"}
@@ -246,15 +242,15 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                   <button
                     type="button"
                     onClick={dualMonitor.openProjectorWindow}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)] hover:opacity-90 rounded-lg transition-colors"
                   >
                     Open projector window
                   </button>
                 )}
               </div>
               {!dualMonitor.hasMultipleScreens && (
-                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900">
-                  <p className="text-sm text-yellow-900 dark:text-yellow-200">
+                <div className="mt-4 p-3 bg-theme-status rounded-lg border border-theme-divider">
+                  <p className="text-sm text-theme-primary">
                     <span className="font-medium">Note:</span> Multiple screens not detected. Make sure your secondary display is connected and configured in your system settings.
                   </p>
                 </div>

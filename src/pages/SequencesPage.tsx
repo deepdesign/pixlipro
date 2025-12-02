@@ -8,17 +8,17 @@ interface SequencesPageProps {
 
 export function SequencesPage({ currentState, onLoadPreset }: SequencesPageProps) {
   return (
-    <div className="h-full w-full flex flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="h-full w-full flex flex-col bg-theme-bg-base">
       {/* Header */}
       <div className="px-6 py-4">
-        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-50">
+        <h2 className="text-xl font-semibold text-theme-heading">
           Sequences
         </h2>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm h-full flex overflow-hidden">
+        <div className="bg-theme-card rounded-lg border border-theme-card shadow-sm h-full flex overflow-hidden">
           <div className="flex-1 flex overflow-hidden min-h-0">
             <SequenceManager 
               onLoadPreset={onLoadPreset}

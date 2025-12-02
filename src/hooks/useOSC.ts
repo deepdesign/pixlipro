@@ -4,7 +4,8 @@ import { loadSettings, type OSCSettings } from "@/lib/storage/settingsStorage";
 import type { GeneratorState } from "@/types/generator";
 
 interface UseOSCOptions {
-  onPresetLoad?: (presetId: string) => void;
+  onSceneLoad?: (sceneId: string) => void;
+  onPresetLoad?: (presetId: string) => void; // Backward compatibility
   onMotionIntensityChange?: (intensity: number) => void;
   onPaletteCycleToggle?: (enabled: boolean) => void;
   onSequenceNext?: () => void;
@@ -29,9 +30,12 @@ export function useOSC(options: UseOSCOptions = {}) {
       // Setup message handlers
       client.onMessage((message) => {
         switch (message.address) {
-          case "/pixli/preset/load":
+          case "/pixli/scene/load":
+          case "/pixli/preset/load": // Backward compatibility
             if (message.args[0] && typeof message.args[0] === "string") {
-              options.onPresetLoad?.(message.args[0]);
+              const sceneId = message.args[0];
+              options.onSceneLoad?.(sceneId);
+              options.onPresetLoad?.(sceneId); // Backward compatibility
             }
             break;
 
@@ -93,9 +97,12 @@ export function useOSC(options: UseOSCOptions = {}) {
 
       client.onMessage((message) => {
         switch (message.address) {
-          case "/pixli/preset/load":
+          case "/pixli/scene/load":
+          case "/pixli/preset/load": // Backward compatibility
             if (message.args[0] && typeof message.args[0] === "string") {
-              options.onPresetLoad?.(message.args[0]);
+              const sceneId = message.args[0];
+              options.onSceneLoad?.(sceneId);
+              options.onPresetLoad?.(sceneId); // Backward compatibility
             }
             break;
           case "/pixli/motion/intensity":
@@ -135,7 +142,10 @@ export function useOSC(options: UseOSCOptions = {}) {
   return {
     client: clientRef.current,
     sendStateUpdate,
-    sendPresetLoad: useCallback((presetId: string) => {
+    sendSceneLoad: useCallback((sceneId: string) => {
+      clientRef.current?.sendPresetLoad(sceneId); // Backward compatibility - OSC client still uses preset
+    }, []),
+    sendPresetLoad: useCallback((presetId: string) => { // Backward compatibility
       clientRef.current?.sendPresetLoad(presetId);
     }, []),
     sendMotionIntensity: useCallback((intensity: number) => {

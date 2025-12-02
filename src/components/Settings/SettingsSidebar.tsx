@@ -33,7 +33,7 @@ const contentManagementItems: NavItem[] = [
   { id: "animation", label: "Animation", icon: PlayCircle },
   { id: "sprites", label: "Sprites", icon: Shapes },
   { id: "palettes", label: "Palettes", icon: Palette },
-  { id: "presets", label: "Presets", icon: Bookmark },
+  { id: "presets", label: "Scenes", icon: Bookmark },
   { id: "sequences", label: "Sequences", icon: List },
 ];
 
@@ -46,7 +46,7 @@ const configurationItems: NavItem[] = [
 
 export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSidebarProps) {
   return (
-    <Sidebar className="settings-sidebar-nav bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 [&_*[data-slot='icon']]:!fill-none [&_*[data-slot='icon']]:stroke-2">
+    <Sidebar className="settings-sidebar-nav bg-theme-panel border-r border-theme-panel [&_*[data-slot='icon']]:!fill-none [&_*[data-slot='icon']]:stroke-2">
       <SidebarBody>
         {/* Canvas Section */}
         <SidebarSection>

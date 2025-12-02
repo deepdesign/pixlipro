@@ -74,7 +74,7 @@ export function FxControls({
 
       {/* Bloom Section */}
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip
@@ -134,7 +134,7 @@ export function FxControls({
 
       {/* Noise/Grain Section */}
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip

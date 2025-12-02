@@ -4,7 +4,7 @@
  * Barrel export for storage-related utilities.
  */
 
-export * from "./presetStorage";
+export * from "./sceneStorage";
 export * from "./customPaletteStorage";
 export * from "./customSpriteStorage";
 export * from "./settingsStorage";

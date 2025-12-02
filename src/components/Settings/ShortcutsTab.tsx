@@ -125,15 +125,15 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
   return (
     <div className="space-y-6">
       {/* Keyboard Shortcuts Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="text-base font-semibold text-theme-primary flex items-center gap-2">
                 <Keyboard className="h-5 w-5" />
                 Keyboard Shortcuts
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-sm text-theme-muted mt-1">
                 Customize keyboard bindings for quick actions. Click a shortcut to edit it.
               </p>
             </div>
@@ -141,8 +141,8 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
         </div>
         <div className="p-6">
           {shortcutGroups.map((group, groupIndex) => (
-            <div key={groupIndex} className={groupIndex > 0 ? "mt-6 pt-6 border-t border-slate-200 dark:border-slate-800" : ""}>
-              <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+            <div key={groupIndex} className={groupIndex > 0 ? "mt-6 pt-6 border-t border-theme-divider" : ""}>
+              <h4 className="text-sm font-semibold text-theme-primary mb-3">
                 {group.title}
               </h4>
               <div className="space-y-2">
@@ -153,9 +153,9 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
                   return (
                     <div
                       key={action}
-                      className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                      className="flex items-center justify-between p-3 bg-theme-icon rounded-lg hover:bg-theme-icon/80 transition-colors"
                     >
-                      <Label className="text-sm text-slate-700 dark:text-slate-300">
+                      <Label className="text-sm text-theme-muted">
                         {label}
                       </Label>
                       <div className="flex items-center gap-2">
@@ -172,7 +172,7 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
                           />
                         ) : (
                           <>
-                            <kbd className="px-2 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded">
+                            <kbd className="px-2 py-1 text-xs font-semibold text-theme-primary bg-theme-select border border-theme-panel rounded">
                               {binding ? formatShortcut(binding) : "Not set"}
                             </kbd>
                             <Button
@@ -206,14 +206,14 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
       </div>
 
       {/* Instructions Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <h3 className="text-base font-semibold text-theme-primary">
             How to Set Shortcuts
           </h3>
         </div>
         <div className="p-6">
-          <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300 list-disc list-inside">
+          <ul className="space-y-2 text-sm text-theme-muted list-disc list-inside">
             <li>Click the edit icon next to a shortcut to change it</li>
             <li>Press the key combination you want to assign</li>
             <li>Press Escape to cancel editing</li>

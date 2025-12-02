@@ -14,6 +14,10 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
   const controllerRef = useRef<ReturnType<typeof createSpriteController> | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [shouldInitialize, setShouldInitialize] = useState(false);
+  const [themeMode, setThemeMode] = useState<string>(() => {
+    if (typeof document === 'undefined') return 'dark';
+    return document.documentElement.getAttribute('data-theme') || 'dark';
+  });
 
   // Use IntersectionObserver to only initialize when thumbnail is visible
   useEffect(() => {
@@ -45,8 +49,33 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
     };
   }, [shouldInitialize]);
 
+  // Watch for theme changes and update state
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          const newTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          setThemeMode(newTheme);
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current || !shouldInitialize) return;
+
+    const isLightMode = themeMode === 'light';
 
     // Get square sprite - use the actual SVG path, not shape identifier
     const squareSpritePath = "/sprites/default/square.svg";
@@ -96,24 +125,24 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         scaleSpread: 0, // No spread - thumbnail mode will control sizes
         selectedSprites: [squareSpritePath], // Force square sprite using SVG path
         randomSprites: false,
-        // Use slate palette: slate-50 (index 0) for primary, slate-800 (index 1) for secondary
-        paletteId: "slate",
+        // Use theme-aware palette: light mode uses slate-light, dark mode uses slate
+        paletteId: isLightMode ? "slate-light" : "slate",
         paletteVariance: 0, // No color variation - use exact palette colors
         seed: `animation-thumbnail-${animation.id}`, // Unique seed per animation
         colorSeedSuffix: "", // No suffix to use default color RNG
-        // Use slate-800 background (dark mode)
-        backgroundMode: "slate-bg", // Use slate-bg palette for background
-        backgroundBrightness: 100, // Full brightness for slate-800
+        // Use theme-aware background: light mode uses slate-bg-light, dark mode uses slate-bg
+        backgroundMode: isLightMode ? "slate-bg-light" : "slate-bg",
+        backgroundBrightness: 100,
         backgroundHueShift: 0,
-        backgroundColorIndex: 0, // Use first color from slate-bg palette (slate-800)
-        // Thumbnail mode: control primary and secondary sprites
+        backgroundColorIndex: 0,
+        // Thumbnail mode: control primary and secondary sprites (inverted for light mode)
         thumbnailMode: {
-          primaryColorIndex: 0, // slate-50 (first color in slate palette)
-          secondaryColorIndex: 1, // slate-800 (second color in slate palette)
-          primaryScale: primaryScale, // Base scale for primary sprite
-          secondaryScale: secondaryScale, // 50% of primary for secondary sprites
-          secondaryCount: 7, // 7 secondary sprites
-          primaryPosition: { u: 0.5, v: 0.5 }, // Center position for primary sprite
+          primaryColorIndex: isLightMode ? 0 : 0, // dark sprite (slate-800) in light mode, light sprite (slate-50) in dark mode
+          secondaryColorIndex: isLightMode ? 2 : 2, // darker secondary sprites than card background in both modes
+          primaryScale: primaryScale,
+          secondaryScale: secondaryScale,
+          secondaryCount: 7,
+          primaryPosition: { u: 0.5, v: 0.5 },
         },
       };
     } else {
@@ -144,24 +173,24 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         scaleSpread: 0, // No spread - thumbnail mode will control sizes
         selectedSprites: [squareSpritePath], // Force square sprite using SVG path
         randomSprites: false,
-        // Use slate palette: slate-50 (index 0) for primary, slate-800 (index 1) for secondary
-        paletteId: "slate",
+        // Use theme-aware palette: light mode uses slate-light, dark mode uses slate
+        paletteId: isLightMode ? "slate-light" : "slate",
         paletteVariance: 0, // No color variation - use exact palette colors
         seed: `animation-thumbnail-${animation.id}`, // Unique seed per animation
         colorSeedSuffix: "", // No suffix to use default color RNG
-        // Use slate-800 background (dark mode)
-        backgroundMode: "slate-bg", // Use slate-bg palette for background
-        backgroundBrightness: 100, // Full brightness for slate-800
+        // Use theme-aware background: light mode uses slate-bg-light, dark mode uses slate-bg
+        backgroundMode: isLightMode ? "slate-bg-light" : "slate-bg",
+        backgroundBrightness: 100,
         backgroundHueShift: 0,
-        backgroundColorIndex: 0, // Use first color from slate-bg palette (slate-800)
-        // Thumbnail mode: control primary and secondary sprites
+        backgroundColorIndex: 0,
+        // Thumbnail mode: control primary and secondary sprites (inverted for light mode)
         thumbnailMode: {
-          primaryColorIndex: 0, // slate-50 (first color in slate palette)
-          secondaryColorIndex: 1, // slate-800 (second color in slate palette)
-          primaryScale: primaryScale, // Base scale for primary sprite
-          secondaryScale: secondaryScale, // 50% of primary for secondary sprites
-          secondaryCount: 7, // 7 secondary sprites
-          primaryPosition: { u: 0.5, v: 0.5 }, // Center position for primary sprite
+          primaryColorIndex: isLightMode ? 0 : 0, // dark sprite (slate-800) in light mode, light sprite (slate-50) in dark mode
+          secondaryColorIndex: isLightMode ? 2 : 2, // darker secondary sprites than card background in both modes
+          primaryScale: primaryScale,
+          secondaryScale: secondaryScale,
+          secondaryCount: 7,
+          primaryPosition: { u: 0.5, v: 0.5 },
         },
       };
     }
@@ -202,7 +231,7 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         controllerRef.current = null;
       }
     };
-  }, [animation, size, shouldInitialize]);
+  }, [animation, size, shouldInitialize, themeMode]);
 
   return (
     <div
@@ -214,8 +243,8 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
       }}
     >
       {!isReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-800">
-          <div className="text-xs text-slate-400">Loading...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-theme-panel rounded border border-theme-panel">
+          <div className="text-xs text-theme-subtle">Loading...</div>
         </div>
       )}
     </div>

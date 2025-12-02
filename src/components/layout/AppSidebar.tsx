@@ -72,8 +72,8 @@ interface AppSidebarProps {
   themeMode?: "system" | "light" | "dark";
   onThemeModeChange?: (mode: "system" | "light" | "dark") => void;
   onOpenSettings?: () => void;
-  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation") => void;
-  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation" | null;
+  onNavigate?: (page: "create" | "sprites" | "palettes" | "scenes" | "sequences" | "settings" | "animation") => void;
+  currentPage?: "create" | "sprites" | "palettes" | "scenes" | "sequences" | "settings" | "animation" | null;
 }
 
 export const AppSidebar = ({
@@ -163,8 +163,7 @@ export const AppSidebar = ({
   return (
     <aside
       className={`fixed flex top-[var(--header-height)] left-0 h-[calc(100vh-var(--header-height)-var(--footer-height))] z-50 border-r
-        bg-white border-slate-200 text-slate-900
-        dark:bg-slate-900 dark:border-slate-800 dark:text-white
+        bg-theme-panel border-theme-panel text-theme-primary
         ${sidebarWidth === 370 ? "w-[370px]" : "w-[64px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0
@@ -178,7 +177,7 @@ export const AppSidebar = ({
       }}
     >
       {/* Left Column - Icon Navigation */}
-      <div className="flex flex-col w-[64px] border-r border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex flex-col w-[64px] border-r border-t border-theme-panel bg-theme-panel">
         {/* Logo at top */}
         <div className="flex items-center justify-center pt-4 pb-6 px-2">
           <a
@@ -220,7 +219,7 @@ export const AppSidebar = ({
                 className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button ${
                   isSelected
                     ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)]"
-                    : "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
+                    : "bg-transparent text-theme-muted hover:bg-theme-icon"
                 }`}
                 title={item.label}
                 aria-label={item.label}
@@ -237,7 +236,7 @@ export const AppSidebar = ({
             <button
               type="button"
               onClick={cycleThemeMode}
-              className="h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
+              className="h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button bg-transparent text-theme-muted hover:bg-theme-icon"
               aria-label={`Switch theme mode (current ${themeMode === "system" ? "System" : themeMode === "light" ? "Light" : "Dark"})`}
               title={`Theme: ${themeMode === "system" ? "System" : themeMode === "light" ? "Light" : "Dark"}`}
             >
@@ -257,7 +256,7 @@ export const AppSidebar = ({
               className={`h-9 w-9 rounded-lg flex items-center justify-center transition-colors icon-button ${
                 currentPage === "settings"
                   ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)]"
-                  : "bg-transparent text-slate-500 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50"
+                  : "bg-transparent text-theme-muted hover:bg-theme-icon"
               }`}
               aria-label="Open settings"
               title="Settings"
@@ -270,7 +269,7 @@ export const AppSidebar = ({
 
       {/* Right Column - Control Panels */}
       {showRightColumn && (
-        <div className="flex flex-col w-[282px] px-5 overflow-y-auto overflow-x-visible no-scrollbar flex-1 transition-opacity duration-300 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col w-[282px] px-5 overflow-y-auto overflow-x-visible no-scrollbar flex-1 transition-opacity duration-300 border-t border-theme-panel">
           {/* Control Panel Content */}
           {spriteState && (
             <div className="flex-1 pt-8 pb-6 overflow-x-visible">

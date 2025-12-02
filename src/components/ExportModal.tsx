@@ -999,7 +999,7 @@ export const ExportModal = ({
                   >
                     {isRecording ? "Recording..." : "Export seamless loop"}
                   </Button>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  <div className="text-xs text-theme-muted mt-2">
                     Tip: Exports a seamless loop by syncing animation time to your chosen duration and FPS.
                   </div>
                 </div>

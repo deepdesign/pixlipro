@@ -20,7 +20,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { ProjectorPage } from "./pages/ProjectorPage";
 import { MobileRemote } from "./pages/MobileRemote";
 import { SequencesPage } from "./pages/SequencesPage";
-import { PresetsPage } from "./pages/PresetsPage";
+import { ScenesPage } from "./pages/ScenesPage";
 import { PalettesPage } from "./pages/PalettesPage";
 import { SpritesPage } from "./pages/SpritesPage";
 import { AnimationPage } from "./pages/AnimationPage";
@@ -29,11 +29,11 @@ import { useWebSocket } from "./hooks/useWebSocket";
 import { useOSC } from "./hooks/useOSC";
 import { useMIDI } from "./hooks/useMIDI";
 import { useDMX } from "./hooks/useDMX";
-import { getAllPresets, loadPresetState } from "./lib/storage/presetStorage";
+import { getAllScenes, loadSceneState } from "./lib/storage/sceneStorage";
 import { loadSettings } from "./lib/storage/settingsStorage";
 
 // Lazy load modals for better initial load performance
-const PresetManager = lazy(() => import("./components/PresetManager").then(module => ({ default: module.PresetManager })));
+const SceneManager = lazy(() => import("./components/SceneManager").then(module => ({ default: module.SceneManager })));
 const ExportModal = lazy(() => import("./components/ExportModal").then(module => ({ default: module.ExportModal })));
 import { Header } from "./components/Header";
 import { StatusBar } from "./components/StatusBar";
@@ -94,7 +94,7 @@ const App = () => {
   const isMobileRemote = window.location.pathname === "/remote";
   
   // Navigation state
-  const [currentPage, setCurrentPage] = useState<"create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation" | null>(null);
+  const [currentPage, setCurrentPage] = useState<"create" | "sprites" | "palettes" | "scenes" | "sequences" | "settings" | "animation" | null>(null);
   
   // Settings state (kept for backward compatibility)
   const [showSettingsPage, setShowSettingsPage] = useState(false);
@@ -216,7 +216,7 @@ const App = () => {
   }, [isProjectorMode, controller, dualMonitor.isProjectorMode, spriteState]);
   
   const [activePanel, setActivePanel] = useState<"sprites" | "colours" | "motion" | "fx">("sprites");
-  const [showPresetManager, setShowPresetManager] = useState(false);
+  const [showSceneManager, setShowSceneManager] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [customPalettesRefresh, setCustomPalettesRefresh] = useState(0);
   const [lockedMovementMode, setLockedMovementMode] = useState(false);
@@ -719,15 +719,15 @@ const App = () => {
     [],
   );
 
-  // Handle loading preset by ID (for WebSocket/mobile remote)
-  const handleLoadPresetById = useCallback(
-    (presetId: string) => {
-      const presets = getAllPresets();
-      const preset = presets.find((p) => p.id === presetId);
-      if (preset) {
-        const state = loadPresetState(preset);
+  // Handle loading scene by ID (for WebSocket/mobile remote)
+  const handleLoadSceneById = useCallback(
+    (sceneId: string) => {
+      const scenes = getAllScenes();
+      const scene = scenes.find((s) => s.id === sceneId);
+      if (scene) {
+        const state = loadSceneState(scene);
         if (state) {
-          handleLoadPreset(state);
+          handleLoadPreset(state); // Keep function name for backward compatibility
         }
       }
     },
@@ -772,11 +772,11 @@ const App = () => {
               case "loadPreset3":
               case "loadPreset4":
               case "loadPreset5":
-                // Load preset by number
-                const presetIndex = parseInt(action.replace("loadPreset", "")) - 1;
-                const presets = getAllPresets();
-                if (presets[presetIndex]) {
-                  const state = loadPresetState(presets[presetIndex]);
+                // Load scene by number (backward compatibility - action name unchanged)
+                const sceneIndex = parseInt(action.replace("loadPreset", "")) - 1;
+                const scenes = getAllScenes();
+                if (scenes[sceneIndex]) {
+                  const state = loadSceneState(scenes[sceneIndex]);
                   if (state) {
                     handleLoadPreset(state);
                   }
@@ -789,7 +789,8 @@ const App = () => {
                 handleRandomiseAll();
                 break;
               case "showPresets":
-                setShowPresetManager(true);
+              case "showScenes":
+                setShowSceneManager(true);
                 break;
               case "showExport":
                 setShowExportModal(true);
@@ -819,15 +820,15 @@ const App = () => {
   
   // Memoize callbacks to prevent recreating on every render
   const getCurrentState = useCallback(() => spriteState, [spriteState]);
-  const getPresets = useCallback(() => getAllPresets(), []);
+  const getScenes = useCallback(() => getAllScenes(), []);
   
   const webSocket = useWebSocket(
     remoteControlPort,
     remoteControlEnabled,
-    handleLoadPresetById,
+    handleLoadSceneById,
     handleRandomiseAll,
     getCurrentState,
-    getPresets
+    getScenes
   );
 
   // Send state updates when state changes (for WebSocket)
@@ -840,7 +841,7 @@ const App = () => {
   // OSC Integration
   // @ts-expect-error - hook must run for side effects, return value unused
   const _osc = useOSC({
-    onPresetLoad: handleLoadPresetById,
+    onPresetLoad: handleLoadSceneById, // Backward compatibility - WebSocket action name unchanged
     onMotionIntensityChange: (intensity) => {
       controllerRef.current?.setMotionIntensity(intensity);
     },
@@ -933,7 +934,8 @@ const App = () => {
               onMouseEnter={handleHUDMouseEnter}
               onMouseLeave={handleHUDMouseLeave}
               onRandomiseAll={handleRandomiseAll}
-              onShowPresets={() => setShowPresetManager(true)}
+              onShowScenes={() => setShowSceneManager(true)}
+              onShowPresets={() => setShowSceneManager(true)} // Backward compatibility
               onShowExport={() => setShowExportModal(true)}
               onFullscreenToggle={handleFullscreenToggle}
               onFullscreenClose={handleFullscreenClose}
@@ -959,10 +961,10 @@ const App = () => {
           <SpritesPage />
         )}
         
-        {currentPage === "presets" && (
-        <PresetsPage
+        {(currentPage === "presets" || currentPage === "scenes") && (
+        <ScenesPage
           currentState={spriteState}
-          onLoadPreset={handleLoadPreset}
+          onLoadScene={handleLoadPreset}
         />
         )}
     
@@ -1054,7 +1056,7 @@ const App = () => {
   }, []);
 
   // Handle navigation
-  const handleNavigate = (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation", section?: string) => {
+  const handleNavigate = (page: "create" | "sprites" | "palettes" | "scenes" | "sequences" | "settings" | "animation", section?: string) => {
     setCurrentPage(page);
     if (page === "settings") {
       setShowSettingsPage(true);
@@ -1141,8 +1143,8 @@ const App = () => {
       setCurrentPage("palettes");
     } else if (path === "/sprites") {
       setCurrentPage("sprites");
-    } else if (path === "/presets") {
-      setCurrentPage("presets");
+    } else if (path === "/presets" || path === "/scenes") {
+      setCurrentPage("scenes");
     } else if (path === "/sequences") {
       setCurrentPage("sequences");
     } else if (path === "/animation") {
@@ -1178,7 +1180,7 @@ const App = () => {
       </div>
     )}
 
-    <AppLayout sidebarProps={sidebarProps} hideSidebar={currentPage === "palettes" || currentPage === "presets" || currentPage === "sequences" || currentPage === "sprites" || currentPage === "animation"}>
+    <AppLayout sidebarProps={sidebarProps} hideSidebar={currentPage === "palettes" || currentPage === "scenes" || currentPage === "sequences" || currentPage === "sprites" || currentPage === "animation"}>
       <div className="app-shell">
 
       <div className={`app-frame app-frame--compact app-frame--main${isSmallCanvas ? " app-frame--stacked" : ""}`}>
@@ -1196,13 +1198,13 @@ const App = () => {
       </div>
     </AppLayout>
 
-      {showPresetManager && (
+      {showSceneManager && (
         <ErrorBoundary>
           <Suspense fallback={<div className="modal-loading">Loading...</div>}>
-        <PresetManager
+        <SceneManager
           currentState={spriteState}
-          onLoadPreset={handleLoadPreset}
-          onClose={() => setShowPresetManager(false)}
+          onLoadScene={handleLoadPreset}
+          onClose={() => setShowSceneManager(false)}
         />
           </Suspense>
         </ErrorBoundary>

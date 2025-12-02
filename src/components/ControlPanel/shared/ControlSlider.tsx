@@ -83,8 +83,7 @@ export function ControlSlider({
         {/* Track background with filled range inside */}
         <div className={cn(
           "relative h-2 w-full grow overflow-visible rounded-sm",
-          "bg-slate-100",
-          "dark:bg-slate-800"
+          "bg-theme-icon"
         )}>
           {/* Filled range - positioned inside track, extends to thumb center */}
           <div 

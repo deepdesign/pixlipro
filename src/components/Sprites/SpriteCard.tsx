@@ -71,9 +71,9 @@ export function SpriteCard({
   };
 
   return (
-    <div className="group relative bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:shadow-md transition-shadow overflow-visible">
+    <div className="group relative bg-theme-card rounded-lg border border-theme-panel p-2 hover:shadow-md transition-shadow overflow-visible">
       {/* SVG Preview */}
-      <div className="w-full aspect-square bg-slate-100 dark:bg-slate-700 rounded mb-2 flex items-center justify-center overflow-hidden relative">
+      <div className="w-full aspect-square bg-theme-panel rounded mb-2 flex items-center justify-center overflow-hidden relative">
         {previewUrl ? (
           <img
             src={previewUrl}
@@ -81,7 +81,7 @@ export function SpriteCard({
             className="w-full h-full object-contain"
           />
         ) : (
-          <div className="text-slate-400 text-xs">Loading...</div>
+          <div className="text-theme-subtle text-xs">Loading...</div>
         )}
         
         {/* Action buttons overlay - shown on hover */}
@@ -91,7 +91,7 @@ export function SpriteCard({
             variant="background"
             size="icon"
             onClick={handleEdit}
-            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 shadow-md"
+            className="bg-theme-panel/90 backdrop-blur-sm hover:bg-theme-panel shadow-md"
             title="Rename sprite"
             aria-label="Rename sprite"
           >
@@ -102,7 +102,7 @@ export function SpriteCard({
             variant="background"
             size="icon"
             onClick={handleDelete}
-            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm hover:bg-red-50 dark:hover:bg-red-900/20 shadow-md text-red-600 dark:text-red-400"
+            className="bg-theme-panel/90 backdrop-blur-sm hover:bg-red-50 hover:dark:bg-red-900/20 shadow-md text-red-600 dark:text-red-400"
             title="Delete sprite"
             aria-label="Delete sprite"
           >
@@ -126,13 +126,13 @@ export function SpriteCard({
               handleCancelEdit();
             }
           }}
-          className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+          className="w-full px-2 py-1 text-sm border border-theme-panel rounded bg-theme-select text-theme-primary"
         />
       ) : (
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={handleEdit}
-            className="flex-1 text-left text-sm font-medium text-slate-900 dark:text-white hover:text-slate-600 dark:hover:text-slate-300 truncate"
+            className="flex-1 text-left text-sm font-medium text-theme-primary hover:text-theme-muted truncate"
             title="Click to rename"
           >
             {sprite.name}

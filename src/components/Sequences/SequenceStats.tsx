@@ -111,22 +111,22 @@ export function SequenceStats() {
         return (
           <div
             key={stat.name}
-            className="relative overflow-hidden rounded-lg bg-white dark:bg-slate-800 px-4 py-5 shadow-sm border border-slate-200 dark:border-slate-700 sm:px-6"
+            className="relative overflow-hidden rounded-lg bg-theme-card px-4 py-5 shadow-sm border border-theme-panel sm:px-6"
           >
             <dt>
-              <div className="absolute rounded-md bg-slate-50 dark:bg-slate-700/50 p-3">
-                <Icon className="h-6 w-6 text-slate-600 dark:text-slate-300" aria-hidden="true" />
+              <div className="absolute rounded-md bg-theme-icon p-3">
+                <Icon className="h-6 w-6 text-theme-muted" aria-hidden="true" />
               </div>
-              <p className="ml-16 truncate text-sm font-medium text-slate-500 dark:text-slate-400">
+              <p className="ml-16 truncate text-sm font-medium text-theme-muted">
                 {stat.name}
               </p>
             </dt>
             <dd className="ml-16 flex items-baseline">
-              <p className="text-2xl font-semibold text-slate-900 dark:text-white">
+              <p className="text-2xl font-semibold text-theme-heading">
                 {stat.value}
               </p>
               {stat.change && (
-                <p className="ml-2 flex items-baseline text-sm font-semibold text-slate-600 dark:text-slate-400">
+                <p className="ml-2 flex items-baseline text-sm font-semibold text-theme-muted">
                   {stat.change}
                 </p>
               )}

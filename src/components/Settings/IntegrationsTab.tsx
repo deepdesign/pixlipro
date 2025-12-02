@@ -4,7 +4,7 @@ import { Switch } from "@/components/catalyst/switch";
 import { Input } from "@/components/catalyst/input";
 import { Button } from "@/components/Button";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
-import { Info, Wifi, Music, Zap, Check, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Select } from "@/components/catalyst/select";
 import { createMIDIClient, type MIDIDevice } from "@/lib/integrations/midi";
 
@@ -232,19 +232,15 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
   return (
     <div className="space-y-6 px-6">
       {/* OSC Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <Wifi className="h-5 w-5" />
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <div>
+              <h3 className="text-base font-semibold text-theme-primary">
                 OSC (Open Sound Control)
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Control Pixli via OSC messages from lighting consoles and other devices.
-              </p>
-            </div>
-            <Info className="h-5 w-5 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-theme-muted mt-1">
+              Control Pixli via OSC messages from lighting consoles and other devices.
+            </p>
           </div>
         </div>
         <div className="p-6">
@@ -262,7 +258,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
           </Field>
 
           {settings.integrations.osc.enabled && (
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="mt-6 pt-6 border-t border-theme-divider space-y-4">
               <Field>
                 <Label htmlFor="osc-port">OSC Port</Label>
                 <Input
@@ -284,16 +280,16 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                   Test Connection
                 </Button>
                 {oscConnected && (
-                  <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <span className="text-sm text-[var(--accent-primary)] flex items-center gap-1">
                     <Check className="h-4 w-4" />
                     Connected
                   </span>
                 )}
               </div>
 
-              <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">OSC Message Format:</p>
-                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+              <div className="mt-4 p-3 bg-theme-icon rounded-lg">
+                <p className="text-xs font-medium text-theme-muted mb-2">OSC Message Format:</p>
+                <ul className="text-xs text-theme-muted space-y-1 list-disc list-inside">
                   <li><code>/pixli/preset/load [presetId]</code> - Load preset</li>
                   <li><code>/pixli/motion/intensity [0-100]</code> - Set motion intensity</li>
                   <li><code>/pixli/palette/cycle [0|1]</code> - Toggle palette cycling</li>
@@ -307,19 +303,15 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
       </div>
 
       {/* MIDI Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <Music className="h-5 w-5" />
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <div>
+              <h3 className="text-base font-semibold text-theme-primary">
                 MIDI
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Control Pixli via MIDI controllers and keyboards.
-              </p>
-            </div>
-            <Info className="h-5 w-5 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-theme-muted mt-1">
+              Control Pixli via MIDI controllers and keyboards.
+            </p>
           </div>
         </div>
         <div className="p-6">
@@ -337,7 +329,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
           </Field>
 
           {settings.integrations.midi.enabled && (
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="mt-6 pt-6 border-t border-theme-divider space-y-4">
               <Field>
                 <Label htmlFor="midi-device">MIDI Device</Label>
                 <Select
@@ -357,9 +349,9 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                 </Description>
               </Field>
 
-              <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">MIDI Learn Mode:</p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+              <div className="mt-4 p-3 bg-theme-icon rounded-lg">
+                <p className="text-xs font-medium text-theme-muted mb-2">MIDI Learn Mode:</p>
+                <p className="text-xs text-theme-muted mb-3">
                   Click "Learn" next to a parameter, then press a MIDI control to assign it.
                 </p>
                 <div className="space-y-2">
@@ -377,10 +369,10 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                     );
                     return (
                       <div key={param} className="flex items-center justify-between text-xs">
-                        <span className="text-slate-700 dark:text-slate-300">{label}</span>
+                        <span className="text-theme-muted">{label}</span>
                         <div className="flex items-center gap-2">
                           {mapping && (
-                            <span className="text-slate-500 dark:text-slate-400">
+                            <span className="text-theme-subtle">
                               {mapping.type.toUpperCase()} Ch{mapping.channel} #{mapping.number}
                             </span>
                           )}
@@ -411,19 +403,15 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
       </div>
 
       {/* DMX/Art-Net Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <Zap className="h-5 w-5" />
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <div>
+              <h3 className="text-base font-semibold text-theme-primary">
                 DMX/Art-Net
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Send DMX output to lighting consoles via Art-Net protocol.
-              </p>
-            </div>
-            <Info className="h-5 w-5 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-theme-muted mt-1">
+              Send DMX output to lighting consoles via Art-Net protocol.
+            </p>
           </div>
         </div>
         <div className="p-6">
@@ -441,7 +429,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
           </Field>
 
           {settings.integrations.dmx.enabled && (
-            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="mt-6 pt-6 border-t border-theme-divider space-y-4">
               <Field>
                 <Label htmlFor="dmx-universe">DMX Universe</Label>
                 <Input
@@ -494,16 +482,16 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                   Test Connection
                 </Button>
                 {dmxConnected && (
-                  <span className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <span className="text-sm text-[var(--accent-primary)] flex items-center gap-1">
                     <Check className="h-4 w-4" />
                     Connected
                   </span>
                 )}
               </div>
 
-              <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">DMX Channel Mapping:</p>
-                <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+              <div className="mt-4 p-3 bg-theme-icon rounded-lg">
+                <p className="text-xs font-medium text-theme-muted mb-2">DMX Channel Mapping:</p>
+                <ul className="text-xs text-theme-muted space-y-1 list-disc list-inside">
                   <li>Channel 1: Red (from palette average)</li>
                   <li>Channel 2: Green (from palette average)</li>
                   <li>Channel 3: Blue (from palette average)</li>

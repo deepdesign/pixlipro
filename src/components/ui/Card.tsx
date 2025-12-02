@@ -8,7 +8,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 const CardRoot = ({ className, ...props }: CardProps) => (
   <div
     className={clsx(
-      "rounded-lg border border-slate-950/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-slate-900",
+      "rounded-lg border border-theme-panel bg-theme-panel p-6 shadow-sm",
       className
     )}
     {...props}
@@ -24,13 +24,13 @@ const CardHeader = ({ className, ...props }: CardProps) => (
 
 const CardTitle = ({ className, ...props }: CardProps) => (
   <h3
-    className={clsx("text-lg font-semibold leading-none tracking-tight text-slate-950 dark:text-white", className)}
+    className={clsx("text-lg font-semibold leading-none tracking-tight text-theme-primary", className)}
     {...props}
   />
 );
 
 const CardDescription = ({ className, ...props }: CardProps) => (
-  <p className={clsx("text-sm text-slate-500 dark:text-slate-400", className)} {...props} />
+  <p className={clsx("text-sm text-theme-muted", className)} {...props} />
 );
 
 const CardContent = ({ className, ...props }: CardProps) => (

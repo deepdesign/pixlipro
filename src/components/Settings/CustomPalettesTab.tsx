@@ -326,10 +326,10 @@ export function CustomPalettesTab() {
   return (
     <div className="space-y-6">
       {/* Canvas Background Option */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Canvas background</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <h3 className="text-base font-semibold text-theme-primary">Canvas background</h3>
+          <p className="text-sm text-theme-muted mt-1">
             Control the canvas background colour
           </p>
         </div>
@@ -341,17 +341,17 @@ export function CustomPalettesTab() {
               onCheckedChange={handleCanvasBlackBackgroundChange}
             />
           </SwitchField>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+          <p className="text-sm text-theme-muted mt-2">
             When enabled, the canvas background will always be black (#000000) regardless of the selected palette.
           </p>
         </div>
       </div>
 
       {/* Create Palette Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white">Create custom palette</h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <h3 className="text-base font-semibold text-theme-primary">Create custom palette</h3>
+          <p className="text-sm text-theme-muted mt-1">
             Create a palette manually, or extract colours from an image
           </p>
         </div>
@@ -419,10 +419,10 @@ export function CustomPalettesTab() {
               </Field>
               {manualColors.length > 0 && (
                 <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                  <label className="block text-sm font-semibold text-theme-primary">
                     Palette colours ({manualColors.length} / 5)
                   </label>
-                  <div className="flex flex-wrap items-center gap-2 p-3 border border-slate-200 dark:border-slate-800 rounded-lg">
+                  <div className="flex flex-wrap items-center gap-2 p-3 border border-theme-panel rounded-lg">
                     {manualColors.map((color, idx) => (
                       <div key={idx} className="flex items-center gap-1">
                         <div className="relative group">
@@ -430,13 +430,13 @@ export function CustomPalettesTab() {
                             type="color"
                             value={color}
                             onChange={(e) => handleColorChange(idx, e.target.value.toUpperCase())}
-                            className="w-8 h-8 rounded border border-slate-200 dark:border-slate-800 cursor-pointer appearance-none overflow-hidden"
+                            className="w-8 h-8 rounded border border-theme-panel cursor-pointer appearance-none overflow-hidden"
                             style={{ backgroundColor: color }}
                             disabled={isMaxReached}
                             aria-label={`Change colour ${idx + 1}`}
                             title="Click to change colour"
                           />
-                          <div className="absolute inset-0 rounded border-2 border-transparent group-hover:border-slate-400 dark:group-hover:border-slate-600 pointer-events-none transition-colors" />
+                          <div className="absolute inset-0 rounded border-2 border-transparent group-hover:border-theme-panel pointer-events-none transition-colors" />
                         </div>
                         <Button
                           type="button"
@@ -451,7 +451,7 @@ export function CustomPalettesTab() {
                     ))}
                   </div>
                   {manualColors.length >= 5 && (
-                    <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                    <p className="text-sm text-theme-muted mt-2">
                       Maximum of 5 colours reached
                     </p>
                   )}
@@ -562,7 +562,7 @@ export function CustomPalettesTab() {
                 {(buttonGroupValue === "custom" ? manualColors : extractedColors).map((color, idx) => (
                   <span
                     key={idx}
-                    className="w-8 h-8 rounded border border-slate-200 dark:border-slate-800"
+                    className="w-8 h-8 rounded border border-theme-panel"
                     style={{ backgroundColor: color }}
                     aria-hidden="true"
                   />
@@ -580,13 +580,13 @@ export function CustomPalettesTab() {
           )}
           
           {isMaxReached && (
-            <p className="text-sm text-amber-600 dark:text-amber-400">
+            <p className="text-sm text-theme-muted">
               Maximum of {maxPalettes} custom palettes reached
             </p>
           )}
           
           {error && (
-            <div className="text-sm text-red-600 dark:text-red-400" role="alert">
+            <div className="text-sm text-theme-muted" role="alert">
               {error}
             </div>
           )}
@@ -594,27 +594,27 @@ export function CustomPalettesTab() {
       </div>
 
       {/* Your Custom Palettes Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <h3 className="text-base font-semibold text-theme-primary">
             Your custom palettes ({customPalettes.length} / {maxPalettes})
           </h3>
         </div>
         <div className="p-6">
           {customPalettes.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">No custom palettes.</p>
+            <p className="text-sm text-theme-muted">No custom palettes.</p>
           ) : (
             <div className="space-y-3">
               {customPalettes.map((palette) => (
                 <div
                   key={palette.id}
-                  className="flex items-center gap-3 p-3 border border-slate-200 dark:border-slate-800 rounded-lg"
+                  className="flex items-center gap-3 p-3 border border-theme-panel rounded-lg"
                 >
                   <span className="flex items-center gap-2">
                     {palette.colors.map((color, idx) => (
                       <span
                         key={idx}
-                        className="w-8 h-8 rounded border border-slate-200 dark:border-slate-800"
+                        className="w-8 h-8 rounded border border-theme-panel"
                         style={{ backgroundColor: color }}
                         aria-hidden="true"
                       />
@@ -660,7 +660,7 @@ export function CustomPalettesTab() {
                     </>
                   ) : (
                     <>
-                      <span className="flex-1 text-sm font-medium text-slate-900 dark:text-white">
+                      <span className="flex-1 text-sm font-medium text-theme-primary">
                         {palette.name}
                       </span>
                       <Button
@@ -698,7 +698,7 @@ export function CustomPalettesTab() {
                         size="md"
                         variant="link"
                         onClick={() => handleDelete(palette.id)}
-                        className="text-red-600 dark:text-red-400"
+                        className="text-theme-muted"
                       >
                         Delete
                       </Button>

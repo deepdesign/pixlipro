@@ -14,12 +14,11 @@ export const SelectTrigger = forwardRef<
     ref={ref}
       className={clsx(
         "grid w-full cursor-default grid-cols-1 rounded-md h-9 pr-2 pl-3 text-left",
-        "bg-white text-slate-900 outline-1 -outline-offset-1 outline-slate-950/10",
-        "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-500",
-        "dark:bg-slate-800/50 dark:text-white dark:outline-white/10",
+        "bg-theme-select text-theme-primary outline-1 -outline-offset-1 outline-theme-panel",
+        "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent-primary)]",
         "text-[0.65rem] uppercase tracking-[0.18em]",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
-        "[&>span[data-placeholder]]:text-slate-500 [&>span[data-placeholder]]:dark:text-slate-400", // Placeholder text styling
+        "[&>span[data-placeholder]]:text-theme-subtle", // Placeholder text styling
         "[&>span:not([data-placeholder])]:uppercase [&>span:not([data-placeholder])]:text-[0.65rem] [&>span:not([data-placeholder])]:tracking-[0.18em]", // Selected value styling
         "[&>span[data-radix-select-value]]:text-[0.65rem] [&>span[data-radix-select-value]]:uppercase [&>span[data-radix-select-value]]:tracking-[0.18em]", // Direct SelectValue styling
         className
@@ -30,7 +29,7 @@ export const SelectTrigger = forwardRef<
       {children}
     </span>
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="col-start-1 row-start-1 size-5 self-center justify-self-end text-slate-400 sm:size-4" />
+      <ChevronDown className="col-start-1 row-start-1 size-5 self-center justify-self-end text-theme-subtle sm:size-4" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -51,8 +50,7 @@ export const SelectContent = forwardRef<
         ref={ref}
         className={clsx(
           "relative z-50 max-h-56 w-[var(--radix-select-trigger-width)] overflow-auto rounded-md py-1 text-base",
-          "bg-white outline-1 -outline-offset-1 outline-slate-950/10",
-          "dark:bg-slate-800 dark:outline-white/10",
+          "bg-theme-select outline-1 -outline-offset-1 outline-theme-panel",
           "sm:text-sm",
           "data-leave:transition data-leave:duration-100 data-leave:ease-in data-closed:data-leave:opacity-0",
           className
@@ -61,13 +59,13 @@ export const SelectContent = forwardRef<
         sideOffset={sideOffset}
         {...props}
       >
-        <SelectPrimitive.ScrollUpButton className="flex h-6 items-center justify-center bg-white text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+        <SelectPrimitive.ScrollUpButton className="flex h-6 items-center justify-center bg-theme-select text-theme-subtle">
           <ChevronUp className="h-3 w-3" />
         </SelectPrimitive.ScrollUpButton>
         <SelectPrimitive.Viewport>
           {children}
         </SelectPrimitive.Viewport>
-        <SelectPrimitive.ScrollDownButton className="flex h-6 items-center justify-center bg-white text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+        <SelectPrimitive.ScrollDownButton className="flex h-6 items-center justify-center bg-theme-select text-theme-subtle">
           <ChevronDown className="h-3 w-3" />
         </SelectPrimitive.ScrollDownButton>
       </SelectPrimitive.Content>
@@ -86,8 +84,7 @@ export const SelectItem = forwardRef<
     ref={ref}
     className={clsx(
       "group relative cursor-default py-2 pr-9 pl-3 select-none outline-hidden",
-      "text-slate-900 data-[highlighted]:bg-indigo-500 data-[highlighted]:text-white",
-      "dark:text-white dark:data-[highlighted]:bg-indigo-500 dark:data-[highlighted]:text-white",
+      "text-theme-primary data-[highlighted]:bg-[var(--accent-primary)] data-[highlighted]:text-[var(--accent-primary-contrast)]",
       "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className
     )}
@@ -96,7 +93,7 @@ export const SelectItem = forwardRef<
     <SelectPrimitive.ItemText className="flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.16em] whitespace-nowrap">
       {children}
     </SelectPrimitive.ItemText>
-    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-400 group-data-[highlighted]:text-white">
+      <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[var(--accent-primary)] group-data-[highlighted]:text-[var(--accent-primary-contrast)]">
       <SelectPrimitive.ItemIndicator>
         <Check className="size-5" />
       </SelectPrimitive.ItemIndicator>
@@ -113,7 +110,7 @@ export const SelectLabel = forwardRef<
     ref={ref}
     className={clsx(
       "px-2 py-2 pt-3 text-[0.6rem] uppercase tracking-[0.2em] font-semibold",
-      "text-slate-500 dark:text-slate-400",
+      "text-theme-subtle",
       "pointer-events-none select-none",
       className
     )}

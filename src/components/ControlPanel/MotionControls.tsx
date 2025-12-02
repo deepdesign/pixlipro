@@ -133,7 +133,7 @@ export function MotionControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip
@@ -169,7 +169,7 @@ export function MotionControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip
@@ -206,7 +206,7 @@ export function MotionControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip
@@ -238,7 +238,7 @@ export function MotionControls({
               disabled={!ready}
               tooltip="Control how quickly palettes cycle."
             />
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-right">
+            <div className="text-xs text-theme-subtle mt-1 text-right">
               {currentPaletteName}
             </div>
           </div>
@@ -246,7 +246,7 @@ export function MotionControls({
       </div>
 
       <div className="section section--spaced">
-        <hr className="section-divider border-t border-slate-200 dark:border-slate-800" />
+        <hr className="section-divider border-t" />
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <TextWithTooltip

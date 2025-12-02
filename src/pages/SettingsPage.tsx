@@ -9,7 +9,7 @@ import { PerformanceTab } from "@/components/Settings/PerformanceTab";
 import { AnimationPage } from "@/pages/AnimationPage";
 import { SpritesPage } from "@/pages/SpritesPage";
 import { PalettesPage } from "@/pages/PalettesPage";
-import { PresetsPage } from "@/pages/PresetsPage";
+import { ScenesPage } from "@/pages/ScenesPage";
 import { SequencesPage } from "@/pages/SequencesPage";
 import { SettingsFooter } from "@/components/Footer/SettingsFooter";
 import type { AppSettings } from "@/lib/storage/settingsStorage";
@@ -80,7 +80,8 @@ export const SettingsPage = ({
       case "palettes":
         return <PalettesPage />;
       case "presets":
-        return <PresetsPage currentState={currentState} onLoadPreset={onLoadPreset} />;
+      case "scenes":
+        return <ScenesPage currentState={currentState} onLoadScene={onLoadPreset} />;
       case "sequences":
         return <SequencesPage currentState={currentState} onLoadPreset={onLoadPreset} />;
       case "display":
@@ -121,23 +122,23 @@ export const SettingsPage = ({
     }
   };
 
-  const fullPageSections = ["animation", "sprites", "palettes", "presets", "sequences"];
+  const fullPageSections = ["animation", "sprites", "palettes", "presets", "scenes", "sequences"];
   const isFullPage = fullPageSections.includes(activeSection);
 
   return (
-    <div className="relative isolate flex min-h-svh w-full flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="relative isolate flex min-h-svh w-full flex-col bg-theme-bg-base">
       {/* Main content area with sidebar */}
       <div className="flex flex-1 flex-col lg:flex-row min-h-0">
         {/* Settings Sidebar */}
-        <div className="w-full lg:w-64 border-r border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex-shrink-0">
+        <div className="w-full lg:w-64 border-r border-theme-panel bg-theme-bg-base flex-shrink-0">
           <SettingsSidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
         </div>
 
         {/* Content area */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
+        <main className="flex-1 min-w-0 overflow-y-auto bg-theme-bg-base">
           <div className="w-full">
             {/* Breadcrumb - at top of main container */}
-            <div className="w-full py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+            <div className="w-full py-4 px-6 border-b border-theme-panel bg-theme-bg-base">
               <SettingsBreadcrumb onNavigateHome={onClose} />
             </div>
 
@@ -153,7 +154,7 @@ export const SettingsPage = ({
             )}
             
             {/* Footer */}
-            <div className="mt-8 pt-6 pb-4 px-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="mt-8 pt-6 pb-4 px-6 border-t border-theme-panel">
               <SettingsFooter />
             </div>
           </div>

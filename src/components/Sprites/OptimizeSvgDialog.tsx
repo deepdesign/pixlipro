@@ -100,8 +100,8 @@ export function OptimizeSvgDialog({
           {isOptimizing ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-500 dark:text-slate-400">Optimizing SVG...</p>
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-theme-subtle" />
+                <p className="text-theme-muted">Optimizing SVG...</p>
               </div>
             </div>
           ) : error ? (
@@ -115,7 +115,7 @@ export function OptimizeSvgDialog({
                 {/* Original */}
                 <div>
                   <Label>Original</Label>
-                  <div className="mt-2 aspect-square bg-slate-100 dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 flex items-center justify-center overflow-hidden">
+                  <div className="mt-2 aspect-square bg-theme-panel rounded border border-theme-panel flex items-center justify-center overflow-hidden">
                     {originalPreviewUrl ? (
                       <img
                         src={originalPreviewUrl}
@@ -123,10 +123,10 @@ export function OptimizeSvgDialog({
                         className="w-full h-full object-contain"
                       />
                     ) : (
-                      <div className="text-slate-400 text-xs">Loading...</div>
+                      <div className="text-theme-subtle text-xs">Loading...</div>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-xs text-theme-muted mt-1">
                     {originalSize} bytes
                   </p>
                 </div>
@@ -134,7 +134,7 @@ export function OptimizeSvgDialog({
                 {/* Optimized */}
                 <div>
                   <Label>Optimized</Label>
-                  <div className="mt-2 aspect-square bg-slate-100 dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 flex items-center justify-center overflow-hidden">
+                  <div className="mt-2 aspect-square bg-theme-panel rounded border border-theme-panel flex items-center justify-center overflow-hidden">
                     {optimizedPreviewUrl ? (
                       <img
                         src={optimizedPreviewUrl}
@@ -142,10 +142,10 @@ export function OptimizeSvgDialog({
                         className="w-full h-full object-contain"
                       />
                     ) : (
-                      <div className="text-slate-400 text-xs">No preview</div>
+                      <div className="text-theme-subtle text-xs">No preview</div>
                     )}
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-xs text-theme-muted mt-1">
                     {optimizedSize} bytes
                     {reductionPercent > 0 && (
                       <span className="text-green-600 dark:text-green-400 ml-1">

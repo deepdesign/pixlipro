@@ -1301,8 +1301,8 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     let secondaryTiles = primaryLayer.tiles.slice(1);
 
     // Configure primary sprite
-    // Force primary sprite to always use slate-50 (index 0) - ensure it's always the first color
-    const primaryColorIndex = 0; // Always use index 0 for slate-50
+    // Use the color index from thumbnail config (respects theme mode)
+    const primaryColorIndex = thumbnailConfig.primaryColorIndex ?? 0;
     primaryTile.paletteColorIndex = primaryColorIndex;
     primaryTile.scale = thumbnailConfig.primaryScale;
     primaryTile.blendMode = "NONE"; // Primary sprite should have no blend mode
@@ -2164,11 +2164,12 @@ export const createSpriteController = (
     // Wrapper for p5.js windowResized
     // p5.js validates the function signature at runtime using Zod
     // The function MUST accept UIEvent (required, not optional) to pass Zod validation
-    // However, p5.js may call it without an event in some cases (e.g., from resizeCanvas)
-    // We create a fake UIEvent if one isn't provided to satisfy Zod validation
-    function windowResizedHandler(event?: UIEvent) {
-      // Create a fake UIEvent if p5.js called without one (to satisfy Zod validation)
-      const uiEvent = event || new UIEvent('resize', { bubbles: false, cancelable: false });
+    // However, p5.js may call it without an event or with undefined in some cases
+    // We use a default parameter and also check for undefined to ensure we always have a valid UIEvent
+    function windowResizedHandler(event: UIEvent = new UIEvent('resize', { bubbles: false, cancelable: false })): UIEvent {
+      // Ensure we always have a valid UIEvent (handle case where p5.js passes undefined explicitly)
+      // Default parameter handles no-argument case, this handles explicit undefined
+      const uiEvent = (event instanceof UIEvent) ? event : new UIEvent('resize', { bubbles: false, cancelable: false });
       
       // Don't resize if canvas isn't ready yet
       if (!canvasReady || !canvas || !canvas.elt) {
@@ -2628,12 +2629,18 @@ export const createSpriteController = (
           // Ignore errors, use default
         }
         
-        if (useBlackBackground) {
-          ctx.fillStyle = "#000000";
-          ctx.fillRect(0, 0, p.width, p.height);
+        // In thumbnail mode, use transparent background so card background shows through
+        if (currentState.thumbnailMode) {
+          // Clear canvas to transparent instead of filling with gradient
+          ctx.clearRect(0, 0, p.width, p.height);
         } else {
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, 0, p.width, p.height);
+          if (useBlackBackground) {
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(0, 0, p.width, p.height);
+          } else {
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, p.width, p.height);
+          }
         }
       } else {
         // Solid background - get base palette color and apply adjustments
@@ -2655,10 +2662,16 @@ export const createSpriteController = (
           // Ignore errors, use default
         }
         
-        const finalBackground = useBlackBackground ? "#000000" : animatedBackground;
-        // Use p5.js background() which clears and fills the canvas each frame
-        // This must be called every frame for the animation to work
-        p.background(finalBackground);
+        // In thumbnail mode, use transparent background so card background shows through
+        if (currentState.thumbnailMode) {
+          // Clear canvas to transparent instead of filling with background color
+          p.clear();
+        } else {
+          const finalBackground = useBlackBackground ? "#000000" : animatedBackground;
+          // Use p5.js background() which clears and fills the canvas each frame
+          // This must be called every frame for the animation to work
+          p.background(finalBackground);
+        }
       }
       
       // Apply fade transition opacity if transitioning

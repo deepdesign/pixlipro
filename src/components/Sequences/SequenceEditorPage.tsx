@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { SequenceHeader } from "./SequenceHeader";
-import { PresetLibraryPanel } from "./PresetLibraryPanel";
+import { SceneLibraryPanel } from "./SceneLibraryPanel";
 import { SequenceTimeline } from "./SequenceTimeline";
 import {
   saveSequence,
@@ -8,7 +8,7 @@ import {
   type SequenceScene,
   generateSequenceSceneId,
 } from "@/lib/storage/sequenceStorage";
-import { getAllPresets, type Preset } from "@/lib/storage/presetStorage";
+import { getAllScenes, type Scene } from "@/lib/storage/sceneStorage";
 import type { GeneratorState } from "@/types/generator";
 
 interface SequenceEditorPageProps {
@@ -25,14 +25,14 @@ export function SequenceEditorPage({
   onUpdate,
 }: SequenceEditorPageProps) {
   const [sequence, setSequence] = useState<Sequence>(initialSequence);
-  const [presets, setPresets] = useState<Preset[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeTab, setActiveTab] = useState<"scenes" | "presets">("scenes");
+  const [activeTab, setActiveTab] = useState<"scenes">("scenes");
   const savedSequenceRef = useRef<Sequence>(initialSequence);
 
   useEffect(() => {
-    setPresets(getAllPresets());
+    setScenes(getAllScenes());
     
     // Check mobile viewport
     const checkMobile = () => {
@@ -71,16 +71,16 @@ export function SequenceEditorPage({
     URL.revokeObjectURL(url);
   };
 
-  const handleAddPreset = (preset: Preset | GeneratorState) => {
+  const handleAddScene = (scene: Scene | GeneratorState) => {
     const newScene: SequenceScene = {
       id: generateSequenceSceneId(),
       sequenceId: sequence.id,
       order: sequence.scenes.length,
-      name: ("name" in preset && typeof (preset as any).name === "string") ? (preset as any).name : "Imported Scene",
+      name: ("name" in scene && typeof (scene as any).name === "string") ? (scene as any).name : "Imported Scene",
       durationMode: "manual",
-      ...("id" in preset && preset.id
-        ? { presetId: preset.id }
-        : { inlinePresetJson: preset as GeneratorState }),
+      ...("id" in scene && scene.id
+        ? { sceneId: scene.id }
+        : { inlineSceneJson: scene as GeneratorState }),
     };
 
     const updated = {
@@ -119,26 +119,26 @@ export function SequenceEditorPage({
       {isMobile ? (
         <div className="flex-1 overflow-auto">
           {/* Mobile tabs */}
-          <div className="flex border-b border-slate-200 dark:border-slate-800">
+          <div className="flex border-b border-theme-divider">
             <button
               onClick={() => setActiveTab("scenes")}
               className={`flex-1 px-4 py-3 text-sm font-medium ${
                 activeTab === "scenes"
-                  ? "text-slate-900 dark:text-slate-50 border-b-2 border-slate-900 dark:border-slate-50"
-                  : "text-slate-500 dark:text-slate-400"
+                  ? "text-theme-heading border-b-2 border-theme-heading"
+                  : "text-theme-muted"
               }`}
             >
               Scenes
             </button>
             <button
-              onClick={() => setActiveTab("presets")}
+              onClick={() => setActiveTab("scenes")}
               className={`flex-1 px-4 py-3 text-sm font-medium ${
-                activeTab === "presets"
-                  ? "text-slate-900 dark:text-slate-50 border-b-2 border-slate-900 dark:border-slate-50"
-                  : "text-slate-500 dark:text-slate-400"
+                activeTab === "scenes"
+                  ? "text-theme-heading border-b-2 border-theme-heading"
+                  : "text-theme-muted"
               }`}
             >
-              Presets
+              Scenes
             </button>
           </div>
 
@@ -147,29 +147,29 @@ export function SequenceEditorPage({
             <SequenceTimeline
               sequence={sequence}
               onSequenceUpdate={handleSequenceUpdate}
-              presets={presets}
+              scenes={scenes}
             />
           ) : (
-            <PresetLibraryPanel
-              presets={presets}
-              onAddPreset={handleAddPreset}
+            <SceneLibraryPanel
+              scenes={scenes}
+              onAddScene={handleAddScene}
             />
           )}
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">
           {/* Desktop two-pane layout */}
-          <div className="w-80 border-r border-slate-200 dark:border-slate-800 overflow-auto">
-            <PresetLibraryPanel
-              presets={presets}
-              onAddPreset={handleAddPreset}
+          <div className="w-80 border-r border-theme-divider overflow-auto">
+            <SceneLibraryPanel
+              scenes={scenes}
+              onAddScene={handleAddScene}
             />
           </div>
           <div className="flex-1 overflow-auto">
             <SequenceTimeline
               sequence={sequence}
               onSequenceUpdate={handleSequenceUpdate}
-              presets={presets}
+              scenes={scenes}
             />
           </div>
         </div>

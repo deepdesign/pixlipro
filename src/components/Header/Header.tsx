@@ -8,8 +8,8 @@ interface HeaderProps {
   themeMode?: "system" | "light" | "dark";
   onThemeModeChange?: (mode: "system" | "light" | "dark") => void;
   onOpenSettings?: () => void;
-  onNavigate?: (page: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation") => void;
-  currentPage?: "create" | "sprites" | "palettes" | "presets" | "sequences" | "settings" | "animation" | null;
+  onNavigate?: (page: "create" | "sprites" | "palettes" | "scenes" | "sequences" | "settings" | "animation") => void;
+  currentPage?: "create" | "sprites" | "palettes" | "scenes" | "sequences" | "settings" | "animation" | null;
 }
 
 export function Header({
@@ -34,7 +34,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 min-h-[64px] flex flex-col" style={{ backgroundColor: 'var(--panel-bg)' }}>
+    <header className="sticky top-0 z-50 border-b border-theme-panel min-h-[64px] flex flex-col" style={{ backgroundColor: 'var(--panel-bg)' }}>
       <Navbar className="px-4 py-4 pb-4 flex-1 items-end">
         {/* Left section: Sidebar toggle (desktop) and Logo */}
         <NavbarSection>

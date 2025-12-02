@@ -114,11 +114,11 @@ export function ShowTimer({ className }: ShowTimerProps) {
   }, []);
 
   return (
-    <div className={`bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm p-4 ${className}`}>
+    <div className={`bg-theme-card rounded-lg border border-theme-panel shadow-sm p-4 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-          <Label className="text-sm font-semibold text-slate-900 dark:text-white">
+          <Clock className="h-5 w-5 text-theme-muted" />
+          <Label className="text-sm font-semibold text-theme-heading">
             Show Timer
           </Label>
         </div>
@@ -137,12 +137,12 @@ export function ShowTimer({ className }: ShowTimerProps) {
             className={`text-4xl font-mono font-bold ${
               remaining <= 300 && state === "running"
                 ? "text-red-600 dark:text-red-400"
-                : "text-slate-900 dark:text-white"
+                : "text-theme-heading"
             }`}
           >
             {formatTime(remaining)}
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-theme-muted mt-1">
             {state === "stopped" && "Ready"}
             {state === "running" && "Running"}
             {state === "paused" && "Paused"}
@@ -161,7 +161,7 @@ export function ShowTimer({ className }: ShowTimerProps) {
               min={1}
               className="mt-1"
             />
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-theme-muted mt-1">
               Current: {formatTime(duration)}
             </p>
           </Field>

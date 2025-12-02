@@ -4,7 +4,8 @@ import { loadSettings, type MIDISettings } from "@/lib/storage/settingsStorage";
 import type { GeneratorState } from "@/types/generator";
 
 interface UseMIDIOptions {
-  onPresetLoad?: (presetId: string) => void;
+  onSceneLoad?: (sceneId: string) => void;
+  onPresetLoad?: (presetId: string) => void; // Backward compatibility
   onMotionIntensityChange?: (intensity: number) => void;
   onMotionSpeedChange?: (speed: number) => void;
   onHueRotationSpeedChange?: (speed: number) => void;
@@ -62,10 +63,15 @@ export function useMIDI(options: UseMIDIOptions = {}) {
             case "preset3":
             case "preset4":
             case "preset5":
+            case "scene1":
+            case "scene2":
+            case "scene3":
+            case "scene4":
+            case "scene5":
               if (message.type === "noteon" && message.value > 0) {
                 // @ts-expect-error - intentionally unused, placeholder for future implementation
-                const _presetIndex = parseInt(mapping.replace("preset", "")) - 1;
-                // Load preset by index (would need preset list)
+                const _sceneIndex = parseInt(mapping.replace("preset", "").replace("scene", "")) - 1;
+                // Load scene by index (would need scene list)
                 break;
               }
               break;
@@ -88,12 +94,12 @@ export function useMIDI(options: UseMIDIOptions = {}) {
                 break;
             }
           } else if (message.type === "noteon" && message.value > 0) {
-            // Note C4 (60) = Preset 1, C#4 (61) = Preset 2, etc.
+            // Note C4 (60) = Scene 1, C#4 (61) = Scene 2, etc.
             const noteNumber = message.number;
             if (noteNumber >= 60 && noteNumber <= 64) {
               // @ts-expect-error - intentionally unused, placeholder for future implementation
-              const _presetIndex = noteNumber - 60;
-              // Load preset by index (would need preset list)
+              const _sceneIndex = noteNumber - 60;
+              // Load scene by index (would need scene list)
             }
           }
         }

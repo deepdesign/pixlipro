@@ -65,9 +65,9 @@ export function CollectionSidebar({
   };
 
   return (
-    <div className="w-64 h-full flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+    <div className="w-64 h-full flex flex-col bg-theme-panel border-r border-theme-panel">
       {/* Header */}
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="p-4 border-b border-theme-divider">
         <Button
           type="button"
           size="md"
@@ -93,8 +93,8 @@ export function CollectionSidebar({
                 className={`
                   group relative flex items-center gap-2 px-3 py-2 rounded-lg
                   ${isSelected
-                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    ? 'bg-theme-icon text-theme-primary'
+                    : 'text-theme-muted hover:bg-theme-icon'
                   }
                   cursor-pointer transition-colors
                 `}
@@ -116,14 +116,14 @@ export function CollectionSidebar({
                       e.stopPropagation();
                     }}
                     onClick={(e) => e.stopPropagation()}
-                    className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    className="flex-1 px-2 py-1 text-sm border border-theme-panel rounded bg-theme-select text-theme-primary"
                   />
                 ) : (
                   <>
                     <span className="flex-1 text-sm font-medium truncate">
                       {collection.name}
                     </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                    <span className="text-xs text-theme-subtle">
                       {collection.spriteCount}
                     </span>
                   </>

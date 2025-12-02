@@ -1,19 +1,21 @@
 /**
  * Sequence Storage Utilities
  * 
- * Handles persistence of preset sequences (recipes) in localStorage.
+ * Handles persistence of scene sequences (recipes) in localStorage.
  */
 
-import type { Preset } from "./presetStorage";
+import type { Scene } from "./sceneStorage";
 import type { GeneratorState } from "@/types/generator";
 
 // Legacy interface for backward compatibility
 export interface SequenceItem {
   id: string;
-  presetId: string;
+  sceneId: string; // Updated from presetId
   duration: number; // seconds, 0 = manual advance
   transition: "instant" | "fade" | "smooth"; // transition type
   order: number; // for drag-drop reordering
+  // Backward compatibility: support old presetId field
+  presetId?: string; // Deprecated, use sceneId
 }
 
 // New types for enhanced sequence editor
@@ -24,9 +26,11 @@ export interface SequenceScene {
   id: string;
   sequenceId: string;
   order: number; // Integer index for ordering
-  presetId?: string; // For linked preset
-  inlinePresetJson?: GeneratorState; // For uploaded/ad-hoc preset (full GeneratorState)
-  name: string; // Editable scene name (defaults to preset name)
+  sceneId?: string; // For linked scene
+  presetId?: string; // Deprecated, use sceneId (for backward compatibility)
+  inlineSceneJson?: GeneratorState; // For uploaded/ad-hoc scene (full GeneratorState) - renamed from inlinePresetJson
+  inlinePresetJson?: GeneratorState; // Deprecated, use inlineSceneJson (for backward compatibility)
+  name: string; // Editable scene name (defaults to scene name)
   durationSeconds?: number; // Only used when durationMode === 'seconds'
   durationMode: DurationMode; // 'seconds' | 'manual'
   fadeTypeOverride?: FadeType; // Override sequence default, undefined = use default
@@ -80,8 +84,9 @@ export function migrateSequenceToNewFormat(oldSequence: Sequence & { items?: Seq
       id: item.id,
       sequenceId: oldSequence.id,
       order: item.order !== undefined ? item.order : index,
-      presetId: item.presetId,
-      name: `Scene ${index + 1}`, // Default name, will be updated from preset name if available
+      sceneId: item.sceneId || item.presetId,
+      presetId: item.presetId, // Backward compatibility
+      name: `Scene ${index + 1}`, // Default name, will be updated from scene name if available
       durationMode,
       durationSeconds,
       fadeTypeOverride,
@@ -223,11 +228,12 @@ export function generateSequenceSceneId(): string {
 /**
  * Create a new sequence with default values
  */
-export function createSequence(name: string, presetIds: string[] = []): Sequence {
-  const scenes: SequenceScene[] = presetIds.map((presetId, index) => ({
+export function createSequence(name: string, sceneIds: string[] = []): Sequence {
+  const scenes: SequenceScene[] = sceneIds.map((sceneId, index) => ({
     id: generateSequenceSceneId(),
     sequenceId: "", // Will be set after sequence creation
-    presetId,
+    sceneId,
+    presetId: sceneId, // Backward compatibility
     name: `Scene ${index + 1}`,
     durationMode: "manual",
     order: index,
@@ -316,8 +322,10 @@ export function importSequencesFromJSON(json: string): {
           scenes: sequenceData.scenes.map((scene: any, index: number) => ({
             id: scene.id || generateSequenceSceneId(),
             sequenceId: newId,
-            presetId: scene.presetId,
-            inlinePresetJson: scene.inlinePresetJson,
+            sceneId: scene.sceneId || scene.presetId,
+            presetId: scene.presetId, // Backward compatibility
+            inlineSceneJson: scene.inlineSceneJson || scene.inlinePresetJson,
+            inlinePresetJson: scene.inlinePresetJson, // Backward compatibility
             name: scene.name || `Scene ${index + 1}`,
             durationMode: scene.durationMode || (scene.durationSeconds !== undefined ? "seconds" : "manual"),
             durationSeconds: scene.durationSeconds,
@@ -338,7 +346,8 @@ export function importSequencesFromJSON(json: string): {
           scenes: [],
           items: sequenceData.items.map((item: any, index: number) => ({
             id: item.id || generateSequenceItemId(),
-            presetId: item.presetId,
+            sceneId: item.sceneId || item.presetId,
+            presetId: item.presetId, // Backward compatibility
             duration: item.duration || 0,
             transition: item.transition || "instant",
             order: item.order !== undefined ? item.order : index,
@@ -366,41 +375,45 @@ export function importSequencesFromJSON(json: string): {
 }
 
 /**
- * Validate sequence scenes against existing presets
+ * Validate sequence scenes against existing scenes
  */
 export function validateSequenceScenes(
   sequence: Sequence,
-  presets: Preset[]
+  scenes: Scene[]
 ): {
   valid: boolean;
-  missingPresets: string[];
+  missingScenes: string[];
+  missingPresets?: string[]; // Backward compatibility
 } {
-  const presetIds = new Set(presets.map((p) => p.id));
-  const missingPresets: string[] = [];
+  const sceneIds = new Set(scenes.map((s) => s.id));
+  const missingScenes: string[] = [];
 
   for (const scene of sequence.scenes) {
-    // Only validate scenes with presetId (not inline JSON presets)
-    if (scene.presetId && !presetIds.has(scene.presetId)) {
-      missingPresets.push(scene.presetId);
+    // Validate scenes with sceneId or presetId (for backward compatibility)
+    const sceneId = scene.sceneId || scene.presetId;
+    if (sceneId && !sceneIds.has(sceneId)) {
+      missingScenes.push(sceneId);
     }
   }
 
   return {
-    valid: missingPresets.length === 0,
-    missingPresets,
+    valid: missingScenes.length === 0,
+    missingScenes,
+    missingPresets: missingScenes, // Backward compatibility
   };
 }
 
 /**
- * Validate sequence items against existing presets (legacy function for backward compatibility)
+ * Validate sequence items against existing scenes (legacy function for backward compatibility)
  */
 export function validateSequenceItems(
   sequence: Sequence,
-  presets: Preset[]
+  scenes: Scene[]
 ): {
   valid: boolean;
-  missingPresets: string[];
+  missingScenes: string[];
+  missingPresets?: string[]; // Backward compatibility
 } {
-  return validateSequenceScenes(sequence, presets);
+  return validateSequenceScenes(sequence, scenes);
 }
 

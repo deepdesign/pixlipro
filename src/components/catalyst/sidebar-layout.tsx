@@ -31,7 +31,7 @@ function MobileSidebar({ open, close, children }: React.PropsWithChildren<{ open
         transition
         className="fixed inset-y-0 w-full max-w-80 p-2 transition duration-300 ease-in-out data-closed:-translate-x-full"
       >
-        <div className="flex h-full flex-col rounded-lg bg-slate-50 shadow-xs ring-1 ring-slate-950/5 dark:bg-slate-900 dark:ring-white/10">
+        <div className="flex h-full flex-col rounded-lg bg-theme-panel shadow-xs ring-1 ring-theme-border-panel">
           <div className="-mb-3 px-4 pt-3">
             <Headless.CloseButton as={NavbarItem} aria-label="Close navigation">
               <CloseMenuIcon />
@@ -54,7 +54,7 @@ export function SidebarLayout({
   let [showSidebar, setShowSidebar] = useState(false)
 
   return (
-    <div className="relative isolate flex min-h-svh w-full bg-slate-50 max-lg:flex-col lg:bg-slate-100 dark:bg-slate-950 dark:lg:bg-slate-950">
+    <div className="relative isolate flex min-h-svh w-full bg-theme-bg-base max-lg:flex-col lg:bg-theme-bg-top">
       {/* Sidebar on desktop */}
       <div className="fixed inset-y-0 left-0 w-64 max-lg:hidden">{sidebar}</div>
 

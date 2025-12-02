@@ -22,13 +22,13 @@ import {
   type SequenceScene,
   generateSequenceSceneId,
 } from "@/lib/storage/sequenceStorage";
-import type { Preset } from "@/lib/storage/presetStorage";
+import type { Scene } from "@/lib/storage/sceneStorage";
 import { Plus } from "lucide-react";
 
 interface SequenceTimelineProps {
   sequence: Sequence;
   onSequenceUpdate: (sequence: Sequence) => void;
-  presets: Preset[];
+  scenes: Scene[];
 }
 
 function formatDuration(sequence: Sequence): string {
@@ -59,7 +59,7 @@ function formatDuration(sequence: Sequence): string {
 export function SequenceTimeline({
   sequence,
   onSequenceUpdate,
-  presets,
+  scenes,
 }: SequenceTimelineProps) {
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -158,20 +158,20 @@ export function SequenceTimeline({
     [sequence, onSequenceUpdate]
   );
 
-  const handleAddPreset = () => {
-    // Simple modal to select preset - for now just use first preset or show alert
-    if (presets.length === 0) {
-      alert("No presets available. Create a preset first.");
+  const handleAddScene = () => {
+    // Simple modal to select scene - for now just use first scene or show alert
+    if (scenes.length === 0) {
+      alert("No scenes available. Create a scene first.");
       return;
     }
     // In a real implementation, this would open a modal
-    // For now, just add the first preset
-    const preset = presets[0];
+    // For now, just add the first scene
+    const scene = scenes[0];
     const newScene: SequenceScene = {
       id: generateSequenceSceneId(),
       sequenceId: sequence.id,
-      presetId: preset.id,
-      name: preset.name,
+      sceneId: scene.id,
+      name: scene.name,
       durationMode: "manual",
       order: sequence.scenes.length,
     };
@@ -184,19 +184,19 @@ export function SequenceTimeline({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="p-4 border-b border-theme-divider">
         <PlaybackControls sequence={sequence} />
       </div>
 
       <div className="flex-1 overflow-auto p-4">
         {sequence.scenes.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
+            <p className="text-theme-muted mb-4">
               No scenes in this sequence yet.
             </p>
-            <Button onClick={handleAddPreset}>
+            <Button onClick={handleAddScene}>
               <Plus className="h-4 w-4 mr-2" />
-              Add preset to sequence
+              Add scene to sequence
             </Button>
           </div>
         ) : (
@@ -215,7 +215,7 @@ export function SequenceTimeline({
                     key={scene.id}
                     scene={scene}
                     sequence={sequence}
-                    presets={presets}
+                    scenes={scenes}
                     onUpdate={handleSceneUpdate}
                     onDelete={handleSceneDelete}
                     onDuplicate={handleSceneDuplicate}
@@ -228,19 +228,19 @@ export function SequenceTimeline({
       </div>
 
       {sequence.scenes.length > 0 && (
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+        <div className="p-4 border-t border-theme-divider bg-theme-icon">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-slate-600 dark:text-slate-400">
+              <div className="text-sm text-theme-muted">
                 Total scenes: <span className="font-medium">{sequence.scenes.length}</span>
               </div>
-              <div className="text-sm text-slate-600 dark:text-slate-400">
+              <div className="text-sm text-theme-muted">
                 Approximate duration: <span className="font-medium">{formatDuration(sequence)}</span>
               </div>
             </div>
-            <Button variant="outline" onClick={handleAddPreset}>
+            <Button variant="outline" onClick={handleAddScene}>
               <Plus className="h-4 w-4 mr-2" />
-              Add preset
+              Add scene
             </Button>
           </div>
         </div>

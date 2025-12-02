@@ -270,7 +270,7 @@ export function UploadSpriteModal({
                 value={svgContent}
                 onChange={handlePasteChange}
                 placeholder="Paste SVG code here..."
-                className="w-full h-32 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-sm"
+                className="w-full h-32 px-3 py-2 border border-theme-panel rounded-md bg-theme-select text-theme-primary font-mono text-sm"
               />
             </Field>
           )}
@@ -319,10 +319,10 @@ export function UploadSpriteModal({
               <div className="grid grid-cols-2 gap-4">
                 {/* Original Preview */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-900 dark:text-slate-50">
+                  <label className="block text-sm font-medium text-theme-primary">
                     Original
                   </label>
-                  <div className="mt-2 aspect-square bg-slate-100 dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 flex items-center justify-center overflow-hidden">
+                  <div className="mt-2 aspect-square bg-theme-panel rounded border border-theme-panel flex items-center justify-center overflow-hidden">
                     {previewUrl ? (
                       <img
                         src={previewUrl}
@@ -330,11 +330,11 @@ export function UploadSpriteModal({
                         className="w-full h-full object-contain"
                       />
                     ) : (
-                      <div className="text-slate-400 text-xs">Loading...</div>
+                      <div className="text-theme-subtle text-xs">Loading...</div>
                     )}
                   </div>
                   {originalSize > 0 && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    <p className="text-xs text-theme-muted mt-1">
                       {originalSize} bytes
                     </p>
                   )}
@@ -343,13 +343,13 @@ export function UploadSpriteModal({
                 {/* Optimized Preview */}
                 {optimizeEnabled && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-slate-50">
+                    <label className="block text-sm font-medium text-theme-primary">
                       Optimized
                       {isOptimizing && (
                         <Loader2 className="h-3 w-3 inline-block ml-2 animate-spin" />
                       )}
                     </label>
-                    <div className="mt-2 aspect-square bg-slate-100 dark:bg-slate-700 rounded border border-slate-200 dark:border-slate-600 flex items-center justify-center overflow-hidden">
+                    <div className="mt-2 aspect-square bg-theme-panel rounded border border-theme-panel flex items-center justify-center overflow-hidden">
                       {optimizedPreviewUrl ? (
                         <img
                           src={optimizedPreviewUrl}
@@ -357,13 +357,13 @@ export function UploadSpriteModal({
                           className="w-full h-full object-contain"
                         />
                       ) : isOptimizing ? (
-                        <div className="text-slate-400 text-xs">Optimizing...</div>
+                        <div className="text-theme-subtle text-xs">Optimizing...</div>
                       ) : (
-                        <div className="text-slate-400 text-xs">No preview</div>
+                        <div className="text-theme-subtle text-xs">No preview</div>
                       )}
                     </div>
                     {optimizedSize > 0 && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      <p className="text-xs text-theme-muted mt-1">
                         {optimizedSize} bytes ({reductionPercent > 0 ? `-${reductionPercent}%` : '0%'})
                       </p>
                     )}

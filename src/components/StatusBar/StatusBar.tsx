@@ -17,7 +17,8 @@ interface StatusBarProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onRandomiseAll: () => void;
-  onShowPresets: () => void;
+  onShowScenes: () => void;
+  onShowPresets?: () => void; // Backward compatibility
   onShowExport: () => void;
   onFullscreenToggle: () => void;
   onFullscreenClose: () => void;
@@ -39,7 +40,8 @@ export function StatusBar({
   onMouseEnter,
   onMouseLeave,
   onRandomiseAll,
-  onShowPresets,
+  onShowScenes,
+  onShowPresets = onShowScenes, // Backward compatibility
   onShowExport,
   onFullscreenToggle,
   onFullscreenClose,
@@ -313,11 +315,11 @@ export function StatusBar({
           type="button"
           size="icon"
           variant="background"
-          onClick={onShowPresets}
+          onClick={onShowScenes}
           disabled={!ready}
-          className="status-bar-presets-button"
-          aria-label="Manage presets"
-          title="Manage presets"
+          className="status-bar-scenes-button"
+          aria-label="Manage scenes"
+          title="Manage scenes"
         >
           <Bookmark className="status-bar-icon" data-slot="icon" />
         </Button>

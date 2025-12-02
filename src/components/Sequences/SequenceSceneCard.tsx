@@ -6,13 +6,13 @@ import { Button } from "@/components/Button";
 import { DurationControl } from "./DurationControl";
 import { FadeControl } from "./FadeControl";
 import type { Sequence, SequenceScene } from "@/lib/storage/sequenceStorage";
-import type { Preset } from "@/lib/storage/presetStorage";
+import type { Scene } from "@/lib/storage/sceneStorage";
 import { GripVertical, Trash2, Copy } from "lucide-react";
 
 interface SequenceSceneCardProps {
   scene: SequenceScene;
   sequence: Sequence;
-  presets: Preset[];
+  scenes: Scene[];
   onUpdate: (scene: SequenceScene) => void;
   onDelete: (sceneId: string) => void;
   onDuplicate: (sceneId: string) => void;
@@ -21,7 +21,7 @@ interface SequenceSceneCardProps {
 export function SequenceSceneCard({
   scene,
   sequence,
-  presets,
+  scenes,
   onUpdate,
   onDelete,
   onDuplicate,
@@ -44,8 +44,8 @@ export function SequenceSceneCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const preset = scene.presetId
-    ? presets.find((p) => p.id === scene.presetId)
+  const linkedScene = (scene.sceneId || scene.presetId)
+    ? scenes.find((s) => s.id === (scene.sceneId || scene.presetId))
     : null;
 
   const handleNameClick = () => {
@@ -95,7 +95,7 @@ export function SequenceSceneCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 ${
+      className={`bg-theme-card border border-theme-panel rounded-lg p-6 ${
         isDragging ? "shadow-lg" : "shadow-sm"
       } transition-shadow`}
     >
@@ -104,7 +104,7 @@ export function SequenceSceneCard({
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 mt-1"
+          className="cursor-grab active:cursor-grabbing text-theme-subtle hover:text-theme-muted mt-1"
         >
           <GripVertical className="h-5 w-5" />
         </button>
@@ -125,26 +125,26 @@ export function SequenceSceneCard({
             ) : (
               <button
                 onClick={handleNameClick}
-                className="text-base font-medium text-slate-900 dark:text-slate-50 hover:text-slate-600 dark:hover:text-slate-300 transition-colors text-left"
+                className="text-base font-medium text-theme-heading hover:text-theme-muted transition-colors text-left"
               >
                 {scene.name}
               </button>
             )}
           </div>
 
-          {/* Preset Indicator */}
+          {/* Scene Indicator */}
           <div className="text-sm">
-            {preset ? (
-              <span className="text-slate-600 dark:text-slate-400">
-                Linked preset: <span className="font-medium">{preset.name}</span>
+            {linkedScene ? (
+              <span className="text-theme-muted">
+                Linked scene: <span className="font-medium">{linkedScene.name}</span>
               </span>
-            ) : scene.inlinePresetJson ? (
-              <span className="text-slate-600 dark:text-slate-400">
-                Imported JSON preset
+            ) : (scene.inlineSceneJson || scene.inlinePresetJson) ? (
+              <span className="text-theme-muted">
+                Imported JSON scene
               </span>
             ) : (
               <span className="text-red-600 dark:text-red-400">
-                Preset not found
+                Scene not found
               </span>
             )}
           </div>
@@ -165,7 +165,7 @@ export function SequenceSceneCard({
 
           {/* Background Indicator */}
           <div>
-            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-theme-icon text-theme-muted">
               BG: inherited from sequence
             </span>
           </div>

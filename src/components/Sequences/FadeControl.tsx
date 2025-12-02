@@ -38,7 +38,7 @@ export function FadeControl({
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+      <Label className="text-xs font-medium text-theme-muted">
         Fade
       </Label>
       <Select value={value} onValueChange={handleChange}>

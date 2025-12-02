@@ -10,15 +10,15 @@ export function SettingsBreadcrumb({ onNavigateHome }: SettingsBreadcrumbProps) 
       <button
         type="button"
         onClick={onNavigateHome}
-        className="inline-flex items-center gap-1.5 text-base font-semibold leading-none text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50 transition-colors"
+        className="inline-flex items-center gap-1.5 text-base font-semibold leading-none text-theme-muted hover:text-theme-primary transition-colors"
         style={{ fontSize: '1rem', fontWeight: 600 }}
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Canvas
       </button>
-      <div className="h-4 w-px bg-slate-300 dark:bg-slate-700" />
+      <div className="h-4 w-px bg-theme-border" />
       <span 
-        className="text-base font-semibold leading-none text-slate-900 dark:text-slate-50"
+        className="text-base font-semibold leading-none text-theme-primary"
         style={{ fontSize: '1rem', fontWeight: 600 }}
       >
         Settings

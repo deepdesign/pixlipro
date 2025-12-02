@@ -40,7 +40,7 @@ export function DurationControl({
 
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+      <Label className="text-xs font-medium text-theme-muted">
         Duration
       </Label>
       <div className="flex gap-2">
@@ -48,8 +48,8 @@ export function DurationControl({
           onClick={() => handleModeChange("seconds")}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
             durationMode === "seconds"
-              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              ? "bg-theme-primary text-theme-primary-contrast"
+              : "bg-theme-icon text-theme-muted hover:bg-theme-icon/80"
           }`}
         >
           Duration
@@ -58,8 +58,8 @@ export function DurationControl({
           onClick={() => handleModeChange("manual")}
           className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
             durationMode === "manual"
-              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-              : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              ? "bg-theme-primary text-theme-primary-contrast"
+              : "bg-theme-icon text-theme-muted hover:bg-theme-icon/80"
           }`}
         >
           Manual advance
@@ -76,12 +76,12 @@ export function DurationControl({
             className="w-24"
             placeholder="0"
           />
-          <span className="text-sm text-slate-500 dark:text-slate-400">
+          <span className="text-sm text-theme-muted">
             seconds
           </span>
         </div>
       ) : (
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-theme-muted">
           Advances when manually triggered
         </p>
       )}

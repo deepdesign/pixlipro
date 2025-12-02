@@ -22,7 +22,7 @@ export function SpriteGrid({
 }: SpriteGridProps) {
   if (!collection) {
     return (
-      <div className="flex items-center justify-center h-64 text-slate-500 dark:text-slate-400">
+      <div className="flex items-center justify-center h-64 text-theme-muted">
         <p>Select a collection to view sprites</p>
       </div>
     );
@@ -43,11 +43,11 @@ export function SpriteGrid({
           </Button>
         </div>
         
-        <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg">
-          <p className="text-slate-500 dark:text-slate-400 mb-2">
+        <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed border-theme-panel rounded-lg">
+          <p className="text-theme-muted mb-2">
             No sprites in this collection
           </p>
-          <p className="text-sm text-slate-400 dark:text-slate-500">
+          <p className="text-sm text-theme-subtle">
             Add SVG files to get started
           </p>
         </div>
@@ -67,7 +67,7 @@ export function SpriteGrid({
           <Plus className="h-4 w-4 mr-2" />
           Add SVG
         </Button>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-theme-muted">
           {collection.sprites.length} sprite{collection.sprites.length !== 1 ? 's' : ''}
         </p>
       </div>

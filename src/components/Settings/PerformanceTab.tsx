@@ -94,15 +94,14 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
   return (
     <div className="space-y-6 px-6">
       {/* Performance Overview Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <Activity className="h-5 w-5" />
+              <h3 className="text-base font-semibold text-theme-primary">
                 Performance Overview
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-sm text-theme-muted mt-1">
                 Real-time performance metrics and system information
               </p>
             </div>
@@ -118,57 +117,57 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* FPS */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <span className="text-xs text-slate-500 dark:text-slate-400 block">
+            <div className="p-4 bg-theme-icon rounded-lg">
+              <span className="text-xs text-theme-subtle block">
                 Frame Rate
               </span>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+                <span className="text-2xl font-semibold text-theme-primary">
                   {frameRate.toFixed(1)}
                 </span>
-                <span className="text-sm text-slate-500 dark:text-slate-400">FPS</span>
+                <span className="text-sm text-theme-subtle">FPS</span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-theme-subtle mt-1">
                 Target: 60 FPS
               </p>
             </div>
 
             {/* Frame Time */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <span className="text-xs text-slate-500 dark:text-slate-400 block">
+            <div className="p-4 bg-theme-icon rounded-lg">
+              <span className="text-xs text-theme-subtle block">
                 Frame Time
               </span>
               <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+                <span className="text-2xl font-semibold text-theme-primary">
                   {frameTime.toFixed(1)}
                 </span>
-                <span className="text-sm text-slate-500 dark:text-slate-400">ms</span>
+                <span className="text-sm text-theme-subtle">ms</span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-theme-subtle mt-1">
                 Target: &lt;16.67ms
               </p>
             </div>
 
             {/* Memory Usage */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <span className="text-xs text-slate-500 dark:text-slate-400 block">
+            <div className="p-4 bg-theme-icon rounded-lg">
+              <span className="text-xs text-theme-subtle block">
                 Memory Usage
               </span>
               <div className="mt-1 flex items-baseline gap-2">
                 {memoryUsage !== null ? (
                   <>
-                    <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+                    <span className="text-2xl font-semibold text-theme-primary">
                       {memoryUsage.toFixed(1)}
                     </span>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">MB</span>
+                    <span className="text-sm text-theme-subtle">MB</span>
                   </>
                 ) : (
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                  <span className="text-sm text-theme-subtle">
                     Not available
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-theme-subtle mt-1">
                 JavaScript heap
               </p>
             </div>
@@ -177,12 +176,12 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
       </div>
 
       {/* System Information Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <h3 className="text-base font-semibold text-theme-primary">
             System Information
           </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-theme-muted mt-1">
             Hardware and browser capabilities
           </p>
         </div>
@@ -190,14 +189,14 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
           <div className="space-y-4">
             <Field>
               <Label>Browser</Label>
-              <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+              <p className="text-sm text-theme-muted mt-1">
                 {navigator.userAgent.split(" ")[0]} {navigator.userAgent.split(" ")[1]}
               </p>
             </Field>
 
             <Field>
               <Label>Hardware Concurrency</Label>
-              <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+              <p className="text-sm text-theme-muted mt-1">
                 {navigator.hardwareConcurrency || "Unknown"} CPU cores
               </p>
             </Field>
@@ -205,20 +204,20 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
             {gpuInfo && (
               <Field>
                 <Label>GPU</Label>
-                <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">{gpuInfo}</p>
+                <p className="text-sm text-theme-muted mt-1">{gpuInfo}</p>
               </Field>
             )}
 
             <Field>
               <Label>Screen Resolution</Label>
-              <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+              <p className="text-sm text-theme-muted mt-1">
                 {window.screen.width} × {window.screen.height}
               </p>
             </Field>
 
             <Field>
               <Label>Device Pixel Ratio</Label>
-              <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+              <p className="text-sm text-theme-muted mt-1">
                 {window.devicePixelRatio.toFixed(2)}x
               </p>
             </Field>
@@ -227,15 +226,15 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
       </div>
 
       {/* Performance Tips Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
+        <div className="p-6 border-b border-theme-divider">
+          <h3 className="text-base font-semibold text-theme-primary flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             Performance Tips
           </h3>
         </div>
         <div className="p-6">
-          <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+          <ul className="space-y-2 text-sm text-theme-muted">
             {frameRate < 30 && (
               <li className="flex items-start gap-2">
                 <span className="text-red-500 mt-0.5">•</span>

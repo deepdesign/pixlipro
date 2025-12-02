@@ -3,12 +3,12 @@ import { createSpriteController } from "@/generator";
 import { createThumbnail, getCanvasFromP5 } from "@/lib/services/exportService";
 import type { GeneratorState } from "@/types/generator";
 
-interface PresetThumbnailProps {
+interface SceneThumbnailProps {
   state: GeneratorState;
   size?: number;
 }
 
-export function PresetThumbnail({ state, size = 80 }: PresetThumbnailProps) {
+export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<ReturnType<typeof createSpriteController> | null>(null);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
@@ -25,8 +25,11 @@ export function PresetThumbnail({ state, size = 80 }: PresetThumbnailProps) {
       onStateChange: () => {},
     });
 
-    // Apply the preset state
+    // Apply the scene state
     controller.applyState(state);
+    
+    // Set custom aspect ratio to square (1:1) after applying state
+    controller.setCustomAspectRatio(size * 2, size * 2);
 
     controllerRef.current = controller;
 
@@ -74,24 +77,24 @@ export function PresetThumbnail({ state, size = 80 }: PresetThumbnailProps) {
       {/* Display thumbnail or placeholder */}
       {isLoading ? (
         <div
-          className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-800"
+          className="flex items-center justify-center bg-theme-panel rounded border border-theme-panel"
           style={{ width: size, height: size }}
         >
-          <div className="text-xs text-slate-400">Loading...</div>
+          <div className="text-xs text-theme-subtle">Loading...</div>
         </div>
       ) : thumbnail ? (
         <img
           src={thumbnail}
-          alt="Preset preview"
-          className="rounded border border-slate-200 dark:border-slate-800"
+          alt="Scene preview"
+          className="rounded border border-theme-panel"
           style={{ width: size, height: size, objectFit: "cover" }}
         />
       ) : (
         <div
-          className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-800"
+          className="flex items-center justify-center bg-theme-panel rounded border border-theme-panel"
           style={{ width: size, height: size }}
         >
-          <div className="text-xs text-slate-400">No preview</div>
+          <div className="text-xs text-theme-subtle">No preview</div>
         </div>
       )}
     </>
