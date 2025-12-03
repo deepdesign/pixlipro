@@ -14,7 +14,6 @@ export function generatePaletteOptions() {
     "Nature",
     "Soft/Pastel",
     "Dark/Mysterious",
-    "Black & White",
     "Custom",
   ];
 

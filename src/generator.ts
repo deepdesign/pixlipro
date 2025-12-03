@@ -15,6 +15,7 @@ import { getCollection, getSpriteInCollection, getAllCollections, findSpriteById
 import { loadSpriteImage, getCachedSpriteImage, preloadSpriteImages } from "./lib/services/spriteImageLoader";
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 import { applyNoiseOverlay } from "./lib/utils/fxNoise";
+import { applyPixelationEffects } from "./lib/utils/fxPixelation";
 
 const MIN_TILE_SCALE = 0.12;
 const MAX_TILE_SCALE = 5.5; // Allow large sprites, but positioning will be adjusted
@@ -229,6 +230,7 @@ export interface GeneratorState {
   blendOpacityEnabled: boolean; // Whether blend & opacity section is active
   canvasEnabled: boolean; // Whether canvas section is active
   densityScaleEnabled: boolean; // Whether density & scale section is active
+  linesRatio: number; // 0-100, ratio of lines to other sprites (0 = normal, 100 = 10x lines)
   // FX (Visual Effects) settings
   // Bloom
   bloomEnabled: boolean;
@@ -239,6 +241,11 @@ export interface GeneratorState {
   noiseEnabled: boolean;
   noiseType: "grain" | "crt" | "bayer" | "static" | "scanlines";
   noiseStrength: number; // 0-100
+  // Pixelation
+  pixelationEnabled: boolean;
+  pixelationSize: number; // 1-50 pixels (block size)
+  colorQuantizationEnabled: boolean;
+  colorQuantizationBits: number; // 4, 8, 16, or 24 (bit depth)
   // Thumbnail mode settings (for animation thumbnails)
   thumbnailMode?: {
     primaryColorIndex: number; // Color index for primary sprite (e.g., 0 for slate-50)
@@ -348,6 +355,7 @@ export const DEFAULT_STATE: GeneratorState = {
   blendOpacityEnabled: true,
   canvasEnabled: true,
   densityScaleEnabled: true,
+  linesRatio: 0, // Default: normal ratio
   // FX defaults
   bloomEnabled: false,
   bloomIntensity: 50, // Default 50% intensity
@@ -356,6 +364,10 @@ export const DEFAULT_STATE: GeneratorState = {
   noiseEnabled: false,
   noiseType: "grain", // Default grain noise
   noiseStrength: 30, // Default 30% strength
+  pixelationEnabled: false,
+  pixelationSize: 1, // Default 1px (full quality)
+  colorQuantizationEnabled: false,
+  colorQuantizationBits: 24, // Default 24-bit (full quality)
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -1067,6 +1079,65 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     return null;
   };
 
+  // Separate sprites into lines and non-lines for weighted selection
+  const lineSpriteIds: string[] = [];
+  const nonLineSpriteIds: string[] = [];
+  
+  // Helper to check if a sprite is a line sprite
+  const isLineSprite = (identifier: string): boolean => {
+    const spriteInfo = getSpriteInfo(identifier);
+    if (!spriteInfo) return false;
+    return spriteInfo.svgSprite.id === "line";
+  };
+  
+  // Separate selected sprites into lines and non-lines
+  selectedSpriteIds.forEach(id => {
+    if (isLineSprite(id)) {
+      lineSpriteIds.push(id);
+    } else {
+      nonLineSpriteIds.push(id);
+    }
+  });
+  
+  // Calculate lines ratio multiplier (0% = 1x, 100% = 10x)
+  const linesRatioMultiplier = 1 + (state.linesRatio / 100) * 9;
+  
+  // Helper to select a sprite with weighted probability for lines
+  const selectWeightedSprite = (): string => {
+    if (selectedSpriteIds.length === 0) {
+      return ""; // No sprites selected
+    }
+    
+    // If linesRatio is 0 or no line sprites, use normal random selection
+    if (state.linesRatio === 0 || lineSpriteIds.length === 0) {
+      return selectedSpriteIds[Math.floor(spriteSelectionRng() * selectedSpriteIds.length)];
+    }
+    
+    // If only line sprites, return a random line
+    if (nonLineSpriteIds.length === 0) {
+      return lineSpriteIds[Math.floor(spriteSelectionRng() * lineSpriteIds.length)];
+    }
+    
+    // Calculate weighted probabilities
+    // Total weight = (non-lines count * 1) + (lines count * multiplier)
+    const nonLineWeight = nonLineSpriteIds.length;
+    const lineWeight = lineSpriteIds.length * linesRatioMultiplier;
+    const totalWeight = nonLineWeight + lineWeight;
+    
+    // Random selection based on weights
+    const random = spriteSelectionRng() * totalWeight;
+    
+    if (random < nonLineWeight) {
+      // Select from non-lines (uniform distribution within non-lines)
+      const index = Math.floor(spriteSelectionRng() * nonLineSpriteIds.length);
+      return nonLineSpriteIds[index];
+    } else {
+      // Select from lines (uniform distribution within lines)
+      const index = Math.floor(spriteSelectionRng() * lineSpriteIds.length);
+      return lineSpriteIds[index];
+    }
+  };
+
   // Apply mode-specific scale multiplier to improve canvas coverage
   // Modes with large movement radii (spiral, orbit) benefit from larger sprites
   const modeScaleMultiplier = MOVEMENT_SCALE_MULTIPLIERS[state.movementMode] ?? 1.0;
@@ -1206,8 +1277,8 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
         continue;
       }
       
-      // Randomly pick a sprite from selected sprites using dedicated RNG for uniform distribution
-      const selectedSpriteId = selectedSpriteIds[Math.floor(spriteSelectionRng() * selectedSpriteIds.length)];
+      // Select sprite with weighted probability for lines (if linesRatio > 0)
+      const selectedSpriteId = selectWeightedSprite();
       const spriteInfo = getSpriteInfo(selectedSpriteId);
       
       if (!spriteInfo) {
@@ -1424,6 +1495,7 @@ export interface SpriteController {
   setScalePercent: (value: number) => void;
   setScaleBase: (value: number) => void;
   setScaleSpread: (value: number) => void;
+  setLinesRatio: (value: number) => void;
   setPaletteVariance: (value: number) => void;
   setHueShift: (value: number) => void;
   setSaturation: (value: number) => void;
@@ -1491,6 +1563,11 @@ export interface SpriteController {
   setNoiseEnabled: (enabled: boolean) => void;
   setNoiseType: (type: "grain" | "crt" | "bayer" | "static" | "scanlines") => void;
   setNoiseStrength: (strength: number) => void;
+  // Pixelation
+  setPixelationEnabled: (enabled: boolean) => void;
+  setPixelationSize: (size: number) => void;
+  setColorQuantizationEnabled: (enabled: boolean) => void;
+  setColorQuantizationBits: (bits: number) => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
   applyMinimalGridPreset: () => void;
@@ -2970,12 +3047,12 @@ export const createSpriteController = (
               // This guarantees uniform scaling - both dimensions scaled by the SAME factor
               let uniformScale = Math.min(scaleForWidth, scaleForHeight);
               
-              // For line sprite, we need non-uniform scaling: 10x width, 1x height
+              // For line sprite, we need non-uniform scaling: 20x width, 1x height
               let scaleX = uniformScale;
               let scaleY = uniformScale;
               if (isLineSprite) {
-                // Make line 10x longer (width) but keep same thickness (height)
-                scaleX = uniformScale * 10;
+                // Make line 20x longer (width) but keep same thickness (height)
+                scaleX = uniformScale * 20;
                 scaleY = uniformScale;
               }
               
@@ -3149,12 +3226,12 @@ export const createSpriteController = (
               // This guarantees uniform scaling - both dimensions scaled by the SAME factor
               let uniformScale = Math.min(scaleForWidth, scaleForHeight);
               
-              // For line sprite, we need non-uniform scaling: 10x width, 1x height
+              // For line sprite, we need non-uniform scaling: 20x width, 1x height
               let scaleX = uniformScale;
               let scaleY = uniformScale;
               if (isLineSprite) {
-                // Make line 10x longer (width) but keep same thickness (height)
-                scaleX = uniformScale * 10;
+                // Make line 20x longer (width) but keep same thickness (height)
+                scaleX = uniformScale * 20;
                 scaleY = uniformScale;
               }
               
@@ -3439,6 +3516,16 @@ export const createSpriteController = (
         }
       }
       
+      // Apply Pixelation effects if enabled (after bloom, before noise)
+      if ((currentState.pixelationEnabled || currentState.colorQuantizationEnabled) && hasCanvas(p5Instance)) {
+        const canvas = p5Instance.canvas as HTMLCanvasElement;
+        if (canvas) {
+          const pixelationSize = currentState.pixelationEnabled ? currentState.pixelationSize : 1;
+          const quantizationBits = currentState.colorQuantizationEnabled ? currentState.colorQuantizationBits : null;
+          applyPixelationEffects(canvas, pixelationSize, quantizationBits);
+        }
+      }
+      
       // Apply Noise/Grain overlay if enabled (after all sprites and bloom are drawn)
       if (currentState.noiseEnabled && hasCanvas(p5Instance)) {
         const canvas = p5Instance.canvas as HTMLCanvasElement;
@@ -3703,6 +3790,9 @@ export const createSpriteController = (
     },
     setScaleSpread: (value: number) => {
       applyState({ scaleSpread: clamp(value, 0, 100) });
+    },
+    setLinesRatio: (value: number) => {
+      applyState({ linesRatio: clamp(value, 0, 100) }, { recompute: true });
     },
     setPaletteVariance: (value: number) => {
       // Palette variance affects sprite colors, so regeneration is needed
@@ -4124,6 +4214,24 @@ export const createSpriteController = (
     },
     setNoiseStrength: (strength: number) => {
       applyState({ noiseStrength: clamp(strength, 0, 100) }, { recompute: false });
+    },
+    // Pixelation
+    setPixelationEnabled: (enabled: boolean) => {
+      applyState({ pixelationEnabled: enabled }, { recompute: false });
+    },
+    setPixelationSize: (size: number) => {
+      applyState({ pixelationSize: clamp(size, 1, 50) }, { recompute: false });
+    },
+    setColorQuantizationEnabled: (enabled: boolean) => {
+      applyState({ colorQuantizationEnabled: enabled }, { recompute: false });
+    },
+    setColorQuantizationBits: (bits: number) => {
+      // Clamp to valid bit depths: 4, 8, 16, or 24
+      const validBits = [4, 8, 16, 24];
+      const clampedBits = validBits.reduce((prev, curr) => 
+        Math.abs(curr - bits) < Math.abs(prev - bits) ? curr : prev
+      );
+      applyState({ colorQuantizationBits: clampedBits }, { recompute: false });
     },
     setSpriteCollection: (collectionId: string) => {
       const collection = getCollection(collectionId);

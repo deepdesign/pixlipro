@@ -197,6 +197,79 @@ export function FxControls({
           </>
         )}
       </div>
+
+      {/* Pixelation Section */}
+      <div className="section section--spaced">
+        <hr className="section-divider border-t" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="pixelation-tip"
+              text="Reduce canvas resolution by grouping pixels into blocks for a retro game aesthetic."
+            >
+              <h3 className="section-title">Pixelation</h3>
+            </TextWithTooltip>
+          </div>
+          <Switch
+            checked={spriteState.pixelationEnabled}
+            onCheckedChange={(checked) => {
+              controller?.setPixelationEnabled(checked);
+            }}
+            disabled={!ready}
+            aria-label="Enable pixelation"
+          />
+        </div>
+        {spriteState.pixelationEnabled && (
+          <ControlSlider
+            id="pixelation-size"
+            label="Pixelation size"
+            min={1}
+            max={50}
+            value={Math.round(spriteState.pixelationSize)}
+            displayValue={`${Math.round(spriteState.pixelationSize)}px`}
+            onChange={(value) => controller?.setPixelationSize(value)}
+            disabled={!ready}
+            tooltip="Size of pixel blocks. Higher values create more blocky, retro look."
+          />
+        )}
+      </div>
+
+      {/* Colour Quantization Section */}
+      <div className="section section--spaced">
+        <hr className="section-divider border-t" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="colour-quantization-tip"
+              text="Reduce colour palette depth for retro 8-bit/16-bit game aesthetic."
+            >
+              <h3 className="section-title">Colour quantization</h3>
+            </TextWithTooltip>
+          </div>
+          <Switch
+            checked={spriteState.colorQuantizationEnabled}
+            onCheckedChange={(checked) =>
+              controller?.setColorQuantizationEnabled(checked)
+            }
+            disabled={!ready}
+            aria-label="Enable colour quantization"
+          />
+        </div>
+        {spriteState.colorQuantizationEnabled && (
+          <ControlSlider
+            id="color-quantization-bits"
+            label="Colour depth"
+            min={4}
+            max={24}
+            step={4}
+            value={spriteState.colorQuantizationBits}
+            displayValue={`${spriteState.colorQuantizationBits}-bit`}
+            onChange={(value) => controller?.setColorQuantizationBits(value)}
+            disabled={!ready}
+            tooltip="Reduce colour palette depth. Lower values (4-bit, 8-bit) create retro game aesthetic."
+          />
+        )}
+      </div>
     </>
   );
 }

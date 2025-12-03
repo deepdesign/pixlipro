@@ -126,7 +126,7 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         selectedSprites: [squareSpritePath], // Force square sprite using SVG path
         randomSprites: false,
         // Use neutral palette for thumbnails
-        paletteId: "snow-white",
+        paletteId: "pastel",
         paletteVariance: 0, // No color variation - use exact palette colors
         seed: `animation-thumbnail-${animation.id}`, // Unique seed per animation
         colorSeedSuffix: "", // No suffix to use default color RNG
@@ -174,7 +174,7 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         selectedSprites: [squareSpritePath], // Force square sprite using SVG path
         randomSprites: false,
         // Use neutral palette for thumbnails
-        paletteId: "snow-white",
+        paletteId: "pastel",
         paletteVariance: 0, // No color variation - use exact palette colors
         seed: `animation-thumbnail-${animation.id}`, // Unique seed per animation
         colorSeedSuffix: "", // No suffix to use default color RNG

@@ -16,6 +16,7 @@ export {
   hasCoarsePointer,
 } from "./deviceDetection";
 export { generateCrtNoise, generateGrain, generateBayerDither, applyNoiseOverlay } from "./fxNoise";
+export { applyPixelationEffects, applyPixelation, applyColorQuantization } from "./fxPixelation";
 export * from "./responsiveLayout";
 export * from "./conversions";
 export { formatBlendMode } from "./formatting";

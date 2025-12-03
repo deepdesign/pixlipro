@@ -331,6 +331,17 @@ export function SpriteControls({
           disabled={!ready}
           tooltip="Expands or tightens the difference between the smallest and largest sprites."
         />
+        <ControlSlider
+          id="lines-ratio"
+          label="Lines ratio"
+          min={0}
+          max={100}
+          value={Math.round(spriteState.linesRatio)}
+          displayValue={`${Math.round(spriteState.linesRatio)}%`}
+          onChange={(value) => controller?.setLinesRatio(value)}
+          disabled={!ready}
+          tooltip="Increases the ratio of lines to other sprites. 0% = normal ratio, 100% = 10x more lines."
+        />
           </>
         )}
       </div>

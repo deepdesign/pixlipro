@@ -1404,6 +1404,24 @@ body {
   box-sizing: border-box;
 }
 
+/* Hide blinking cursor (caret) globally while preserving text selection and copy/paste */
+* {
+  caret-color: transparent;
+}
+
+/* Re-enable caret for actual text inputs and textareas */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+textarea,
+[contenteditable="true"] {
+  caret-color: auto;
+}
+
 /* Theme-specific body backgrounds are handled by CSS variables */
 /* Dark mode: --bg-base is slate-950 */
 /* Light mode: --bg-base is gray-50 (overridden by [data-theme="light"]) */

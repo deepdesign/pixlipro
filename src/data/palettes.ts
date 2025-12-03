@@ -41,7 +41,7 @@ export const palettes: Palette[] = [
   {
     id: "ember",
     name: "Ember Glow",
-    colors: ["#ff4e00", "#ec9f05", "#f5c469", "#ffd17c", "#ffd8a9"],
+    colors: ["#8b0000", "#b22222", "#cd5c5c", "#ff6347", "#ffa07a"],
     category: "Warm/Fire",
   },
   {
@@ -102,12 +102,6 @@ export const palettes: Palette[] = [
     category: "Soft/Pastel",
   },
   {
-    id: "snow-white",
-    name: "Snow White",
-    colors: ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"],
-    category: "Black & White",
-  },
-  {
     id: "candy",
     name: "Sweet Dreams",
     colors: ["#ff6b9d", "#c44569", "#f8b500", "#ffc93c", "#ff9ff3"],
@@ -119,12 +113,6 @@ export const palettes: Palette[] = [
     name: "Midnight Void",
     colors: ["#0f0f1c", "#1f1147", "#371a79", "#5d2e9a", "#8c44ff"],
     category: "Dark/Mysterious",
-  },
-  {
-    id: "black-panther",
-    name: "Black Panther",
-    colors: ["#000000", "#000000", "#000000", "#000000", "#000000"],
-    category: "Black & White",
   },
 ];
 
