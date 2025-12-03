@@ -15,68 +15,78 @@ import type { ThemeTemplate, ThemeMode, ThemeDefinition } from './template';
  */
 export function generateThemeCSS(
   template: ThemeTemplate,
-  mode: ThemeMode
+  _mode: ThemeMode
 ): Record<string, string> {
   const vars: Record<string, string> = {};
 
-  // Primary color variables
-  vars['--theme-primary-base'] = template.primary.base;
-  vars['--theme-primary-shadow'] = template.primary.shadow;
-  vars['--theme-primary-contrast'] = template.primary.contrast;
-  if (template.primary.secondary) {
-    vars['--theme-primary-secondary'] = template.primary.secondary;
+  // Accent color variables (mint green)
+  vars['--theme-accent-base'] = template.accent.base;
+  vars['--theme-accent-shadow'] = template.accent.shadow;
+  vars['--theme-accent-contrast'] = template.accent.contrast;
+  if (template.accent.secondary) {
+    vars['--theme-accent-secondary'] = template.accent.secondary;
   }
-  if (template.primary.muted) {
-    vars['--theme-primary-muted'] = template.primary.muted;
+  if (template.accent.muted) {
+    vars['--theme-accent-muted'] = template.accent.muted;
   }
-  if (template.primary.link) {
-    vars['--theme-primary-link'] = template.primary.link;
+  if (template.accent.link) {
+    vars['--theme-accent-link'] = template.accent.link;
   }
-  if (template.primary.linkHover) {
-    vars['--theme-primary-linkHover'] = template.primary.linkHover;
+  if (template.accent.linkHover) {
+    vars['--theme-accent-linkHover'] = template.accent.linkHover;
   }
 
-  // Secondary color variables - backgrounds
-  vars['--theme-secondary-bg-base'] = template.secondary.bgBase;
-  vars['--theme-secondary-bg-top'] = template.secondary.bgTop;
-  vars['--theme-secondary-panel'] = template.secondary.panel;
-  vars['--theme-secondary-card'] = template.secondary.card;
-  vars['--theme-secondary-status'] = template.secondary.status;
-  vars['--theme-secondary-icon'] = template.secondary.icon;
-  vars['--theme-secondary-select'] = template.secondary.select;
-  vars['--theme-secondary-checkbox'] = template.secondary.checkbox;
+  // Primary color variables (slate) - backgrounds
+  vars['--theme-primary-bg-base'] = template.primary.bgBase;
+  vars['--theme-primary-bg-top'] = template.primary.bgTop;
+  vars['--theme-primary-panel'] = template.primary.panel;
+  vars['--theme-primary-card'] = template.primary.card;
+  vars['--theme-primary-status'] = template.primary.status;
+  vars['--theme-primary-icon'] = template.primary.icon;
+  vars['--theme-primary-select'] = template.primary.select;
+  vars['--theme-primary-checkbox'] = template.primary.checkbox;
 
-  // Secondary color variables - text
-  vars['--theme-secondary-textPrimary'] = template.secondary.textPrimary;
-  vars['--theme-secondary-textMuted'] = template.secondary.textMuted;
-  vars['--theme-secondary-textSubtle'] = template.secondary.textSubtle;
-  vars['--theme-secondary-heading'] = template.secondary.heading;
-  vars['--theme-secondary-hint'] = template.secondary.hint;
-  vars['--theme-secondary-notes'] = template.secondary.notes;
+  // Primary color variables (slate) - text
+  vars['--theme-primary-textPrimary'] = template.primary.textPrimary;
+  vars['--theme-primary-textMuted'] = template.primary.textMuted;
+  vars['--theme-primary-textSubtle'] = template.primary.textSubtle;
+  vars['--theme-primary-heading'] = template.primary.heading;
+  vars['--theme-primary-hint'] = template.primary.hint;
+  vars['--theme-primary-notes'] = template.primary.notes;
 
-  // Secondary color variables - borders
-  vars['--theme-secondary-borderPanel'] = template.secondary.borderPanel;
-  vars['--theme-secondary-borderCard'] = template.secondary.borderCard;
-  vars['--theme-secondary-borderStatus'] = template.secondary.borderStatus;
-  vars['--theme-secondary-borderIcon'] = template.secondary.borderIcon;
-  vars['--theme-secondary-borderSelect'] = template.secondary.borderSelect;
-  vars['--theme-secondary-borderCheckbox'] = template.secondary.borderCheckbox;
+  // Primary color variables (slate) - unified borders
+  vars['--theme-primary-border'] = template.primary.border;
+  vars['--theme-primary-borderBase'] = template.primary.borderBase;
 
-  // Secondary color variables - shadows
-  vars['--theme-secondary-shadowPanel'] = template.secondary.shadowPanel;
-  vars['--theme-secondary-shadowCard'] = template.secondary.shadowCard;
-  vars['--theme-secondary-shadowStatus'] = template.secondary.shadowStatus;
-  vars['--theme-secondary-shadowSelect'] = template.secondary.shadowSelect;
+  // Primary color variables (slate) - shadows
+  vars['--theme-primary-shadowPanel'] = template.primary.shadowPanel;
+  vars['--theme-primary-shadowCard'] = template.primary.shadowCard;
+  vars['--theme-primary-shadowStatus'] = template.primary.shadowStatus;
+  vars['--theme-primary-shadowSelect'] = template.primary.shadowSelect;
 
-  // Secondary color variables - controls
-  vars['--theme-secondary-sliderTrackStrong'] = template.secondary.sliderTrackStrong;
-  vars['--theme-secondary-sliderTrackMuted'] = template.secondary.sliderTrackMuted;
-  vars['--theme-secondary-sliderThumbBg'] = template.secondary.sliderThumbBg;
-  vars['--theme-secondary-sliderThumbBorder'] = template.secondary.sliderThumbBorder;
-  vars['--theme-secondary-sliderThumbShadow'] = template.secondary.sliderThumbShadow;
-  vars['--theme-secondary-selectHover'] = template.secondary.selectHover;
-  vars['--theme-secondary-selectActive'] = template.secondary.selectActive;
-  vars['--theme-secondary-iconHover'] = template.secondary.iconHover;
+  // Primary color variables (slate) - controls
+  vars['--theme-primary-sliderTrackStrong'] = template.primary.sliderTrackStrong;
+  vars['--theme-primary-sliderTrackMuted'] = template.primary.sliderTrackMuted;
+  // Color scale tints (must be defined before slider thumb which references them)
+  vars['--theme-primary-tint50'] = template.primary.tint50;
+  vars['--theme-primary-tint100'] = template.primary.tint100;
+  vars['--theme-primary-tint400'] = template.primary.tint400;
+  vars['--theme-primary-tint600'] = template.primary.tint600;
+  vars['--theme-primary-tint700'] = template.primary.tint700;
+  vars['--theme-primary-tint800'] = template.primary.tint800;
+
+  // Slider thumb uses tint variables for theme color support
+  vars['--theme-primary-sliderThumbBg'] = _mode === 'dark' 
+    ? 'var(--theme-primary-tint50)' 
+    : 'var(--theme-primary-tint600)';
+  vars['--theme-primary-sliderThumbBorder'] = _mode === 'dark'
+    ? 'var(--theme-primary-tint400)'
+    : 'var(--theme-primary-tint600)';
+  vars['--theme-primary-sliderThumbShadow'] = template.primary.sliderThumbShadow;
+  vars['--theme-primary-selectHover'] = template.primary.selectHover;
+  vars['--theme-primary-selectActive'] = template.primary.selectActive;
+  vars['--theme-primary-iconHover'] = template.primary.iconHover;
+  vars['--theme-primary-iconHoverNormal'] = template.primary.iconHoverNormal;
 
   // Supporting color variables
   vars['--theme-supporting-light'] = template.supporting.light;
@@ -99,15 +109,15 @@ export function generateSemanticCSS(
 ): Record<string, string> {
   const vars: Record<string, string> = {};
 
-  // Background mappings
-  vars['--bg-base'] = 'var(--theme-secondary-bg-base)';
-  vars['--bg-top'] = 'var(--theme-secondary-bg-top)';
-  vars['--panel-bg'] = 'var(--theme-secondary-panel)';
-  vars['--card-bg'] = 'var(--theme-secondary-card)';
-  vars['--status-bg'] = 'var(--theme-secondary-status)';
-  vars['--icon-bg'] = 'var(--theme-secondary-icon)';
-  vars['--select-bg'] = 'var(--theme-secondary-select)';
-  vars['--checkbox-bg'] = 'var(--theme-secondary-checkbox)';
+  // Background mappings (using primary/slate colors)
+  vars['--bg-base'] = 'var(--theme-primary-bg-base)';
+  vars['--bg-top'] = 'var(--theme-primary-bg-top)';
+  vars['--panel-bg'] = 'var(--theme-primary-panel)';
+  vars['--card-bg'] = 'var(--theme-primary-card)';
+  vars['--status-bg'] = 'var(--theme-primary-status)';
+  vars['--icon-bg'] = 'var(--theme-primary-icon)';
+  vars['--select-bg'] = 'var(--theme-primary-select)';
+  vars['--checkbox-bg'] = 'var(--theme-primary-checkbox)';
 
   // Text mappings - adapt based on mode
   if (mode === 'dark') {
@@ -115,47 +125,50 @@ export function generateSemanticCSS(
   } else {
     vars['--text-primary'] = 'var(--theme-supporting-dark)';
   }
-  vars['--text-muted'] = 'var(--theme-secondary-textMuted)';
-  vars['--text-subtle'] = 'var(--theme-secondary-textSubtle)';
-  vars['--heading-color'] = 'var(--theme-secondary-heading)';
-  vars['--hint-color'] = 'var(--theme-secondary-hint)';
-  vars['--notes-text'] = 'var(--theme-secondary-notes)';
+  vars['--text-muted'] = 'var(--theme-primary-textMuted)';
+  vars['--text-subtle'] = 'var(--theme-primary-textSubtle)';
+  vars['--heading-color'] = 'var(--theme-primary-heading)';
+  vars['--hint-color'] = 'var(--theme-primary-hint)';
+  vars['--notes-text'] = 'var(--theme-primary-notes)';
 
-  // Border mappings
-  vars['--panel-border'] = 'var(--theme-secondary-borderPanel)';
-  vars['--card-border'] = 'var(--theme-secondary-borderCard)';
-  vars['--status-border'] = 'var(--theme-secondary-borderStatus)';
-  vars['--icon-border'] = 'var(--theme-secondary-borderIcon)';
-  vars['--select-border'] = 'var(--theme-secondary-borderSelect)';
-  vars['--checkbox-border'] = 'var(--theme-secondary-borderCheckbox)';
+  // Border mappings (using primary/slate colors)
+  vars['--border'] = 'var(--theme-primary-border)';
+  vars['--border-base'] = 'var(--theme-primary-borderBase)';
+  vars['--panel-border'] = 'var(--theme-primary-border)';
+  vars['--card-border'] = 'var(--theme-primary-border)';
+  vars['--structural-border'] = 'var(--theme-primary-borderBase)'; // Dividers on base background
+  vars['--status-border'] = 'var(--theme-primary-border)';
+  vars['--icon-border'] = 'var(--theme-primary-border)';
+  vars['--select-border'] = 'var(--theme-primary-border)';
+  vars['--checkbox-border'] = 'var(--theme-primary-border)';
 
-  // Shadow mappings
-  vars['--panel-shadow'] = 'var(--theme-secondary-shadowPanel)';
-  vars['--card-shadow'] = 'var(--theme-secondary-shadowCard)';
-  vars['--status-shadow'] = 'var(--theme-secondary-shadowStatus)';
-  vars['--select-shadow'] = 'var(--theme-secondary-shadowSelect)';
+  // Shadow mappings (using primary/slate colors)
+  vars['--panel-shadow'] = 'var(--theme-primary-shadowPanel)';
+  vars['--card-shadow'] = 'var(--theme-primary-shadowCard)';
+  vars['--status-shadow'] = 'var(--theme-primary-shadowStatus)';
+  vars['--select-shadow'] = 'var(--theme-primary-shadowSelect)';
 
-  // Control mappings
-  vars['--slider-track-strong'] = 'var(--theme-secondary-sliderTrackStrong)';
-  vars['--slider-track-muted'] = 'var(--theme-secondary-sliderTrackMuted)';
-  vars['--slider-thumb-bg'] = 'var(--theme-secondary-sliderThumbBg)';
-  vars['--slider-thumb-border'] = 'var(--theme-secondary-sliderThumbBorder)';
-  vars['--slider-thumb-shadow'] = 'var(--theme-secondary-sliderThumbShadow)';
-  vars['--select-hover'] = 'var(--theme-secondary-selectHover)';
-  vars['--select-active'] = 'var(--theme-secondary-selectActive)';
-  vars['--icon-hover'] = 'var(--theme-secondary-iconHover)';
+  // Control mappings (using primary/slate colors)
+  vars['--slider-track-strong'] = 'var(--theme-primary-sliderTrackStrong)';
+  vars['--slider-track-muted'] = 'var(--theme-primary-sliderTrackMuted)';
+  vars['--slider-thumb-bg'] = 'var(--theme-primary-sliderThumbBg)';
+  vars['--slider-thumb-border'] = 'var(--theme-primary-sliderThumbBorder)';
+  vars['--slider-thumb-shadow'] = 'var(--theme-primary-sliderThumbShadow)';
+  vars['--select-hover'] = 'var(--theme-primary-selectHover)';
+  vars['--select-active'] = 'var(--theme-primary-selectActive)';
+  vars['--icon-hover'] = 'var(--theme-primary-iconHover)';
 
-  // Accent mappings
-  vars['--accent-primary'] = 'var(--theme-primary-base)';
-  vars['--accent-primary-shadow'] = 'var(--theme-primary-shadow)';
-  vars['--accent-primary-contrast'] = 'var(--theme-primary-contrast)';
+  // Accent mappings (mint green)
+  vars['--accent-primary'] = 'var(--theme-accent-base)';
+  vars['--accent-primary-shadow'] = 'var(--theme-accent-shadow)';
+  vars['--accent-primary-contrast'] = 'var(--theme-accent-contrast)';
 
-  // Link mappings
-  if (template.primary.link) {
-    vars['--link-color'] = 'var(--theme-primary-link)';
+  // Link mappings (using accent color)
+  if (template.accent.link) {
+    vars['--link-color'] = 'var(--theme-accent-link)';
   }
-  if (template.primary.linkHover) {
-    vars['--link-hover'] = 'var(--theme-primary-linkHover)';
+  if (template.accent.linkHover) {
+    vars['--link-hover'] = 'var(--theme-accent-linkHover)';
   }
 
   return vars;

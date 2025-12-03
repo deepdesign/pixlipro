@@ -21,12 +21,8 @@ export function generatePaletteOptions() {
   // Get all palettes (built-in + custom)
   const allPalettes = getAllPalettes();
 
-  // Filter out internal palettes that shouldn't be user-selectable
-  // These are used internally for animation thumbnails
-  const userPalettes = allPalettes.filter(
-    (palette) => palette.id !== "slate" && palette.id !== "slate-bg" && 
-                 palette.id !== "slate-light" && palette.id !== "slate-bg-light"
-  );
+  // All palettes are user-selectable
+  const userPalettes = allPalettes;
 
   // Group palettes by category
   const byCategory = new Map<string, typeof userPalettes>();

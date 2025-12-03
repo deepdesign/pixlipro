@@ -8,7 +8,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 const CardRoot = ({ className, ...props }: CardProps) => (
   <div
     className={clsx(
-      "rounded-lg border border-theme-panel bg-theme-panel p-6 shadow-sm",
+      "rounded-lg border border-theme-card bg-theme-panel p-6 shadow-sm",
       className
     )}
     {...props}

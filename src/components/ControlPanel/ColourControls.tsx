@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/Button";
-import { Switch } from "@/components/catalyst/switch-adapter";
+import { Switch } from "@/components/ui/switch-adapter";
 import { RefreshCw, ChevronDown } from "lucide-react";
 import { BLEND_MODES } from "@/constants/blend";
 import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
@@ -73,6 +73,7 @@ export function ColourControls({
   const blendAutoLabelId = "blend-auto-label";
   const refreshPaletteButtonRef = useRef<HTMLButtonElement>(null);
   const randomizeBlendButtonRef = useRef<HTMLButtonElement>(null);
+  const randomizeGradientColorsButtonRef = useRef<HTMLButtonElement>(null);
   const isCanvasGradient = spriteState.canvasFillMode === "gradient";
   const currentCanvasLabel =
     canvasPaletteOptions.find(
@@ -314,6 +315,74 @@ export function ColourControls({
             aria-label="Enable gradients"
           />
         </div>
+        {spriteState.spriteFillMode === "gradient" && (
+          <>
+            <ControlSlider
+              id="sprite-gradient-direction"
+              label="Sprite gradient direction"
+              min={0}
+              max={360}
+              value={Math.round(spriteState.spriteGradientDirection ?? 0)}
+              displayValue={`${Math.round(spriteState.spriteGradientDirection ?? 0)}°`}
+              onChange={(value) => controller?.setSpriteGradientDirection(value)}
+              disabled={!ready || spriteState.spriteGradientDirectionRandom}
+              tooltip="Sets the angle of the sprite gradient (0° = horizontal left to right, 90° = vertical top to bottom)."
+            />
+            <div className="control-field">
+              <div className="field-heading">
+                <div className="field-heading-left">
+                  <TextWithTooltip
+                    id="sprite-gradient-direction-random-tip"
+                    text="Give each sprite a random gradient direction"
+                  >
+                    <span className="field-label">Random sprite gradient direction</span>
+                  </TextWithTooltip>
+                </div>
+              </div>
+              <div className="switch-row">
+                <Switch
+                  checked={spriteState.spriteGradientDirectionRandom ?? false}
+                  onCheckedChange={(checked) =>
+                    controller?.setSpriteGradientDirectionRandom(checked)
+                  }
+                  disabled={!ready}
+                  aria-label="Random sprite gradient direction"
+                />
+              </div>
+            </div>
+            <div className="control-field control-field--spaced-top">
+              <div className="field-heading">
+                <div className="field-heading-left">
+                  <TextWithTooltip
+                    id="randomize-gradient-colors-tip"
+                    text="Randomize which 2 colors from the palette are used for gradients"
+                  >
+                    <span className="field-label">Randomize gradient colors</span>
+                  </TextWithTooltip>
+                </div>
+              </div>
+              <div className="switch-row">
+                <Button
+                  ref={randomizeGradientColorsButtonRef}
+                  type="button"
+                  size="icon"
+                  variant="background"
+                  onClick={() => {
+                    if (randomizeGradientColorsButtonRef.current) {
+                      animatePulse(randomizeGradientColorsButtonRef.current);
+                    }
+                    controller?.randomizeGradientColors();
+                  }}
+                  disabled={!ready}
+                  aria-label="Randomise gradient colors"
+                  title="Randomise gradient colors"
+                >
+                  <RefreshCw className="h-6 w-6" />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="section section--spaced">
@@ -520,6 +589,19 @@ export function ColourControls({
                 />
               </div>
             </div>
+            {isCanvasGradient && (
+              <ControlSlider
+                id="canvas-gradient-direction"
+                label="Canvas gradient direction"
+                min={0}
+                max={360}
+                value={Math.round(spriteState.canvasGradientDirection ?? 0)}
+                displayValue={`${Math.round(spriteState.canvasGradientDirection ?? 0)}°`}
+                onChange={(value) => controller?.setCanvasGradientDirection(value)}
+                disabled={!ready}
+                tooltip="Sets the angle of the canvas gradient (0° = horizontal left to right, 90° = vertical top to bottom)."
+              />
+            )}
             <ControlSlider
               id="background-hue-shift"
               label="Canvas hue shift"

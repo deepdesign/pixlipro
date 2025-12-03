@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/catalyst/input";
+import { Input } from "@/components/ui/input";
 import {
   deleteSequence,
   saveSequence,
@@ -13,7 +13,7 @@ import {
   DropdownButton,
   DropdownItem,
   DropdownMenu,
-} from "@/components/catalyst/dropdown";
+} from "@/components/ui/dropdown";
 
 interface SequenceListTableProps {
   sequences: Sequence[];
@@ -147,7 +147,7 @@ function SequenceListRow({ sequence, onSelect, onUpdate }: SequenceListRowProps)
   };
 
   return (
-    <tr className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+    <tr className="border-b border-theme-card hover:bg-theme-icon transition-colors">
       {/* Name */}
       <td className="px-4 py-3">
         {isEditing ? (
@@ -162,7 +162,7 @@ function SequenceListRow({ sequence, onSelect, onUpdate }: SequenceListRowProps)
         ) : (
           <button
             onClick={handleNameClick}
-            className="text-left text-slate-900 dark:text-slate-50 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            className="text-left text-theme-primary hover:text-theme-muted transition-colors"
           >
             {sequence.name}
           </button>
@@ -170,26 +170,26 @@ function SequenceListRow({ sequence, onSelect, onUpdate }: SequenceListRowProps)
       </td>
 
       {/* Scenes Count */}
-      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+      <td className="px-4 py-3 text-theme-muted">
         {sequence.scenes.length}
       </td>
 
       {/* Duration */}
-      <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+      <td className="px-4 py-3 text-theme-muted">
         {formatDuration(sequence)}
       </td>
 
       {/* Background Colour */}
       <td className="px-4 py-3">
         <div
-          className="w-8 h-8 rounded border border-slate-300 dark:border-slate-600"
+          className="w-8 h-8 rounded border border-theme-card"
           style={{ backgroundColor: sequence.backgroundColour }}
           title={sequence.backgroundColour}
         />
       </td>
 
       {/* Last Updated */}
-      <td className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+      <td className="px-4 py-3 text-sm text-theme-muted">
         {formatRelativeTime(sequence.updatedAt)}
       </td>
 
@@ -237,7 +237,7 @@ export function SequenceListTable({
   if (sequences.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
-        <p className="text-slate-600 dark:text-slate-400 mb-4 text-center">
+        <p className="text-theme-muted mb-4 text-center">
           No sequences yet. Create your first sequence to get started.
         </p>
         <Button onClick={() => {
@@ -254,23 +254,23 @@ export function SequenceListTable({
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
-          <tr className="border-b border-slate-200 dark:border-slate-800">
-            <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+          <tr className="border-b border-theme-card">
+            <th className="px-4 py-3 text-left text-sm font-medium text-theme-heading">
               Name
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+            <th className="px-4 py-3 text-left text-sm font-medium text-theme-heading">
               Scenes
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+            <th className="px-4 py-3 text-left text-sm font-medium text-theme-heading">
               Duration
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+            <th className="px-4 py-3 text-left text-sm font-medium text-theme-heading">
               Background
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+            <th className="px-4 py-3 text-left text-sm font-medium text-theme-heading">
               Last Updated
             </th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-300">
+            <th className="px-4 py-3 text-left text-sm font-medium text-theme-heading">
               Actions
             </th>
           </tr>

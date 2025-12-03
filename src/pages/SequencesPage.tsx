@@ -18,7 +18,7 @@ export function SequencesPage({ currentState, onLoadPreset }: SequencesPageProps
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 py-6">
-        <div className="bg-theme-card rounded-lg border border-theme-card shadow-sm h-full flex overflow-hidden">
+        <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm h-full flex overflow-hidden">
           <div className="flex-1 flex overflow-hidden min-h-0">
             <SequenceManager 
               onLoadPreset={onLoadPreset}

@@ -34,8 +34,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      // Polyfill for Node.js 'os' module that SVGO tries to use
+      // Polyfills for Node.js modules that SVGO/sax tries to use
       "os": path.resolve(__dirname, "src/lib/polyfills/os.js"),
+      "stream": path.resolve(__dirname, "src/lib/polyfills/stream.js"),
     },
   },
   optimizeDeps: {
@@ -45,6 +46,8 @@ export default defineConfig(({ mode }) => ({
     },
     // Force include CommonJS dependencies that SVGO uses
     include: ['boolbase', 'css-tree', 'csso'],
+    // Exclude stream from externalization - use our polyfill instead
+    exclude: ['stream'],
   },
   define: {
     __APP_VERSION__: JSON.stringify(version),

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Field, Label, Description } from "@/components/catalyst/fieldset";
-import { Switch, SwitchField } from "@/components/catalyst/switch";
-import { Input } from "@/components/catalyst/input";
+import { Field, Label, Description } from "@/components/ui/fieldset";
+import { Switch, SwitchField } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/Button";
 import { generateQRCodeDataURL, getWebSocketURL } from "@/lib/utils/qrCode";
 import { Wifi, WifiOff, Copy, Check } from "lucide-react";
@@ -95,8 +95,8 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
   return (
     <div className="space-y-6 px-6">
       {/* Remote Control Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-base font-semibold text-theme-primary">Mobile Remote Control</h3>
@@ -105,7 +105,7 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
               </p>
             </div>
             {isConnected ? (
-              <Wifi className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <Wifi className="h-5 w-5 text-status-success flex-shrink-0 mt-0.5" />
             ) : (
               <WifiOff className="h-5 w-5 text-theme-subtle flex-shrink-0 mt-0.5" />
             )}
@@ -128,7 +128,7 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
           </Field>
 
           {settings.remoteControlEnabled && (
-            <div className="mt-6 pt-6 border-t border-theme-divider space-y-4">
+            <div className="mt-6 pt-6 border-t border-theme-card space-y-4">
               {/* Port Configuration */}
               <Field>
                 <Label htmlFor="ws-port">WebSocket Port</Label>
@@ -182,7 +182,7 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
               {/* QR Code */}
               {qrCodeDataURL && (
                 <div className="flex flex-col items-center gap-4">
-                  <div className="p-4 bg-theme-panel rounded-lg border border-theme-panel">
+                  <div className="p-4 bg-theme-panel rounded-lg border border-theme-card">
                     <img
                       src={qrCodeDataURL}
                       alt="QR Code for mobile connection"
@@ -196,7 +196,7 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
               )}
 
               {/* Connection Status */}
-              <div className={`p-3 rounded-lg border bg-theme-status border-theme-divider`}>
+              <div className={`p-3 rounded-lg border bg-theme-status border-theme-card`}>
                 <div className="flex items-center gap-2">
                   {isConnected ? (
                     <>

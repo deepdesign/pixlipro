@@ -2,17 +2,17 @@
  * Theme Template System
  * 
  * Defines the three-variable template structure for creating themes:
- * - Primary: Accent color (green/mint)
- * - Secondary: Neutral color (slate)
+ * - Primary: Main UI color (slate) - backgrounds, text, borders
+ * - Accent: Accent/highlight color (mint green) - buttons, highlights
  * - Supporting: High contrast color (white/black)
  */
 
-export interface ThemePrimary {
+export interface ThemeAccent {
   /** Main accent color */
   base: string;
   /** Shadow/darker variant for buttons */
   shadow: string;
-  /** Text color on primary background */
+  /** Text color on accent background */
   contrast: string;
   /** Secondary accent variant (optional) */
   secondary?: string;
@@ -24,7 +24,7 @@ export interface ThemePrimary {
   linkHover?: string;
 }
 
-export interface ThemeSecondary {
+export interface ThemePrimary {
   /** Background shades */
   bgBase: string;        // Base background (slate-950)
   bgTop: string;         // Top background for gradients (slate-950)
@@ -43,13 +43,10 @@ export interface ThemeSecondary {
   hint: string;          // Hint text (zinc-400)
   notes: string;         // Notes text (zinc-300)
   
-  /** Border shades */
-  borderPanel: string;   // Panel border (gray-700)
-  borderCard: string;    // Card border (gray-700)
-  borderStatus: string;  // Status border (gray-700)
-  borderIcon: string;    // Icon border (gray-700)
-  borderSelect: string;  // Select border (gray-700)
-  borderCheckbox: string; // Checkbox border (gray-700)
+  /** Unified border color - one tint lighter than panel background */
+  border: string;        // Unified border color for borders on panels/cards
+  /** Border color for base background - one tint lighter than base background */
+  borderBase: string;    // Border color for dividers on base background (settings, etc.)
   
   /** Shadow colors */
   shadowPanel: string;   // Panel shadow
@@ -60,12 +57,21 @@ export interface ThemeSecondary {
   /** Control colors */
   sliderTrackStrong: string;  // Slider track strong
   sliderTrackMuted: string;   // Slider track muted
-  sliderThumbBg: string;      // Slider thumb background
-  sliderThumbBorder: string;  // Slider thumb border
+  sliderThumbBg: string;      // Slider thumb background (uses tint50)
+  sliderThumbBorder: string;  // Slider thumb border (uses tint400)
   sliderThumbShadow: string;  // Slider thumb shadow
   selectHover: string;        // Select hover state
   selectActive: string;       // Select active state
-  iconHover: string;          // Icon button hover state
+  iconHover: string;          // Naked icon button hover state
+  iconHoverNormal: string;    // Normal icon button hover state (with background)
+  
+  /** Color scale tints - for dynamic theme color support */
+  tint50: string;   // Lightest tint (e.g., slate-50)
+  tint100: string;  // Very light tint (e.g., slate-100)
+  tint400: string;  // Medium-light tint (e.g., slate-400)
+  tint600: string;  // Medium-dark tint (e.g., slate-600)
+  tint700: string;  // Dark tint (e.g., slate-700)
+  tint800: string;  // Dark tint (e.g., slate-800)
 }
 
 export interface ThemeSupporting {
@@ -76,10 +82,10 @@ export interface ThemeSupporting {
 }
 
 export interface ThemeTemplate {
-  /** Primary color (accent) */
+  /** Primary color (main UI color - slate) */
   primary: ThemePrimary;
-  /** Secondary color (neutral) */
-  secondary: ThemeSecondary;
+  /** Accent color (highlight color - mint green) */
+  accent: ThemeAccent;
   /** Supporting color (high contrast) */
   supporting: ThemeSupporting;
 }

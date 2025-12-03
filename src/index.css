@@ -68,17 +68,20 @@ button {
 }
 
 /* Override button font-size for SelectTrigger to use smaller typography */
+/* Match the styling of dropdown items */
 button[data-radix-select-trigger] {
   font-size: 0.65rem !important;
-  letter-spacing: 0.18em !important;
+  letter-spacing: 0.16em !important; /* Match dropdown items (0.16em) */
   text-transform: uppercase !important;
 }
 
+/* Selected value text should match dropdown item text styling */
 button[data-radix-select-trigger] > span[data-radix-select-value],
 button[data-radix-select-trigger] > span:not([data-placeholder]) {
   font-size: 0.65rem !important;
-  letter-spacing: 0.18em !important;
+  letter-spacing: 0.16em !important; /* Match dropdown items (0.16em) */
   text-transform: uppercase !important;
+  color: var(--accent-primary) !important; /* Match checked dropdown item color */
 }
 
 /* Improve touch interactions on mobile */
@@ -139,8 +142,8 @@ html {
   --color-zinc-900: #18181b;
   --color-zinc-950: #09090b;
   
-  --color-white: #ffffff;
-  --color-black: #000000;
+  --color-white: #f8fafc;  /* slate-50 - replaces #ffffff */
+  --color-black: #020617;  /* slate-950 - replaces #000000 */
   
   /* Custom colors for RetroUI compatibility */
   --color-border: var(--border);
@@ -160,70 +163,86 @@ html {
    * Template variables define the base colors for the theme system.
    * These are then mapped to semantic variables used throughout the app.
    * 
-   * Primary: Accent color (green/mint)
-   * Secondary: Neutral color (slate)
+   * Primary: Main UI color (slate) - backgrounds, text, borders
+   * Accent: Highlight color (teal) - buttons, highlights, links
    * Supporting: High contrast color (white/black)
    * 
    * Default: Dark mode (applies when data-theme is not set or is "dark")
    * ============================================================================ */
 
-  /* Primary Color (Accent) - Dark Mode */
-  --theme-primary-base: #58f5c2;
-  --theme-primary-shadow: #1c7d5b;
-  --theme-primary-contrast: #04261a;
-  --theme-primary-secondary: rgba(69, 22, 55, 0.8);
-  --theme-primary-muted: rgba(46, 16, 40, 0.8);
-  --theme-primary-link: #60a5fa;
-  --theme-primary-linkHover: #93c5fd;
+  /* Accent Color (Teal) - Dark Mode */
+  --theme-accent-base: #2dd4bf;
+  --theme-accent-shadow: #0d9488;
+  --theme-accent-contrast: #134e4a;
+  --theme-accent-secondary: rgba(69, 22, 55, 0.8);
+  --theme-accent-muted: rgba(46, 16, 40, 0.8);
+  /* Links use accent color (teal) */
+  --theme-accent-link: var(--theme-accent-base);  /* #2dd4bf - accent color */
+  --theme-accent-linkHover: var(--theme-accent-shadow);  /* #0d9488 - darker accent */
 
-  /* Secondary Color (Neutral) - Dark Mode */
+  /* Primary Color (Slate) - Dark Mode */
   /* Backgrounds */
-  --theme-secondary-bg-base: #020617;      /* slate-950 */
-  --theme-secondary-bg-top: #020617;       /* slate-950 */
-  --theme-secondary-panel: #0f172a;        /* slate-900 */
-  --theme-secondary-card: #1e293b;         /* slate-800 */
-  --theme-secondary-status: #1e293b;       /* slate-800 */
-  --theme-secondary-icon: #1e293b;         /* slate-800 */
-  --theme-secondary-select: #1e293b;       /* slate-800 */
-  --theme-secondary-checkbox: #1e293b;     /* slate-800 */
+  --theme-primary-bg-base: #020617;      /* slate-950 (main container background) */
+  --theme-primary-bg-top: #020617;       /* slate-950 */
+  --theme-primary-panel: #0f172a;        /* slate-900 */
+  --theme-primary-card: #1e293b;         /* slate-800 */
+  --theme-primary-status: #1e293b;       /* slate-800 */
+  --theme-primary-icon: #1e293b;         /* slate-800 (for slider track/switch bg/icon buttons/badges) */
+  --theme-primary-select: #1e293b;       /* slate-800 */
+  --theme-primary-checkbox: #1e293b;     /* slate-800 */
   
   /* Text */
-  --theme-secondary-textPrimary: #ffffff;  /* white */
-  --theme-secondary-textMuted: #94a3b8;    /* slate-400 */
-  --theme-secondary-textSubtle: #64748b;   /* slate-500 */
-  --theme-secondary-heading: #e2e8f0;      /* slate-200 */
-  --theme-secondary-hint: #94a3b8;         /* slate-400 */
-  --theme-secondary-notes: #cbd5e1;        /* slate-300 */
+  --theme-primary-textPrimary: #ffffff;  /* white */
+  --theme-primary-textMuted: #94a3b8;    /* slate-400 */
+  --theme-primary-textSubtle: #64748b;   /* slate-500 */
+  --theme-primary-heading: #e2e8f0;      /* slate-200 */
+  --theme-primary-hint: #94a3b8;         /* slate-400 */
+  --theme-primary-notes: #cbd5e1;        /* slate-300 */
   
-  /* Borders */
-  --theme-secondary-borderPanel: #334155;   /* slate-700 */
-  --theme-secondary-borderCard: #334155;    /* slate-700 */
-  --theme-secondary-borderStatus: #334155;  /* slate-700 */
-  --theme-secondary-borderIcon: #334155;    /* slate-700 */
-  --theme-secondary-borderSelect: #334155;  /* slate-700 */
-  --theme-secondary-borderCheckbox: #334155; /* slate-700 */
+  /* Unified borders */
+  --theme-primary-border: #1e293b;   /* slate-800 (one tint lighter than panel: slate-900) */
+  --theme-primary-borderBase: #0f172a;  /* slate-900 (one tint lighter than base: slate-950) */
   
   /* Shadows */
-  --theme-secondary-shadowPanel: rgba(0, 0, 0, 0.3);
-  --theme-secondary-shadowCard: rgba(0, 0, 0, 0.3);
-  --theme-secondary-shadowStatus: rgba(0, 0, 0, 0.2);
-  --theme-secondary-shadowSelect: rgba(0, 0, 0, 0.3);
+  --theme-primary-shadowPanel: rgba(0, 0, 0, 0.3);
+  --theme-primary-shadowCard: rgba(0, 0, 0, 0.3);
+  --theme-primary-shadowStatus: rgba(0, 0, 0, 0.2);
+  --theme-primary-shadowSelect: rgba(0, 0, 0, 0.3);
   
   /* Controls */
-  --theme-secondary-sliderTrackStrong: rgba(100, 116, 139, 0.4);  /* slate-500 with opacity */
-  --theme-secondary-sliderTrackMuted: rgba(15, 23, 42, 0.6);      /* slate-900 with opacity */
-  --theme-secondary-sliderThumbBg: #ffffff;  /* white */
-  --theme-secondary-sliderThumbBorder: #64748b;  /* slate-500 */
-  --theme-secondary-sliderThumbShadow: rgba(0, 0, 0, 0.3);
-  --theme-secondary-selectHover: #334155;  /* slate-700 */
-  --theme-secondary-selectActive: #334155;  /* slate-700 */
+  --theme-primary-sliderTrackStrong: rgba(100, 116, 139, 0.4);  /* slate-500 with opacity */
+  --theme-primary-sliderTrackMuted: rgba(15, 23, 42, 0.6);      /* slate-900 with opacity */
+  --theme-primary-sliderThumbBg: var(--theme-primary-tint50);  /* Uses tint50 - theme tint */
+  --theme-primary-sliderThumbBorder: var(--theme-primary-tint400);  /* Uses tint400 - theme tint */
+  --theme-primary-sliderThumbShadow: rgba(0, 0, 0, 0.3);
+  --theme-primary-selectHover: #334155;  /* slate-700 */
+  --theme-primary-selectActive: #334155;  /* slate-700 */
   
   /* Hover states */
-  --theme-secondary-iconHover: #334155;    /* slate-700 - for icon button hover */
+  --theme-primary-iconHover: #1e293b;    /* slate-800 - for naked icon button hover */
+  --theme-primary-iconHoverNormal: #334155;    /* slate-700 - for normal icon button hover */
 
-  /* Supporting Color */
-  --theme-supporting-light: #ffffff;
-  --theme-supporting-dark: #000000;
+  /* Color scale tints - slate (for dynamic theme color support) */
+  --theme-primary-tint50: #f8fafc;   /* slate-50 */
+  --theme-primary-tint100: #f1f5f9;  /* slate-100 */
+  --theme-primary-tint400: #94a3b8;  /* slate-400 */
+  --theme-primary-tint600: #475569;  /* slate-600 */
+  --theme-primary-tint700: #1e293b;   /* slate-800 */
+
+  /* Supporting Color - Using slate tints instead of pure white/black */
+  --theme-supporting-light: #f8fafc;  /* slate-50 - replaces #ffffff */
+  --theme-supporting-dark: #020617;   /* slate-950 - replaces #000000 */
+
+  /* Status Colors - RAG System (Red, Amber, Green) + Slate for Info */
+  /* Error, Warning, Success use RAG colors; Info uses slate (not RAG-aligned) */
+  --status-error: #ef4444;        /* red-500 - error states (RAG) */
+  --status-error-bg: rgba(239, 68, 68, 0.1);  /* red-500 with opacity for backgrounds */
+  --status-warning: #eab308;      /* yellow-500 - warning states (RAG) */
+  --status-warning-bg: rgba(234, 179, 8, 0.1);  /* yellow-500 with opacity */
+  --status-success: var(--theme-accent-base);  /* accent color (teal) - success states (RAG-aligned) */
+  --status-success-bg: rgba(45, 212, 191, 0.1);  /* accent with opacity */
+  --status-info: #64748b;         /* slate-500 - info states (not RAG) */
+  --status-info-bg: rgba(100, 116, 139, 0.1);  /* slate-500 with opacity */
 
   /* ============================================================================
    * SEMANTIC VARIABLE MAPPINGS (Dark Mode - Default)
@@ -232,49 +251,52 @@ html {
    * ============================================================================ */
 
   /* Backgrounds */
-  --bg-base: var(--theme-secondary-bg-base);
-  --bg-top: var(--theme-secondary-bg-top);
-  --panel-bg: var(--theme-secondary-panel);
-  --card-bg: var(--theme-secondary-card);
-  --status-bg: var(--theme-secondary-status);
-  --icon-bg: var(--theme-secondary-icon);
-  --select-bg: var(--theme-secondary-select);
-  --checkbox-bg: var(--theme-secondary-checkbox);
+  --bg-base: var(--theme-primary-bg-base);
+  --bg-top: var(--theme-primary-bg-top);
+  --panel-bg: var(--theme-primary-panel);
+  --card-bg: var(--theme-primary-card);
+  --status-bg: var(--theme-primary-status);
+  --icon-bg: var(--theme-primary-icon);
+  --select-bg: var(--theme-primary-select);
+  --checkbox-bg: var(--theme-primary-checkbox);
 
   /* Text - Dark mode uses supporting light (white) */
   --text-primary: var(--theme-supporting-light);
-  --text-muted: var(--theme-secondary-textMuted);
-  --text-subtle: var(--theme-secondary-textSubtle);
-  --heading-color: var(--theme-secondary-heading);
-  --hint-color: var(--theme-secondary-hint);
-  --notes-text: var(--theme-secondary-notes);
+  --text-muted: var(--theme-primary-textMuted);
+  --text-subtle: var(--theme-primary-textSubtle);
+  --heading-color: var(--theme-primary-heading);
+  --hint-color: var(--theme-primary-hint);
+  --notes-text: var(--theme-primary-notes);
 
-  /* Borders */
-  --panel-border: var(--theme-secondary-borderPanel);
-  --card-border: var(--theme-secondary-borderCard);
-  --status-border: var(--theme-secondary-borderStatus);
-  --icon-border: var(--theme-secondary-borderIcon);
-  --select-border: var(--theme-secondary-borderSelect);
-  --checkbox-border: var(--theme-secondary-borderCheckbox);
+  /* Unified borders */
+  --border: var(--theme-primary-border);
+  --border-base: var(--theme-primary-borderBase);
+  --panel-border: var(--theme-primary-border);
+  --card-border: var(--theme-primary-border);
+  --structural-border: var(--theme-primary-borderBase); /* Dividers on base background */
+  --status-border: var(--theme-primary-border);
+  --icon-border: var(--theme-primary-border);
+  --select-border: var(--theme-primary-border);
+  --checkbox-border: var(--theme-primary-border);
 
   /* Shadows */
-  --panel-shadow: var(--theme-secondary-shadowPanel);
-  --card-shadow: var(--theme-secondary-shadowCard);
-  --status-shadow: var(--theme-secondary-shadowStatus);
-  --select-shadow: var(--theme-secondary-shadowSelect);
+  --panel-shadow: var(--theme-primary-shadowPanel);
+  --card-shadow: var(--theme-primary-shadowCard);
+  --status-shadow: var(--theme-primary-shadowStatus);
+  --select-shadow: var(--theme-primary-shadowSelect);
 
   /* Controls */
-  --slider-track-strong: var(--theme-secondary-sliderTrackStrong);
-  --slider-track-muted: var(--theme-secondary-sliderTrackMuted);
-  --slider-thumb-bg: var(--theme-secondary-sliderThumbBg);
-  --slider-thumb-border: var(--theme-secondary-sliderThumbBorder);
-  --slider-thumb-shadow: var(--theme-secondary-sliderThumbShadow);
+  --slider-track-strong: var(--theme-primary-sliderTrackStrong);
+  --slider-track-muted: var(--theme-primary-sliderTrackMuted);
+  --slider-thumb-bg: var(--theme-primary-sliderThumbBg);
+  --slider-thumb-border: var(--theme-primary-sliderThumbBorder);
+  --slider-thumb-shadow: var(--theme-primary-sliderThumbShadow);
   --select-hover: var(--theme-secondary-selectHover);
   --select-active: var(--theme-secondary-selectActive);
 
   /* Links */
-  --link-color: var(--theme-primary-link);
-  --link-hover: var(--theme-primary-linkHover);
+  --link-color: var(--theme-accent-link);
+  --link-hover: var(--theme-accent-linkHover);
 
   /* Responsive Layout Column Widths */
   --control-column-width: 374px;
@@ -301,107 +323,127 @@ html {
    * THREE-VARIABLE TEMPLATE SYSTEM - Light Mode
    * ============================================================================ */
 
-  /* Primary Color (Accent) - Light Mode (same as dark) */
-  --theme-primary-base: #58f5c2;
-  --theme-primary-shadow: #1c7d5b;
-  --theme-primary-contrast: #04261a;
-  --theme-primary-secondary: rgba(69, 22, 55, 0.8);
-  --theme-primary-muted: rgba(46, 16, 40, 0.8);
-  --theme-primary-link: #3b82f6;        /* blue-600 - darker for light mode */
-  --theme-primary-linkHover: #2563eb;    /* blue-700 */
+  /* Accent Color (Teal) - Light Mode (same as dark) */
+  --theme-accent-base: #2dd4bf;
+  --theme-accent-shadow: #0d9488;
+  --theme-accent-contrast: #134e4a;
+  --theme-accent-secondary: rgba(69, 22, 55, 0.8);
+  --theme-accent-muted: rgba(46, 16, 40, 0.8);
+  /* Links use accent color (teal) */
+  --theme-accent-link: var(--theme-accent-base);  /* #2dd4bf - accent color */
+  --theme-accent-linkHover: var(--theme-accent-shadow);  /* #0d9488 - darker accent */
 
-  /* Secondary Color (Neutral) - Light Mode */
+  /* Primary Color (Slate) - Light Mode */
   /* Backgrounds */
-  --theme-secondary-bg-base: #f8fafc;    /* slate-50 */
-  --theme-secondary-bg-top: #ffffff;     /* white */
-  --theme-secondary-panel: #ffffff;       /* white */
-  --theme-secondary-card: #ffffff;        /* white */
-  --theme-secondary-status: #f8fafc;      /* slate-50 */
-  --theme-secondary-icon: #f1f5f9;        /* slate-100 (for slider track/switch bg per Tailwind conventions) */
-  --theme-secondary-select: #ffffff;      /* white */
-  --theme-secondary-checkbox: #ffffff;    /* white */
+  --theme-primary-bg-base: #f8fafc;    /* slate-50 */
+  --theme-primary-bg-top: #ffffff;     /* white */
+  --theme-primary-panel: #ffffff;       /* white */
+  --theme-primary-card: #ffffff;        /* white */
+  --theme-primary-status: #f8fafc;      /* slate-50 */
+  --theme-primary-icon: #f1f5f9;        /* slate-100 (for slider track/switch bg in light mode) */
+  --theme-primary-select: #ffffff;      /* white */
+  --theme-primary-checkbox: #ffffff;    /* white */
   
   /* Text */
-  --theme-secondary-textPrimary: #0f172a; /* slate-900 */
-  --theme-secondary-textMuted: #475569;   /* slate-600 */
-  --theme-secondary-textSubtle: #64748b;  /* slate-500 */
-  --theme-secondary-heading: #1e293b;     /* slate-800 */
-  --theme-secondary-hint: #475569;        /* slate-600 */
-  --theme-secondary-notes: #334155;       /* slate-700 */
+  --theme-primary-textPrimary: #0f172a; /* slate-900 */
+  --theme-primary-textMuted: #475569;   /* slate-600 */
+  --theme-primary-textSubtle: #64748b;  /* slate-500 */
+  --theme-primary-heading: #1e293b;     /* slate-800 */
+  --theme-primary-hint: #475569;        /* slate-600 */
+  --theme-primary-notes: #334155;       /* slate-700 */
   
-  /* Borders */
-  --theme-secondary-borderPanel: #e2e8f0;  /* slate-200 */
-  --theme-secondary-borderCard: #e2e8f0;    /* slate-200 */
-  --theme-secondary-borderStatus: #e2e8f0; /* slate-200 */
-  --theme-secondary-borderIcon: #e2e8f0;   /* slate-200 */
-  --theme-secondary-borderSelect: #e2e8f0; /* slate-200 */
-  --theme-secondary-borderCheckbox: #cbd5e1; /* slate-300 */
+  /* Unified borders */
+  --theme-primary-border: #e2e8f0;  /* slate-200 (one tint lighter than panel: white) */
+  --theme-primary-borderBase: #f1f5f9;  /* slate-100 (one tint lighter than base: slate-50) */
   
   /* Shadows */
-  --theme-secondary-shadowPanel: rgba(0, 0, 0, 0.1);
-  --theme-secondary-shadowCard: rgba(0, 0, 0, 0.1);
-  --theme-secondary-shadowStatus: rgba(0, 0, 0, 0.05);
-  --theme-secondary-shadowSelect: rgba(0, 0, 0, 0.1);
+  --theme-primary-shadowPanel: rgba(0, 0, 0, 0.1);
+  --theme-primary-shadowCard: rgba(0, 0, 0, 0.1);
+  --theme-primary-shadowStatus: rgba(0, 0, 0, 0.05);
+  --theme-primary-shadowSelect: rgba(0, 0, 0, 0.1);
   
   /* Controls - using slate colors aligned with Tailwind conventions */
-  --theme-secondary-sliderTrackStrong: rgba(100, 116, 139, 0.4);  /* slate-500 with opacity */
-  --theme-secondary-sliderTrackMuted: rgba(226, 232, 240, 0.8);   /* slate-200 with opacity (light track) */
-  --theme-secondary-sliderThumbBg: #475569;                        /* slate-600 - dark for visibility on light backgrounds */
-  --theme-secondary-sliderThumbBorder: #475569;                    /* slate-600 */
-  --theme-secondary-sliderThumbShadow: rgba(0, 0, 0, 0.1);
-  --theme-secondary-selectHover: #f1f5f9;  /* slate-100 */
-  --theme-secondary-selectActive: #e2e8f0;  /* slate-200 */
-  --theme-secondary-iconHover: #e8f2f6;    /* Subtle darker than slate-100 - approximates Tailwind's bg-zinc-950/5 overlay for light mode hover */
+  --theme-primary-sliderTrackStrong: rgba(100, 116, 139, 0.4);  /* slate-500 with opacity */
+  --theme-primary-sliderTrackMuted: rgba(226, 232, 240, 0.8);   /* slate-200 with opacity (light track) */
+  --theme-primary-sliderThumbBg: var(--theme-primary-tint600);  /* Uses tint600 - theme tint for light mode */
+  --theme-primary-sliderThumbBorder: var(--theme-primary-tint600);  /* Uses tint600 - theme tint */
+  --theme-primary-sliderThumbShadow: rgba(0, 0, 0, 0.1);
+  --theme-primary-selectHover: #f1f5f9;  /* slate-100 */
+  --theme-primary-selectActive: #e2e8f0;  /* slate-200 */
+
+  /* Color scale tints - slate (same as dark mode) */
+  --theme-primary-tint50: #f8fafc;   /* slate-50 */
+  --theme-primary-tint100: #f1f5f9;  /* slate-100 */
+  --theme-primary-tint400: #94a3b8;  /* slate-400 */
+  --theme-primary-tint600: #475569;  /* slate-600 */
+  --theme-primary-tint700: #334155;   /* slate-700 */
+  --theme-primary-tint700: #1e293b;   /* slate-800 */
+  --theme-primary-iconHover: #e8f2f6;    /* Subtle darker than slate-100 - approximates Tailwind's bg-zinc-950/5 overlay for light mode hover */
+
+  /* Status Colors - RAG System (Red, Amber, Green) + Slate for Info - Light Mode */
+  /* Error, Warning, Success use RAG colors; Info uses slate (not RAG-aligned) */
+  --status-error: #dc2626;        /* red-600 - error states (RAG, darker for light mode) */
+  --status-error-bg: rgba(220, 38, 38, 0.1);  /* red-600 with opacity for backgrounds */
+  --status-warning: #ca8a04;      /* yellow-600 - warning states (RAG, darker for light mode) */
+  --status-warning-bg: rgba(202, 138, 4, 0.1);  /* yellow-600 with opacity */
+  --status-success: var(--theme-accent-base);  /* accent color (teal) - success states (RAG-aligned) */
+  --status-success-bg: rgba(45, 212, 191, 0.1);  /* accent with opacity */
+  --status-info: #475569;         /* slate-600 - info states (not RAG, darker for light mode) */
+  --status-info-bg: rgba(71, 85, 105, 0.1);  /* slate-600 with opacity */
 
   /* ============================================================================
    * SEMANTIC VARIABLE MAPPINGS (Light Mode)
    * ============================================================================ */
 
   /* Backgrounds */
-  --bg-base: var(--theme-secondary-bg-base);
-  --bg-top: var(--theme-secondary-bg-top);
-  --panel-bg: var(--theme-secondary-panel);
-  --card-bg: var(--theme-secondary-card);
-  --status-bg: var(--theme-secondary-status);
-  --icon-bg: var(--theme-secondary-icon);
-  --select-bg: var(--theme-secondary-select);
-  --checkbox-bg: var(--theme-secondary-checkbox);
+  --bg-base: var(--theme-primary-bg-base);
+  --bg-top: var(--theme-primary-bg-top);
+  --panel-bg: var(--theme-primary-panel);
+  --card-bg: var(--theme-primary-card);
+  --status-bg: var(--theme-primary-status);
+  --icon-bg: var(--theme-primary-icon);
+  --select-bg: var(--theme-primary-select);
+  --checkbox-bg: var(--theme-primary-checkbox);
 
   /* Text - Light mode uses supporting dark (black) */
   --text-primary: var(--theme-supporting-dark);
-  --text-muted: var(--theme-secondary-textMuted);
-  --text-subtle: var(--theme-secondary-textSubtle);
-  --heading-color: var(--theme-secondary-heading);
-  --hint-color: var(--theme-secondary-hint);
-  --notes-text: var(--theme-secondary-notes);
+  --text-muted: var(--theme-primary-textMuted);
+  --text-subtle: var(--theme-primary-textSubtle);
+  --heading-color: var(--theme-primary-heading);
+  --hint-color: var(--theme-primary-hint);
+  --notes-text: var(--theme-primary-notes);
 
-  /* Borders */
-  --panel-border: var(--theme-secondary-borderPanel);
-  --card-border: var(--theme-secondary-borderCard);
-  --status-border: var(--theme-secondary-borderStatus);
-  --icon-border: var(--theme-secondary-borderIcon);
-  --select-border: var(--theme-secondary-borderSelect);
-  --checkbox-border: var(--theme-secondary-borderCheckbox);
+  /* Unified borders */
+  --border: var(--theme-primary-border);
+  --border-base: var(--theme-primary-borderBase);
+  --panel-border: var(--theme-primary-border);
+  --card-border: var(--theme-primary-border);
+  --structural-border: var(--theme-primary-borderBase); /* Dividers on base background */
+  --status-border: var(--theme-primary-border);
+  --icon-border: var(--theme-primary-border);
+  --select-border: var(--theme-primary-border);
+  --checkbox-border: var(--theme-primary-border);
 
   /* Shadows */
-  --panel-shadow: var(--theme-secondary-shadowPanel);
-  --card-shadow: var(--theme-secondary-shadowCard);
-  --status-shadow: var(--theme-secondary-shadowStatus);
-  --select-shadow: var(--theme-secondary-shadowSelect);
+  --panel-shadow: var(--theme-primary-shadowPanel);
+  --card-shadow: var(--theme-primary-shadowCard);
+  --status-shadow: var(--theme-primary-shadowStatus);
+  --select-shadow: var(--theme-primary-shadowSelect);
 
   /* Controls */
-  --slider-track-strong: var(--theme-secondary-sliderTrackStrong);
-  --slider-track-muted: var(--theme-secondary-sliderTrackMuted);
-  --slider-thumb-bg: var(--theme-secondary-sliderThumbBg);
-  --slider-thumb-border: var(--theme-secondary-sliderThumbBorder);
-  --slider-thumb-shadow: var(--theme-secondary-sliderThumbShadow);
-  --select-hover: var(--theme-secondary-selectHover);
-  --select-active: var(--theme-secondary-selectActive);
-  --icon-hover: var(--theme-secondary-iconHover);
+  --slider-track-strong: var(--theme-primary-sliderTrackStrong);
+  --slider-track-muted: var(--theme-primary-sliderTrackMuted);
+  --slider-thumb-bg: var(--theme-primary-sliderThumbBg);
+  --slider-thumb-border: var(--theme-primary-sliderThumbBorder);
+  --slider-thumb-shadow: var(--theme-primary-sliderThumbShadow);
+  --select-hover: var(--theme-primary-selectHover);
+  --select-active: var(--theme-primary-selectActive);
+  --icon-hover: var(--theme-primary-iconHover); /* slate-800 for naked buttons */
+  --icon-hover-normal: var(--theme-primary-iconHoverNormal); /* slate-700 for normal buttons */
 
   /* Links */
-  --link-color: var(--theme-primary-link);
-  --link-hover: var(--theme-primary-linkHover);
+  --link-color: var(--theme-accent-link);
+  --link-hover: var(--theme-accent-linkHover);
 }
 
 /* ============================================================================
@@ -416,6 +458,12 @@ html {
 .bg-theme-bg-top { background-color: var(--bg-top); }
 .bg-theme-panel { background-color: var(--panel-bg); }
 .bg-theme-card { background-color: var(--card-bg); }
+
+/* Tooltip backgrounds use tint700 instead of card-bg (tint800) */
+.tooltip-content,
+[role="tooltip"] {
+  background-color: var(--theme-primary-tint700) !important;
+}
 .bg-theme-status { background-color: var(--status-bg); }
 .bg-theme-icon { background-color: var(--icon-bg); }
 .bg-theme-select { background-color: var(--select-bg); }
@@ -429,14 +477,16 @@ html {
 .text-theme-hint { color: var(--hint-color); }
 .text-theme-notes { color: var(--notes-text); }
 
-/* Border utilities */
-.border-theme-panel { border-color: var(--panel-border); }
-.border-theme-card { border-color: var(--card-border); }
-.border-theme-status { border-color: var(--status-border); }
-.border-theme-icon { border-color: var(--icon-border); }
-.border-theme-select { border-color: var(--select-border); }
-.border-theme-checkbox { border-color: var(--checkbox-border); }
-.border-theme-divider { border-color: var(--panel-border); }
+/* Border utilities - all use unified border color */
+.border-theme { border-color: var(--border); }
+.border-theme-panel { border-color: var(--border); }
+.border-theme-card { border-color: var(--border); }
+.border-theme-structural { border-color: var(--structural-border); }
+.border-theme-status { border-color: var(--border); }
+.border-theme-icon { border-color: var(--border); }
+.border-theme-select { border-color: var(--border); }
+.border-theme-checkbox { border-color: var(--border); }
+.border-theme-divider { border-color: var(--border); }
 .bg-theme-border { background-color: var(--panel-border); }
 .outline-theme-panel { outline-color: var(--panel-border); }
 
@@ -444,6 +494,20 @@ html {
 .bg-theme-primary { background-color: var(--accent-primary); }
 .text-theme-primary-accent { color: var(--accent-primary); }
 .border-theme-primary { border-color: var(--accent-primary); }
+
+/* Status color utilities - RAG System */
+.text-status-error { color: var(--status-error); }
+.bg-status-error { background-color: var(--status-error-bg); }
+.border-status-error { border-color: var(--status-error); }
+.text-status-warning { color: var(--status-warning); }
+.bg-status-warning { background-color: var(--status-warning-bg); }
+.border-status-warning { border-color: var(--status-warning); }
+.text-status-success { color: var(--status-success); }
+.bg-status-success { background-color: var(--status-success-bg); }
+.border-status-success { border-color: var(--status-success); }
+.text-status-info { color: var(--status-info); }
+.bg-status-info { background-color: var(--status-info-bg); }
+.border-status-info { border-color: var(--status-info); }
 
 /* ============================================================================
  * ACCENT COLOR SYSTEM (Theme-Color)
@@ -454,9 +518,9 @@ html {
 
 /* Default accent (uses template primary) */
 body {
-  --accent-primary: var(--theme-primary-base);
-  --accent-primary-shadow: var(--theme-primary-shadow);
-  --accent-primary-contrast: var(--theme-primary-contrast);
+  --accent-primary: var(--theme-accent-base);
+  --accent-primary-shadow: var(--theme-accent-shadow);
+  --accent-primary-contrast: var(--theme-accent-contrast);
   /* Secondary hue: Magenta/Pink (complementary to cyan-green) */
   --accent-secondary-bg: rgba(69, 22, 55, 0.8);
   --accent-secondary-text: #ffc6f0;
@@ -2939,11 +3003,11 @@ body:has(.app-frame--stacked) .header-toolbar {
 /* Layout Container
  * 
  * Flexbox container that holds control-column, display-column, and motion-column
- * Uses gap: 20px (spacing.5) between columns to mirror card padding
+ * No gap - canvas butts up against control panel border
  */
 .app-layout {
   @apply w-full flex items-start justify-start;
-  gap: theme("spacing.5"); /* layout.gap.small-canvas */
+  gap: 0; /* No gap - canvas butts up against control panel border */
   flex-wrap: nowrap;
   align-items: flex-start;
   min-width: 0; /* Allow flex items to shrink below content size */
@@ -2954,15 +3018,15 @@ body:has(.app-frame--stacked) .header-toolbar {
   flex: 1;
 }
 
-/* Canvas butts up left - remove gap before display-column */
+/* Canvas butts up left - pull display column to overlap control panel border */
 .app-layout > .display-column {
-  margin-left: 0 !important;
+  margin-left: -1px !important; /* Pull display column to overlap control panel border */
 }
 
-/* Ensure small-canvas gap always wins - place after base app-layout rule */
-/* NOTE: Gap is overridden on mobile - see mobile media query */
+/* No gap - canvas butts up against control panel border */
+/* NOTE: Gap removed - canvas should align with control panel border */
 .app-layout--small-canvas {
-  gap: theme("spacing.5") !important; /* layout.gap.small-canvas */
+  gap: 0 !important; /* No gap - canvas butts up against control panel border */
 }
 
 /* Override small-canvas gap on mobile - must come after all small-canvas gap rules */
@@ -2975,7 +3039,7 @@ body:has(.app-frame--stacked) .header-toolbar {
 
 .app-layout--studio:not(.app-layout--small-canvas) {
   @apply justify-start;
-  gap: theme("spacing.6"); /* layout.gap.desktop */
+  gap: 0 !important; /* No gap - canvas butts up against control panel border */
 }
 
 /* Control Column (Left Column)
@@ -3058,6 +3122,7 @@ body:has(.app-frame--stacked) .header-toolbar {
   padding-right: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
+  margin-left: -1px !important; /* Pull display column to overlap control panel border */
   height: 100%;
   min-height: 0;
   /* Canvas-card inside handles its own sizing with clamp() for smooth scaling */
@@ -3084,6 +3149,11 @@ body:has(.app-frame--stacked) .header-toolbar {
   min-width: 0; /* Allow cards to shrink - containers enforce min-width */
   box-sizing: border-box;
   overflow: visible;
+}
+
+/* Canvas card has no border */
+.canvas-card {
+  border: none !important;
 }
 
 /* Canvas card: padding is now set in desktop media query after the display:block rule (see line 4108) */
@@ -3337,6 +3407,36 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   justify-content: center;
 }
 
+
+/* Selected sprite buttons - maintain accent color on hover (override general icon-button hover) */
+.sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) {
+  background-color: var(--accent-primary) !important;
+  opacity: 0.9;
+  color: var(--accent-primary-contrast) !important;
+}
+
+/* Dark mode: selected sprite button icons use tint700 even on hover */
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) {
+  color: var(--theme-primary-tint700) !important;
+}
+
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg[data-slot="icon"] {
+  color: var(--theme-primary-tint700) !important;
+  fill: var(--theme-primary-tint700) !important;
+}
+
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg path,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg circle,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg rect,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg polygon,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg line,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg polyline,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg ellipse {
+  fill: var(--theme-primary-tint700) !important;
+  stroke: none !important;
+}
+
 /* Ensure icons are centered in regenerate/refresh buttons */
 button[aria-label*="Regenerate"],
 button[aria-label*="regenerate"],
@@ -3394,10 +3494,43 @@ button[aria-label*="refresh"] {
   touch-action: manipulation !important;
 }
 
-/* Icon button hover - use theme hover color */
+/* Default: all icon buttons use 800 (naked) on hover */
 .icon-button:hover:not(:disabled) {
-  background-color: var(--icon-hover, var(--theme-secondary-iconHover)) !important;
+  background-color: var(--theme-primary-iconHover) !important; /* slate-800 - direct variable */
   box-shadow: none !important;
+}
+
+/* Normal icon buttons (with background/bg-theme-icon) - use 700 on hover - override default */
+.icon-button.bg-theme-icon:hover:not(:disabled),
+button.icon-button[class*="bg-theme-icon"]:hover:not(:disabled),
+button.icon-button.bg-theme-icon:hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHoverNormal) !important; /* slate-700 */
+  box-shadow: none !important;
+}
+
+/* Naked icon buttons (bg-transparent) - explicitly use 800 on hover - override any other rules including Tailwind */
+/* Must come after normal button rule to override it */
+/* Override Tailwind hover:bg-[var(--icon-hover)] class - use maximum specificity */
+button.bg-transparent.hover\:bg-\[var\(--icon-hover\)\]:hover:not(:disabled),
+button[class*="bg-transparent"][class*="hover:bg-"]:hover:not(:disabled),
+button.bg-transparent.icon-button:hover:not(:disabled),
+button.icon-button.bg-transparent:hover:not(:disabled),
+.icon-button.bg-transparent:hover:not(:disabled),
+button[class*="icon-button"][class*="bg-transparent"]:hover:not(:disabled),
+[class*="icon-button"][class*="bg-transparent"]:hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHover) !important; /* slate-800 - ensure it's 800 */
+  box-shadow: none !important;
+}
+
+/* Selected icon buttons (default variant with accent-primary) - override hover to maintain accent color */
+button.icon-button[style*="--accent-primary"]:hover:not(:disabled),
+.icon-button[style*="background-color: var(--accent-primary)"]:hover:not(:disabled),
+/* Target buttons with bg-[var(--accent-primary)] class from Tailwind */
+button.bg-\[var\(--accent-primary\)\]:hover:not(:disabled),
+/* More specific: sprite icon buttons that are selected (have default variant) */
+.sprite-icon-buttons button.bg-\[var\(--accent-primary\)\]:hover:not(:disabled) {
+  background-color: var(--accent-primary) !important;
+  opacity: 0.9;
 }
 
 /* Icon button active state - uses theme accent color */
@@ -3413,8 +3546,26 @@ button[aria-label*="refresh"] {
   box-shadow: none !important;
 }
 
+
 .control-lock-button:hover:not(:disabled) {
-  background-color: var(--icon-hover, var(--theme-secondary-iconHover)) !important;
+  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
+}
+
+/* Lock button hover state - maintain tint50 icon in dark mode */
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) {
+  color: var(--theme-primary-tint50, #f8fafc) !important;
+}
+
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg,
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg path,
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg circle,
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg line,
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg polyline,
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg polygon,
+[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg ellipse {
+  stroke: var(--theme-primary-tint50, #f8fafc) !important;
+  fill: none !important;
+  color: var(--theme-primary-tint50, #f8fafc) !important;
 }
 
 /* Lock button active state when UNLOCKED - keeps hover background, not theme color */
@@ -3424,18 +3575,30 @@ button[aria-label*="refresh"] {
 .control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) {
   box-shadow: none !important;
   /* Explicitly override .icon-button:active theme accent color - match hover state */
-  background-color: var(--icon-hover, var(--theme-secondary-iconHover)) !important;
-  background: var(--icon-hover, var(--theme-secondary-iconHover)) !important;
+  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
+  background: var(--icon-hover, var(--theme-primary-iconHover)) !important;
   color: var(--text-muted) !important;
 }
 
-/* Dark mode active state */
+/* Dark mode active state - unlocked lock buttons use tint50 */
 [data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]),
 [data-theme="dark"] .icon-button.control-lock-button:active:not(:disabled):not([data-locked="true"]),
 [data-theme="dark"] .control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) {
-  background-color: var(--icon-hover, var(--theme-secondary-iconHover)) !important;
-  background: var(--icon-hover, var(--theme-secondary-iconHover)) !important;
-  color: var(--text-muted) !important;
+  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
+  background: var(--icon-hover, var(--theme-primary-iconHover)) !important;
+  color: var(--theme-primary-tint50, #f8fafc) !important; /* Use tint50 in dark mode */
+}
+
+/* Dark mode active state SVG icons - unlocked lock buttons use tint50 */
+[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg,
+[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg path,
+[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg circle,
+[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg line,
+[data-theme="dark"] .icon-button.control-lock-button:active:not(:disabled):not([data-locked="true"]) svg,
+[data-theme="dark"] .control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) svg {
+  stroke: var(--theme-primary-tint50, #f8fafc) !important;
+  fill: none !important;
+  color: var(--theme-primary-tint50, #f8fafc) !important;
 }
 
 /* Lock button when locked - red background */
@@ -3444,8 +3607,14 @@ button[aria-label*="refresh"] {
   box-shadow: none !important;
 }
 
-.control-lock-button[data-locked="true"]:hover:not(:disabled) {
-  @apply bg-red-700 dark:bg-red-600;
+/* Lock button hover when locked - must override general icon-button and control-lock-button hover rules */
+.control-lock-button[data-locked="true"]:hover:not(:disabled),
+.icon-button.control-lock-button[data-locked="true"]:hover:not(:disabled),
+.control-lock-button.icon-button[data-locked="true"]:hover:not(:disabled),
+button.control-lock-button[data-locked="true"]:hover:not(:disabled),
+button.icon-button.control-lock-button[data-locked="true"]:hover:not(:disabled) {
+  background-color: var(--status-error, #ef4444) !important; /* red-500 */
+  box-shadow: none !important;
 }
 
 /* Lock button active state when LOCKED - red, not theme color (must override .icon-button:active) */
@@ -3482,7 +3651,7 @@ button[aria-label*="refresh"] {
 .icon-button-nav a:hover,
 .icon-button-nav button[data-hover],
 .icon-button-nav a[data-hover] {
-  background-color: var(--icon-hover, var(--theme-secondary-iconHover)) !important;
+  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
 }
 
 /* Ensure SVG icons inside icon buttons use currentColor and proper size */
@@ -3623,6 +3792,85 @@ button.header-icon-button > svg {
   stroke-width: 0 !important;
 }
 
+/* Lock button icons - use tint50 in dark mode (adapts to theme color) */
+/* Must come AFTER .icon-button svg rules to override stroke: currentColor */
+[data-theme="dark"] .control-lock-button {
+  color: var(--theme-primary-tint50, #f8fafc) !important; /* Fallback to slate-50 if variable not available */
+}
+
+/* Lock button SVG icons - ensure stroke uses tint50 in dark mode */
+/* Override .icon-button svg rules that set stroke: currentColor */
+[data-theme="dark"] .control-lock-button.icon-button svg,
+[data-theme="dark"] .control-lock-button svg,
+[data-theme="dark"] .icon-button.control-lock-button svg {
+  color: var(--theme-primary-tint50, #f8fafc) !important;
+}
+
+[data-theme="dark"] .control-lock-button.icon-button svg path,
+[data-theme="dark"] .control-lock-button svg path,
+[data-theme="dark"] .control-lock-button.icon-button svg circle,
+[data-theme="dark"] .control-lock-button svg circle,
+[data-theme="dark"] .control-lock-button.icon-button svg rect,
+[data-theme="dark"] .control-lock-button svg rect,
+[data-theme="dark"] .control-lock-button.icon-button svg line,
+[data-theme="dark"] .control-lock-button svg line,
+[data-theme="dark"] .control-lock-button.icon-button svg polyline,
+[data-theme="dark"] .control-lock-button svg polyline,
+[data-theme="dark"] .control-lock-button.icon-button svg polygon,
+[data-theme="dark"] .control-lock-button svg polygon,
+[data-theme="dark"] .control-lock-button.icon-button svg ellipse,
+[data-theme="dark"] .control-lock-button svg ellipse {
+  stroke: var(--theme-primary-tint50, #f8fafc) !important; /* Override stroke: currentColor */
+  fill: none !important;
+  color: var(--theme-primary-tint50, #f8fafc) !important;
+}
+
+/* Selected sprite button icons - use tint700 in dark mode (adapts to theme color) */
+/* Must come AFTER .icon-button svg rules to override stroke: currentColor */
+/* Override button's text-[var(--accent-primary-contrast)] to use primary theme tint700 instead */
+/* Need to override Tailwind's text-[var(--accent-primary-contrast)] class with higher specificity */
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"],
+[data-theme="dark"] .sprite-icon-buttons button.bg-\[var\(--accent-primary\)\][data-selected="true"],
+[data-theme="dark"] .sprite-icon-buttons button.text-\[var\(--accent-primary-contrast\)\][data-selected="true"] {
+  color: var(--theme-primary-tint700) !important;
+}
+
+/* Override SVG fill attribute - must override fill="currentColor" from ShapeIcon */
+/* Use very specific selectors to override Tailwind's text-[var(--accent-primary-contrast)] */
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg[data-slot="icon"],
+[data-theme="dark"] .sprite-icon-buttons button.bg-\[var\(--accent-primary\)\][data-selected="true"] svg,
+[data-theme="dark"] .sprite-icon-buttons button.text-\[var\(--accent-primary-contrast\)\][data-selected="true"] svg,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg[fill="currentColor"],
+[data-theme="dark"] .sprite-icon-buttons button.bg-\[var\(--accent-primary\)\].text-\[var\(--accent-primary-contrast\)\][data-selected="true"] svg {
+  color: var(--theme-primary-tint700) !important;
+  fill: var(--theme-primary-tint700) !important;
+}
+
+/* Override fill on all SVG child elements - must override fill="currentColor" from ShapeIcon */
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"].icon-button svg path,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg path,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"].icon-button svg circle,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg circle,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"].icon-button svg rect,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg rect,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"].icon-button svg polygon,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg polygon,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"].icon-button svg line,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg line,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"].icon-button svg polyline,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg polyline,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"].icon-button svg ellipse,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg ellipse,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg path[fill],
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg circle[fill],
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg rect[fill],
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg polygon[fill],
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg ellipse[fill] {
+  fill: var(--theme-primary-tint700) !important;
+  stroke: none !important;
+}
+
 /* Selected button state - default variant buttons (selected) */
 button.bg-primary.border-black {
   border-color: var(--accent-primary) !important;
@@ -3675,7 +3923,7 @@ button.bg-primary.button-selected:active {
 }
 
 .field-heading {
-  @apply flex items-center justify-between;
+  @apply flex items-baseline justify-between;
   gap: theme("spacing.2"); /* section.control.heading.gap.desktop */
 }
 
@@ -3689,13 +3937,17 @@ button.bg-primary.button-selected:active {
   letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--text-muted); /* Light slate tint in dark mode */
+  line-height: 1.2; /* Consistent line-height for alignment */
+  font-weight: 400; /* Normal weight */
 }
 
 .field-value {
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
+  font-size: 0.58rem; /* Match label size */
+  letter-spacing: 0.24em; /* Match label letter-spacing */
   text-transform: uppercase;
   color: var(--accent-primary);
+  line-height: 1.2; /* Match label line-height for alignment */
+  font-weight: 400; /* Normal weight - match label */
 }
 
 .control-slider {
@@ -3726,7 +3978,7 @@ button.bg-primary.button-selected:active {
   width: 1.125rem; /* h-4.5 = 18px */
   height: 1.125rem;
   border: none;
-  background: var(--slider-thumb-bg, var(--theme-secondary-sliderThumbBg));
+  background: var(--slider-thumb-bg, var(--theme-primary-sliderThumbBg));
   box-shadow: none;
   border-radius: 50%;
   cursor: pointer;
@@ -3740,7 +3992,7 @@ button.bg-primary.button-selected:active {
   width: 1.125rem;
   height: 1.125rem;
   border: none;
-  background: var(--slider-thumb-bg, var(--theme-secondary-sliderThumbBg));
+  background: var(--slider-thumb-bg, var(--theme-primary-sliderThumbBg));
   box-shadow: none;
   border-radius: 50%;
   cursor: pointer;
@@ -3763,7 +4015,7 @@ button.bg-primary.button-selected:active {
 
 .slider-track-theme {
   border-color: var(--panel-border);
-  background: var(--icon-bg, var(--theme-secondary-icon));
+  background: var(--icon-bg, var(--theme-primary-icon));
   border-radius: var(--radius-sm);
   transition: border-radius 0.18s ease;
 }
@@ -3781,8 +4033,31 @@ button.bg-primary.button-selected:active {
 }
 
 .control-slider[data-disabled="true"] {
-  opacity: 0.4;
   cursor: not-allowed;
+  opacity: 1; /* Don't make whole slider transparent */
+}
+
+/* Disabled slider thumb - use darker tint (2 tints darker) in dark mode */
+/* Target both data-disabled attribute and :disabled pseudo-class for compatibility */
+[data-theme="dark"] .control-slider[data-disabled="true"] input[type="range"]::-webkit-slider-thumb,
+[data-theme="dark"] .control-slider input[type="range"]:disabled::-webkit-slider-thumb {
+  background: var(--theme-primary-tint400) !important; /* 2 tints darker than tint50 (50 -> 100 -> 400) */
+}
+
+[data-theme="dark"] .control-slider[data-disabled="true"] input[type="range"]::-moz-range-thumb,
+[data-theme="dark"] .control-slider input[type="range"]:disabled::-moz-range-thumb {
+  background: var(--theme-primary-tint400) !important; /* 2 tints darker than tint50 */
+}
+
+/* Light mode - use lighter tint for disabled (2 tints lighter than tint600, closer to background) */
+[data-theme="light"] .control-slider[data-disabled="true"] input[type="range"]::-webkit-slider-thumb,
+[data-theme="light"] .control-slider input[type="range"]:disabled::-webkit-slider-thumb {
+  background: var(--theme-primary-tint100) !important; /* 2 tints lighter than tint600 (600 -> 400 -> 100), closer to light background */
+}
+
+[data-theme="light"] .control-slider[data-disabled="true"] input[type="range"]::-moz-range-thumb,
+[data-theme="light"] .control-slider input[type="range"]:disabled::-moz-range-thumb {
+  background: var(--theme-primary-tint100) !important; /* 2 tints lighter than tint600, closer to light background */
 }
 
 /* Removed RetroUI Switch styles - now using Catalyst Switch component */
@@ -4159,10 +4434,42 @@ button.bg-primary.button-selected:active {
   color: var(--accent-primary);
 }
 
+/* Radix Select scroll buttons - positioned at top and bottom of dropdown */
 .control-select-scroll {
   @apply flex items-center justify-center;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 10;
   padding: theme("spacing.2");
   color: var(--text-muted);
+  height: 2rem;
+  background: var(--select-bg);
+  pointer-events: auto;
+  transition: opacity 0.15s ease;
+}
+
+/* Scroll up button - positioned at top */
+.control-select-scroll-up {
+  top: 0;
+  border-bottom: 1px solid var(--select-border);
+}
+
+/* Scroll down button - positioned at bottom */
+.control-select-scroll-down {
+  bottom: 0;
+  border-top: 1px solid var(--select-border);
+}
+
+/* Radix automatically hides/shows these based on scroll position using hidden attribute */
+.control-select-scroll[hidden] {
+  display: none !important;
+}
+
+/* Prevent hover flashing - only show subtle feedback when visible and not hidden */
+.control-select-scroll:not([hidden]):hover {
+  background: var(--select-hover);
+  color: var(--text-primary);
 }
 
 .control-select-viewport {
@@ -4310,7 +4617,7 @@ button.bg-primary.button-selected:active {
   max-width: min(320px, calc(100vw - 2rem));
   padding-inline: theme("spacing.3");
   padding-block: theme("spacing.2");
-  font-size: 0.68rem;
+  font-size: 0.625rem; /* 10px - smaller tooltip text */
   line-height: 1.4;
   letter-spacing: 0.02em;
   text-transform: none;
@@ -4551,15 +4858,14 @@ aside[class*="sidebar"],
 .tooltip-content::after {
   content: "";
   position: absolute;
-  top: 100%;
+  top: calc(100% - 1px);
   left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-  width: 11px;
-  height: 11px;
-  background: var(--card-bg);
-  border-right: 2px solid var(--card-border);
-  border-bottom: 2px solid var(--card-border);
-  box-shadow: 2px 2px 0 var(--card-shadow);
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--theme-primary-tint700);
 }
 
 /* Tooltip visibility - CSS hover states for TooltipIcon */
@@ -4608,7 +4914,7 @@ aside[class*="sidebar"],
  * to scale smoothly as the viewport changes while maintaining aspect ratio.
  */
 .canvas-card-shell {
-  width: 100%;
+  width: calc(100% + 1px); /* Extend width to overlap control panel border */
   min-width: 320px; /* Allow scaling down to 320px */
   max-width: none !important; /* No max width - use full available area */
   box-sizing: border-box;
@@ -4617,7 +4923,7 @@ aside[class*="sidebar"],
   padding: 0 !important; /* No padding - canvas butts up left */
   padding-left: 0 !important; /* Explicitly remove left padding */
   margin: 0 !important; /* No margin */
-  margin-left: 0 !important;
+  margin-left: -1px !important; /* Pull canvas card shell to overlap control panel border by 1px */
 }
 
 /* Ensure the aspect ratio container div can scale freely */
@@ -4645,9 +4951,10 @@ aside[class*="sidebar"],
     padding: theme("spacing.5") !important; /* Set all padding to spacing.5 (20px) first */
     padding-top: theme("spacing.5") !important; /* Keep top padding at spacing.5 (20px) */
     padding-bottom: theme("spacing.5") !important; /* Match canvas-card__content gap (spacing.5 = 20px) for equal spacing above and below status bar */
-    padding-left: theme("spacing.5") !important; /* Preserve horizontal padding */
-    padding-right: theme("spacing.5") !important; /* Preserve horizontal padding */
-    padding-inline: theme("spacing.5") !important; /* Preserve horizontal padding */
+    padding-left: 0 !important; /* No left padding - canvas butts up against control panel border */
+    padding-right: theme("spacing.5") !important; /* Preserve right padding */
+    padding-inline-start: 0 !important; /* No left padding - canvas butts up against control panel border */
+    padding-inline-end: theme("spacing.5") !important; /* Preserve right padding */
     padding-block: theme("spacing.5") !important; /* Set block padding to spacing.5 - individual values will override */
   }
   
@@ -4656,9 +4963,10 @@ aside[class*="sidebar"],
     padding: theme("spacing.5") !important; /* Set all padding to spacing.5 (20px) first */
     padding-top: theme("spacing.5") !important; /* Restore top padding on desktop stacked view */
     padding-bottom: theme("spacing.5") !important; /* Restore bottom padding on desktop stacked view */
-    padding-left: theme("spacing.5") !important; /* Preserve horizontal padding */
-    padding-right: theme("spacing.5") !important; /* Preserve horizontal padding */
-    padding-inline: theme("spacing.5") !important; /* Preserve horizontal padding */
+    padding-left: 0 !important; /* No left padding - canvas butts up against control panel border */
+    padding-right: theme("spacing.5") !important; /* Preserve right padding */
+    padding-inline-start: 0 !important; /* No left padding - canvas butts up against control panel border */
+    padding-inline-end: theme("spacing.5") !important; /* Preserve right padding */
     padding-block: theme("spacing.5") !important; /* Set block padding to spacing.5 - individual values will override */
   }
 }
@@ -6773,6 +7081,165 @@ html[data-theme="dark"] input[type="color"]:hover:not(:disabled) {
   border-color: var(--icon-border); /* Use theme icon border on hover */
 }
 
+/* CRITICAL: Sprite button icons in dark mode - tint700 when selected, tint50 when unselected */
+/* Must be at end of file to override all other rules */
+/* Override button's text color and SVG's fill="currentColor" */
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] {
+  color: var(--theme-primary-tint700, #334155) !important; /* Fallback to slate-700 if variable not available */
+}
+
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg,
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"] svg * {
+  fill: var(--theme-primary-tint700, #334155) !important; /* Fallback to slate-700 if variable not available */
+  color: var(--theme-primary-tint700, #334155) !important; /* Fallback to slate-700 if variable not available */
+}
+
+/* Unselected sprite button icons in dark mode - use tint50 */
+[data-theme="dark"] .sprite-icon-buttons button:not([data-selected="true"]) {
+  color: var(--theme-primary-tint50, #f8fafc) !important; /* Fallback to slate-50 if variable not available */
+}
+
+[data-theme="dark"] .sprite-icon-buttons button:not([data-selected="true"]) svg,
+[data-theme="dark"] .sprite-icon-buttons button:not([data-selected="true"]) svg * {
+  fill: var(--theme-primary-tint50, #f8fafc) !important; /* Fallback to slate-50 if variable not available */
+  color: var(--theme-primary-tint50, #f8fafc) !important; /* Fallback to slate-50 if variable not available */
+}
+
+/* CRITICAL: All sprite button icons in light mode - use tint600 (same for selected and non-selected) */
+/* Override button's text color and SVG's fill="currentColor" */
+[data-theme="light"] .sprite-icon-buttons button {
+  color: var(--theme-primary-tint600, #475569) !important; /* Fallback to slate-600 if variable not available */
+}
+
+[data-theme="light"] .sprite-icon-buttons button svg,
+[data-theme="light"] .sprite-icon-buttons button svg * {
+  fill: var(--theme-primary-tint600, #475569) !important; /* Fallback to slate-600 if variable not available */
+  color: var(--theme-primary-tint600, #475569) !important; /* Fallback to slate-600 if variable not available */
+}
+
+/* CRITICAL: Selected naked variant icon buttons - same treatment as sprite buttons */
+/* Naked variant buttons with data-selected="true" should have accent background and tint700 icon */
+/* Target icon buttons (h-9 w-9) that are transparent and selected */
+button.icon-button[data-selected="true"].bg-transparent,
+button[data-selected="true"].bg-transparent.icon-button,
+button[data-selected="true"][class*="bg-transparent"] {
+  background-color: var(--accent-primary) !important;
+  color: var(--theme-primary-tint700, #334155) !important;
+}
+
+[data-theme="dark"] button.icon-button[data-selected="true"].bg-transparent,
+[data-theme="dark"] button[data-selected="true"].bg-transparent.icon-button,
+[data-theme="dark"] button[data-selected="true"][class*="bg-transparent"] {
+  color: var(--theme-primary-tint700, #334155) !important;
+}
+
+[data-theme="dark"] button.icon-button[data-selected="true"].bg-transparent svg,
+[data-theme="dark"] button.icon-button[data-selected="true"].bg-transparent svg *,
+[data-theme="dark"] button[data-selected="true"].bg-transparent.icon-button svg,
+[data-theme="dark"] button[data-selected="true"].bg-transparent.icon-button svg *,
+[data-theme="dark"] button[data-selected="true"][class*="bg-transparent"] svg,
+[data-theme="dark"] button[data-selected="true"][class*="bg-transparent"] svg * {
+  fill: var(--theme-primary-tint700, #334155) !important;
+  color: var(--theme-primary-tint700, #334155) !important;
+}
+
+/* CRITICAL: Selected naked variant icon buttons - light mode */
+[data-theme="light"] button.icon-button[data-selected="true"].bg-transparent,
+[data-theme="light"] button[data-selected="true"].bg-transparent.icon-button,
+[data-theme="light"] button[data-selected="true"][class*="bg-transparent"] {
+  color: var(--theme-primary-tint700, #334155) !important;
+}
+
+[data-theme="light"] button.icon-button[data-selected="true"].bg-transparent svg,
+[data-theme="light"] button.icon-button[data-selected="true"].bg-transparent svg *,
+[data-theme="light"] button[data-selected="true"].bg-transparent.icon-button svg,
+[data-theme="light"] button[data-selected="true"].bg-transparent.icon-button svg *,
+[data-theme="light"] button[data-selected="true"][class*="bg-transparent"] svg,
+[data-theme="light"] button[data-selected="true"][class*="bg-transparent"] svg * {
+  fill: var(--theme-primary-tint700, #334155) !important;
+  color: var(--theme-primary-tint700, #334155) !important;
+}
+
+/* CRITICAL: Left nav buttons with accent background - use tint700 icon in dark mode */
+/* Target buttons that have bg-[var(--accent-primary)] class (left nav selected state) */
+/* These are stroke-based icons (Lucide) - should remain stroked, not filled */
+/* Override text-[var(--accent-primary-contrast)] to use tint700 instead */
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\],
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] {
+  color: var(--theme-primary-tint700, #334155) !important;
+}
+
+/* Target SVG elements - stroke-based icons should use stroke only, not fill */
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg {
+  color: var(--theme-primary-tint700, #334155) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint700, #334155) !important;
+}
+
+/* Target all SVG child elements - ensure stroke-based icons remain stroked */
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg path,
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg circle,
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg rect,
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg polygon,
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg line,
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg polyline,
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg ellipse,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg path,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg circle,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg rect,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg polygon,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg line,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg polyline,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg ellipse {
+  fill: none !important;
+  stroke: var(--theme-primary-tint700, #334155) !important;
+}
+
+/* CRITICAL: Left nav buttons with accent background - use tint700 icon in light mode */
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\],
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] {
+  color: var(--theme-primary-tint700, #334155) !important;
+}
+
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg {
+  color: var(--theme-primary-tint700, #334155) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint700, #334155) !important;
+}
+
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg path,
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg circle,
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg rect,
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg polygon,
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg line,
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg polyline,
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg ellipse,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg path,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg circle,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg rect,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg polygon,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg line,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg polyline,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg ellipse {
+  fill: none !important;
+  stroke: var(--theme-primary-tint700, #334155) !important;
+}
+
+/* CRITICAL: Lock button icons - use tint50 in dark mode */
+/* Must be at end of file to override all other rules */
+[data-theme="dark"] .control-lock-button:not([data-locked="true"]) {
+  color: var(--theme-primary-tint50, #f8fafc) !important;
+}
+
+[data-theme="dark"] .control-lock-button:not([data-locked="true"]) svg,
+[data-theme="dark"] .control-lock-button:not([data-locked="true"]) svg * {
+  stroke: var(--theme-primary-tint50, #f8fafc) !important;
+  fill: none !important;
+  color: var(--theme-primary-tint50, #f8fafc) !important;
+}
+
 /* Color input webkit (Chrome/Safari) specific styling */
 input[type="color"]::-webkit-color-swatch-wrapper {
   padding: 0;
@@ -6793,6 +7260,11 @@ input[type="color"]::-moz-color-swatch {
 
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* Remove bottom border from dual monitor card content section */
+.bg-theme-panel > div.p-6:last-child {
+  border-bottom: none !important;
 }
 
 

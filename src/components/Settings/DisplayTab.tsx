@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Field, Label, Description } from "@/components/catalyst/fieldset";
-import { RadioGroup, RadioField, Radio } from "@/components/catalyst/radio";
-import { Input } from "@/components/catalyst/input";
-import { Switch } from "@/components/catalyst/switch";
+import { Field, Label, Description } from "@/components/ui/fieldset";
+import { RadioGroup, RadioField, Radio } from "@/components/ui/radio";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
 import { useDualMonitor } from "@/hooks/useDualMonitor";
 
@@ -108,8 +108,8 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
   return (
     <div className="space-y-6 px-6">
       {/* Aspect Ratio Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <div>
             <h3 className="text-base font-semibold text-theme-primary">Aspect ratio</h3>
             <p className="text-sm text-theme-muted mt-1">
@@ -150,7 +150,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
 
           {/* Custom Aspect Ratio Inputs */}
           {settings.aspectRatio === "custom" && (
-            <div className="mt-6 pt-6 border-t border-theme-divider">
+            <div className="mt-6 pt-6 border-t border-theme-card">
               <Field>
                 <Label>Custom dimensions</Label>
                 <Description>
@@ -190,7 +190,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
 
           {/* Recommended Resolution Display */}
           {recommendedResolution && (
-            <div className="mt-4 p-3 bg-theme-status rounded-lg border border-theme-divider">
+            <div className="mt-4 p-3 bg-theme-status rounded-lg border border-theme-card">
               <p className="text-sm text-theme-primary">
                     <span className="font-medium">Recommended resolution:</span> {recommendedResolution}
               </p>
@@ -200,8 +200,8 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
       </div>
 
       {/* Dual Monitor Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
@@ -218,7 +218,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
           </div>
         </div>
         {settings.dualMonitorEnabled && (
-          <div className="p-6">
+          <div className="p-6 !border-b-0">
             <div className="flex items-center justify-between">
                 <div>
                   <label className="block text-sm font-medium text-theme-muted">
@@ -234,7 +234,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                   <button
                     type="button"
                     onClick={dualMonitor.closeProjectorWindow}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-white bg-status-error hover:opacity-90 rounded-lg transition-colors"
                   >
                     Close projector window
                   </button>
@@ -249,7 +249,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                 )}
               </div>
               {!dualMonitor.hasMultipleScreens && (
-                <div className="mt-4 p-3 bg-theme-status rounded-lg border border-theme-divider">
+                <div className="mt-4 p-3 bg-theme-status rounded-lg border border-theme-card">
                   <p className="text-sm text-theme-primary">
                     <span className="font-medium">Note:</span> Multiple screens not detected. Make sure your secondary display is connected and configured in your system settings.
                   </p>

@@ -156,15 +156,15 @@ export const AppSidebar = ({
   ];
 
   const showRightColumn = (isExpanded || isHovered || isMobileOpen) && currentPage !== "settings";
-  const sidebarWidth = showRightColumn ? 370 : 64; // 64px left column (was 80px, reduced by 16px/spacing.4) + 290px right column = 370px total
+  const sidebarWidth = showRightColumn ? 362 : 64; // 64px left column + 274px right column = 362px total
   // Disable width transition when switching between canvas and settings
   const isCanvasOrSettings = currentPage === "create" || currentPage === "settings" || currentPage === null;
 
   return (
     <aside
       className={`fixed flex top-[var(--header-height)] left-0 h-[calc(100vh-var(--header-height)-var(--footer-height))] z-50 border-r
-        bg-theme-panel border-theme-panel text-theme-primary
-        ${sidebarWidth === 370 ? "w-[370px]" : "w-[64px]"}
+        bg-theme-panel border-theme-structural text-theme-primary
+        ${sidebarWidth === 362 ? "w-[362px]" : "w-[64px]"}
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0
         transition-[opacity,transform] duration-300 ease-in-out`}
@@ -172,12 +172,12 @@ export const AppSidebar = ({
       onMouseLeave={() => setIsHovered(false)}
       style={{ 
         zIndex: 50,
-        willChange: sidebarWidth === 370 || isHovered ? 'width, opacity' : 'auto',
+        willChange: sidebarWidth === 362 || isHovered ? 'width, opacity' : 'auto',
         transition: isCanvasOrSettings ? 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out' : 'width 0.3s ease-in-out, opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
       }}
     >
       {/* Left Column - Icon Navigation */}
-      <div className="flex flex-col w-[64px] border-r border-t border-theme-panel bg-theme-panel">
+      <div className="flex flex-col w-[64px] border-r border-theme-panel bg-theme-panel">
         {/* Logo at top */}
         <div className="flex items-center justify-center pt-4 pb-6 px-2">
           <a
@@ -269,7 +269,7 @@ export const AppSidebar = ({
 
       {/* Right Column - Control Panels */}
       {showRightColumn && (
-        <div className="flex flex-col w-[282px] px-5 overflow-y-auto overflow-x-visible no-scrollbar flex-1 transition-opacity duration-300 border-t border-theme-panel">
+        <div className="flex flex-col w-[274px] px-5 overflow-y-auto overflow-x-visible no-scrollbar flex-1 transition-opacity duration-300 border-r border-theme-panel">
           {/* Control Panel Content */}
           {spriteState && (
             <div className="flex-1 pt-8 pb-6 overflow-x-visible">

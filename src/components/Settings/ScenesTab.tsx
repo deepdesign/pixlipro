@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/catalyst/input";
+import { Input } from "@/components/ui/input";
 import { Download, Upload, Trash2, Search } from "lucide-react";
 import {
   getAllScenes,
@@ -143,8 +143,8 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
     <div className="space-y-6">
       {/* Save Current State */}
       {currentState && (
-        <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-          <div className="p-6 border-b border-theme-divider">
+        <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+          <div className="p-6 border-b border-theme-card">
             <h3 className="text-base font-semibold text-theme-primary">
               Save current scene
             </h3>
@@ -180,8 +180,8 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
       )}
 
       {/* Scenes List */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-semibold text-theme-primary">
@@ -242,7 +242,7 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
                 return (
                   <div
                     key={scene.id}
-                    className="flex items-center gap-4 p-4 border border-theme-panel rounded-lg hover:bg-theme-icon transition-colors"
+                    className="flex items-center gap-4 p-4 border border-theme-card rounded-lg hover:bg-theme-icon transition-colors"
                   >
                     {sceneState && (
                       <div className="flex-shrink-0">

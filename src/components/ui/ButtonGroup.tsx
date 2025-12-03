@@ -14,7 +14,7 @@ export interface ButtonGroupProps {
 }
 
 /**
- * Segmented button group component with Catalyst styling
+ * Segmented button group component
  */
 export const ButtonGroup = ({
   value,
@@ -24,7 +24,7 @@ export const ButtonGroup = ({
   disabled = false,
 }: ButtonGroupProps) => {
   return (
-    <div className={clsx("inline-flex rounded-lg border border-slate-950/10 p-0.5 dark:border-white/10", className)}>
+    <div className={clsx("inline-flex rounded-lg border border-[var(--select-border)] p-0.5", className)}>
       {options.map((option) => {
         const isSelected = option.value === value;
         
@@ -38,8 +38,8 @@ export const ButtonGroup = ({
               "relative rounded-md px-3 py-1.5 text-sm font-semibold transition",
               "focus:outline-none",
               isSelected
-                ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-white"
-                : "text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white",
+                ? "bg-[var(--theme-supporting-light)] text-[var(--text-primary)] shadow-sm dark:bg-theme-card dark:text-[var(--text-primary)]"
+                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
               disabled && "opacity-50 cursor-not-allowed"
             )}
           >

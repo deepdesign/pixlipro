@@ -48,11 +48,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)] hover:bg-[var(--accent-primary)]/90 border-0"
         : "bg-theme-icon text-theme-primary hover:bg-theme-icon/80",
       secondary: "bg-theme-icon text-theme-primary hover:bg-[var(--icon-hover)]",
-      outline: "border border-theme-panel bg-transparent text-theme-primary hover:bg-[var(--icon-hover)] border-0",
+      outline: "border border-[var(--select-border)] bg-[var(--select-bg)] text-theme-primary hover:bg-[var(--select-hover)] hover:border-[var(--select-hover)]",
       link: "text-theme-primary underline-offset-4 hover:underline",
       background: "bg-theme-icon text-theme-muted hover:bg-[var(--icon-hover)] border-0",
       naked: "bg-transparent text-theme-muted hover:bg-[var(--icon-hover)] border-0",
-      lock: "bg-transparent text-theme-muted hover:bg-theme-icon border-0 data-[locked=true]:bg-red-600 data-[locked=true]:text-white data-[locked=true]:hover:bg-red-700",
+      lock: "bg-transparent text-theme-muted hover:bg-theme-icon border-0 data-[locked=true]:bg-[var(--accent-primary)] data-[locked=true]:text-[var(--accent-primary-contrast)] data-[locked=true]:hover:opacity-90",
       circle: "bg-theme-icon text-theme-muted hover:bg-[var(--icon-hover)] border-0 rounded-full icon-button h-6 w-6 p-0 flex items-center justify-center aspect-square",
     };
 

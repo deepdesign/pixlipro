@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/catalyst/input";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -114,7 +114,7 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
         {sceneState ? (
           <SceneThumbnail state={sceneState} size={60} />
         ) : (
-          <div className="w-[60px] h-[60px] bg-theme-panel rounded border border-theme-panel flex items-center justify-center">
+          <div className="w-[60px] h-[60px] bg-theme-panel rounded border border-theme-card flex items-center justify-center">
             <span className="text-xs text-theme-subtle">No preview</span>
           </div>
         )}
@@ -138,7 +138,7 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
           </SelectContent>
         </Select>
         {!scene && (
-          <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+          <p className="text-xs text-status-error mt-1">
             Scene not found
           </p>
         )}
@@ -496,7 +496,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
   return (
     <div className="h-full w-full flex flex-col px-6">
       {/* Top Bar with Sequence Selector and Actions */}
-      <div className="py-6 bg-theme-card mt-6 rounded-lg border border-theme-panel shadow-sm px-6 mb-6">
+      <div className="py-6 bg-theme-card mt-6 rounded-lg border border-theme-card shadow-sm px-6 mb-6">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -587,8 +587,8 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
           )}
         </div>
         {selectedSequence && !validation.valid && (
-          <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-900">
-            <p className="text-sm text-yellow-900 dark:text-yellow-200">
+          <div className="mt-4 p-3 bg-status-warning rounded-lg border border-status-warning">
+            <p className="text-sm text-status-warning">
               <span className="font-medium">Warning:</span> {validation.missingScenes?.length || validation.missingPresets?.length || 0} scene(s) not found
             </p>
           </div>
@@ -599,7 +599,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
       {selectedSequence ? (
         <div className="flex-1 flex flex-col overflow-hidden pb-6">
           <div className="flex-1 overflow-auto pt-6">
-            <div className="bg-theme-card rounded-lg border border-theme-panel shadow-sm p-6">
+            <div className="bg-theme-card rounded-lg border border-theme-card shadow-sm p-6">
               <div className="overflow-x-auto w-full">
                   <DndContext
                     sensors={sensors}

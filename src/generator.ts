@@ -222,6 +222,7 @@ export interface GeneratorState {
   colorSeedSuffix: string; // Suffix for color RNG to allow re-applying palette without regenerating sprites
   blendModeSeedSuffix: string; // Suffix for blend mode RNG to allow re-applying blend modes without regenerating sprites
   backgroundColorSeedSuffix: string; // Suffix for background color RNG to allow re-applying background color
+  spriteGradientColorSeedSuffix: string; // Suffix for gradient color RNG to allow re-applying gradient colors without regenerating sprites
   // Section enable/disable flags (when collapsed, sections keep values but don't affect rendering)
   colorAdjustmentsEnabled: boolean; // Whether color adjustments section is active
   gradientsEnabled: boolean; // Whether gradients section is active
@@ -340,6 +341,7 @@ export const DEFAULT_STATE: GeneratorState = {
   colorSeedSuffix: "", // Suffix for color RNG to allow re-applying palette without regenerating sprites
   blendModeSeedSuffix: "", // Suffix for blend mode RNG to allow re-applying blend modes without regenerating sprites
   backgroundColorSeedSuffix: "", // Suffix for background color RNG to allow re-applying background color
+  spriteGradientColorSeedSuffix: "", // Suffix for gradient color RNG to allow re-applying gradient colors without regenerating sprites
   // Section enable flags - all enabled by default
   colorAdjustmentsEnabled: true,
   gradientsEnabled: true,
@@ -944,6 +946,9 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   const variance = clamp(state.paletteVariance / 100, 0, 1.5);
 
   const colorRng = createMulberry32(hashSeed(`${state.seed}-color${state.colorSeedSuffix || ""}`));
+  const blendModeRng = state.blendModeAuto && state.blendModeSeedSuffix
+    ? createMulberry32(hashSeed(`${state.seed}-blend${state.blendModeSeedSuffix}`))
+    : rng; // Use main RNG if not auto or no suffix
   const positionRng = createMulberry32(hashSeed(`${state.seed}-position`));
   const spriteSelectionRng = createMulberry32(hashSeed(`${state.seed}-sprite-selection`));
   // Apply global hue shift to palette colors (0-100 maps to 0-360 degrees)
@@ -1179,7 +1184,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           ? rotationSpeedBase * ROTATION_SPEED_MAX * rotationSpeedMultiplier
           : 0;
       const tileBlend = state.blendModeAuto
-        ? (blendModePool[Math.floor(rng() * blendModePool.length)] ?? "NONE")
+        ? (blendModePool[Math.floor(blendModeRng() * blendModePool.length)] ?? "NONE")
         : state.blendMode;
 
       const paletteColorIndex = Math.floor(colorRng() * chosenPalette.length);
@@ -1410,6 +1415,7 @@ export interface SpriteController {
   randomizeAll: () => void;
   randomizeColors: () => void;
   refreshPaletteApplication: () => void;
+  randomizeGradientColors: () => void;
   randomizeScale: () => void;
   randomizeScaleRange: () => void;
   randomizeMotion: () => void;
@@ -2161,15 +2167,21 @@ export const createSpriteController = (
       });
     };
 
-    // Wrapper for p5.js windowResized
+    // Default UIEvent for when p5.js doesn't provide one
+    const defaultResizeEvent = new UIEvent('resize', { bubbles: false, cancelable: false });
+    
+    // Wrapper for p5.js windowResized that satisfies Zod validation
     // p5.js validates the function signature at runtime using Zod
     // The function MUST accept UIEvent (required, not optional) to pass Zod validation
-    // However, p5.js may call it without an event or with undefined in some cases
-    // We use a default parameter and also check for undefined to ensure we always have a valid UIEvent
-    function windowResizedHandler(event: UIEvent = new UIEvent('resize', { bubbles: false, cancelable: false })): UIEvent {
-      // Ensure we always have a valid UIEvent (handle case where p5.js passes undefined explicitly)
-      // Default parameter handles no-argument case, this handles explicit undefined
-      const uiEvent = (event instanceof UIEvent) ? event : new UIEvent('resize', { bubbles: false, cancelable: false });
+    // However, p5.js may call it without an event or with undefined/null/non-UIEvent
+    // We use arguments object to handle any number/type of arguments and normalize them
+    function windowResizedHandler(...args: any[]): UIEvent {
+      // Get first argument (if any) and convert to valid UIEvent
+      // This handles cases where p5.js calls with no args, undefined, null, or invalid values
+      const event = args[0];
+      const uiEvent: UIEvent = (event instanceof UIEvent) 
+        ? event 
+        : defaultResizeEvent;
       
       // Don't resize if canvas isn't ready yet
       if (!canvasReady || !canvas || !canvas.elt) {
@@ -2186,8 +2198,9 @@ export const createSpriteController = (
       return uiEvent;
     }
     
-    // Assign the handler - p5.js will validate the signature
-    p.windowResized = windowResizedHandler;
+    // Type cast to satisfy p5.js's Zod validation which checks the function signature
+    // The function uses rest parameters internally but is typed as (event: UIEvent) => UIEvent for Zod
+    p.windowResized = windowResizedHandler as unknown as (event: UIEvent) => UIEvent;
     
     // Watch container for size changes (triggers when layout changes cause container to resize)
     // This ensures canvas resizes even when window doesn't resize but container does
@@ -2316,9 +2329,13 @@ export const createSpriteController = (
         const speedFactor = Math.max(minSpeed, currentState.paletteCycleSpeed / 100); // 0.05-1
         // Reduced from 60s to 30s period at 100% speed for better pacing (~2s per palette)
         // Keep paletteCycleTime continuous (don't wrap) to ensure smooth interpolation
-        paletteCycleTime += deltaTime * speedFactor * (1 / 30); // Scale to ~30s period at 100% speed
+        // deltaTime is normalized to ~1 per frame, convert to seconds: deltaTime * (1/60) = seconds per frame
+        // For 30s period: accumulate seconds directly
+        const secondsPerFrame = deltaTime / 60; // Convert normalized frame time to seconds
+        paletteCycleTime += secondsPerFrame * speedFactor; // Accumulate in seconds
         // Only wrap if it gets too large to prevent overflow (but keep it continuous for calculation)
-        if (paletteCycleTime > 30 * 1000) {
+        // Since paletteCycleTime is now in seconds, wrap at 30 seconds
+        if (paletteCycleTime > 30) {
           // Reset to a value that maintains continuity (subtract full periods)
           const periods = Math.floor(paletteCycleTime / 30);
           paletteCycleTime = paletteCycleTime - (periods * 30);
@@ -2364,8 +2381,12 @@ export const createSpriteController = (
           // Use modulo only for index calculation, not for the time itself
           const currentPaletteIndex = Math.floor(cycleProgress) % allPalettes.length;
           const nextIndex = (currentPaletteIndex + 1) % allPalettes.length;
-          // Use the fractional part directly for smooth interpolation
-          paletteCycleInterpolation = fractionalPart;
+          // Apply smooth easing (ease-in-out) to the interpolation for smoother transitions
+          // This reduces harsh steps and makes the cycling feel more natural
+          const easedT = fractionalPart < 0.5
+            ? 2 * fractionalPart * fractionalPart  // Ease in
+            : 1 - Math.pow(-2 * fractionalPart + 2, 2) / 2;  // Ease out
+          paletteCycleInterpolation = easedT;
           activePalette = {
             ...allPalettes[currentPaletteIndex],
             colors: interpolatePaletteColors(
@@ -2440,7 +2461,6 @@ export const createSpriteController = (
       
       const ctx = p.drawingContext as CanvasRenderingContext2D;
       ctx.imageSmoothingEnabled = false;
-      const backgroundBrightness = clamp(currentState.backgroundBrightness, 0, 100);
       const resolveBackgroundPaletteId = () =>
         currentState.backgroundMode === "auto" ? (currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId) : currentState.backgroundMode;
       
@@ -2513,7 +2533,53 @@ export const createSpriteController = (
       
       // Helper function to get animated tile color
       // Handles palette cycling (updates color from animated palette) and sprite hue rotation
-      const getAnimatedTileColor = (tile: PreparedTile): string => {
+      const getAnimatedTileColor = (tile: PreparedTile, isThumbnailPrimary: boolean = false): string => {
+        // In thumbnail mode, primary sprite uses theme accent color
+        if (currentState.thumbnailMode && isThumbnailPrimary) {
+          // Get theme accent color from CSS variable
+          try {
+            if (typeof document !== 'undefined' && document.documentElement) {
+              const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-accent-base').trim();
+              // Accept any non-empty value (CSS variables might have different formats)
+              if (accentColor && accentColor.length > 0) {
+                // Ensure it starts with # if it's a hex color
+                const normalizedColor = accentColor.startsWith('#') ? accentColor : `#${accentColor}`;
+                // Basic validation - just check it's not empty and looks like a color
+                if (normalizedColor.length >= 4) {
+                  return normalizedColor;
+                }
+              }
+            }
+          } catch (error) {
+            // Silently fall through to default
+          }
+          // Fallback to default teal if CSS variable not available
+          return '#2dd4bf';
+        }
+        
+        // In thumbnail mode, background sprites (non-primary) use tint 600 of primary theme color
+        if (currentState.thumbnailMode && !isThumbnailPrimary) {
+          // Get theme primary tint 600 from CSS variable
+          try {
+            if (typeof document !== 'undefined' && document.documentElement) {
+              const tint600 = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary-tint600').trim();
+              // Accept any non-empty value (CSS variables might have different formats)
+              if (tint600 && tint600.length > 0) {
+                // Ensure it starts with # if it's a hex color
+                const normalizedColor = tint600.startsWith('#') ? tint600 : `#${tint600}`;
+                // Basic validation - just check it's not empty and looks like a color
+                if (normalizedColor.length >= 4) {
+                  return normalizedColor;
+                }
+              }
+            }
+          } catch (error) {
+            // Silently fall through to default
+          }
+          // Fallback to default slate-600 if CSS variable not available
+          return '#475569';
+        }
+        
         let color = tile.tint;
         
         // If palette cycling is enabled, get color from animated palette and reapply variance
@@ -2799,7 +2865,12 @@ export const createSpriteController = (
           if (tile.kind === "svg") {
             // SVG sprite rendering
             // Get animated tile color (applies sprite hue rotation if enabled)
-            const animatedTileColor = getAnimatedTileColor(tile);
+            // Pass isThumbnailPrimary flag so primary sprite can use theme accent color
+            // Calculate inline to avoid any scope issues
+            const animatedTileColor = getAnimatedTileColor(
+              tile, 
+              currentState.thumbnailMode && layerIndex === 0 && tileIndex === layer.tiles.length - 1
+            );
             const baseSvgSize =
               baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
             
@@ -2820,9 +2891,7 @@ export const createSpriteController = (
             const svgSize = baseSvgSize * finalMovement.scaleMultiplier;
             // Determine opacity based on outline state when mixed mode is enabled
             // In thumbnail mode, primary sprite (last tile in layer 0) should be 100% opaque
-            const isThumbnailPrimary = currentState.thumbnailMode && 
-                                       layerIndex === 0 && 
-                                       tileIndex === layer.tiles.length - 1;
+            // (isThumbnailPrimary already declared above at line 2820)
             let opacityValue: number;
             if (isThumbnailPrimary) {
               // Primary sprite in thumbnail mode: 100% opaque, no blend mode
@@ -2900,65 +2969,68 @@ export const createSpriteController = (
             
             // Determine if we should use canvas context for gradients
             const useGradient = currentState.spriteFillMode === "gradient";
-            let gradientObj: CanvasGradient | null = null;
+            // Store gradient data to create after transforms are applied
+            let gradientData: {
+              colors: string[];
+              direction: number;
+            } | null = null;
             
             if (useGradient) {
-              // Use the palette color index to select the corresponding gradient
-              // This ensures sprite using palette color 'b' uses gradient 'b'
-              const paletteGradients = getGradientsForPalette(currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId);
-              if (paletteGradients.length > 0) {
-                const gradientIndex = tile.paletteColorIndex % paletteGradients.length;
-                const gradientPreset = paletteGradients[gradientIndex];
-                if (gradientPreset) {
-                  // Apply hue shift and variance to gradient colors
-                  // Combine static and animated hue shifts for smooth transitions
-                  const staticHueShift = ((currentState.hueShift ?? 0) / 100) * 360;
-                  const hueShiftDegrees = currentState.hueRotationEnabled 
-                    ? staticHueShift + animatedSpriteHueShift
-                    : staticHueShift;
-                  const variance = clamp((currentState.paletteVariance ?? 68) / 100, 0, 1.5);
-                  
-                  // Apply hue shift and variance to each gradient color
-                  let processedGradientColors = gradientPreset.colors.map((color, colorIndex) => {
-                    // Apply hue shift first
-                    const hueShiftedColor = shiftHue(color, hueShiftDegrees);
-                    // Then apply variance using deterministic RNG based on tile position and color index
-                    const varianceRng = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}-${colorIndex}`));
-                    return jitterColor(hueShiftedColor, variance, varianceRng);
-                  });
-                  
-                  // Apply saturation, brightness, and contrast adjustments to gradient colors
-                  if (currentState.colorAdjustmentsEnabled !== false) {
-                    const saturation = currentState.saturation ?? 100;
-                    const brightness = currentState.brightness ?? 100;
-                    const contrast = currentState.contrast ?? 100;
-                    processedGradientColors = processedGradientColors.map(color =>
-                      applyColorAdjustments(color, saturation, brightness, contrast)
-                    );
-                  }
-                  
-                  // Calculate gradient line based on direction
-                  const gradientLine = calculateGradientLine(
-                    currentState.spriteGradientDirection,
-                    svgSize,
-                    svgSize,
-                  );
-                  // Create gradient relative to sprite center (we're already translated)
-                  gradientObj = ctx.createLinearGradient(
-                    gradientLine.x0 - svgSize / 2,
-                    gradientLine.y0 - svgSize / 2,
-                    gradientLine.x1 - svgSize / 2,
-                    gradientLine.y1 - svgSize / 2,
-                  );
-                  // Add color stops with opacity, using processed colors
-                  const numColors = processedGradientColors.length;
-                  processedGradientColors.forEach((color, index) => {
-                    const stop = numColors > 1 ? index / (numColors - 1) : 0;
-                    const colorObj = p.color(color);
-                    colorObj.setAlpha(opacityAlpha);
-                    gradientObj!.addColorStop(stop, colorObj.toString());
-                  });
+              // Use 2 colors directly from the palette for gradients
+              const palette = currentState.paletteCycleEnabled ? activePalette : getPalette(currentState.paletteId);
+              if (palette.colors.length >= 2) {
+                // Use seeded RNG to select 2 colors from palette
+                const gradientColorRng = createMulberry32(hashSeed(`${currentState.seed}-gradient-color${currentState.spriteGradientColorSeedSuffix || ""}-${tile.u}-${tile.v}`));
+                const color1Index = Math.floor(gradientColorRng() * palette.colors.length);
+                let color2Index = Math.floor(gradientColorRng() * palette.colors.length);
+                // Ensure we get 2 different colors
+                while (color2Index === color1Index && palette.colors.length > 1) {
+                  color2Index = Math.floor(gradientColorRng() * palette.colors.length);
                 }
+                
+                const color1 = palette.colors[color1Index];
+                const color2 = palette.colors[color2Index];
+                
+                // Apply hue shift and variance to gradient colors
+                // Combine static and animated hue shifts for smooth transitions
+                const staticHueShift = ((currentState.hueShift ?? 0) / 100) * 360;
+                const hueShiftDegrees = currentState.hueRotationEnabled 
+                  ? staticHueShift + animatedSpriteHueShift
+                  : staticHueShift;
+                const variance = clamp((currentState.paletteVariance ?? 68) / 100, 0, 1.5);
+                
+                // Apply hue shift and variance to each gradient color
+                const varianceRng1 = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}-0`));
+                const varianceRng2 = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}-1`));
+                
+                let processedColor1 = shiftHue(color1, hueShiftDegrees);
+                processedColor1 = jitterColor(processedColor1, variance, varianceRng1);
+                
+                let processedColor2 = shiftHue(color2, hueShiftDegrees);
+                processedColor2 = jitterColor(processedColor2, variance, varianceRng2);
+                
+                // Apply saturation, brightness, and contrast adjustments to gradient colors
+                if (currentState.colorAdjustmentsEnabled !== false) {
+                  const saturation = currentState.saturation ?? 100;
+                  const brightness = currentState.brightness ?? 100;
+                  const contrast = currentState.contrast ?? 100;
+                  processedColor1 = applyColorAdjustments(processedColor1, saturation, brightness, contrast);
+                  processedColor2 = applyColorAdjustments(processedColor2, saturation, brightness, contrast);
+                }
+                
+                // Determine gradient direction - use random per sprite if enabled, otherwise use fixed direction
+                let gradientDirection = currentState.spriteGradientDirection;
+                if (currentState.spriteGradientDirectionRandom) {
+                  // Use seeded RNG for random gradient direction per sprite
+                  const gradientDirectionRng = createMulberry32(hashSeed(`${currentState.seed}-gradient-direction-${tile.u}-${tile.v}`));
+                  gradientDirection = gradientDirectionRng() * 360; // Random direction 0-360 degrees
+                }
+                
+                // Store gradient data with 2 colors
+                gradientData = {
+                  colors: [processedColor1, processedColor2],
+                  direction: gradientDirection,
+                };
               }
             }
             
@@ -2972,7 +3044,7 @@ export const createSpriteController = (
             );
             const strokeWidth = currentState.outlineStrokeWidth;
             
-            if (!useGradient || !gradientObj) {
+            if (!useGradient || !gradientData) {
               // Solid color fill
               const fillColor = p.color(animatedTileColor);
               fillColor.setAlpha(opacityAlpha);
@@ -3087,6 +3159,8 @@ export const createSpriteController = (
                     ctx.lineJoin = "miter";
                   }
                 } else {
+                  // fillStyle will be set after gradient is created (below, after transforms)
+                  // For now, set a placeholder - will be overridden if gradient exists
                   ctx.fillStyle = colorWithAlpha.toString();
                 }
                 
@@ -3114,6 +3188,49 @@ export const createSpriteController = (
                 ctx.scale(scaleX, scaleY);
                 // 5. Center the sprite at origin using UNSCALED dimensions
                 ctx.translate(-vbWidth / 2, -vbHeight / 2);
+                
+                // Create gradient in transformed coordinate space (after all transforms)
+                if (useGradient && gradientData && !useOutline) {
+                  // After transforms, sprite is centered at (0, 0) in viewBox coordinate space
+                  // The coordinate space has been scaled, but we use viewBox dimensions for gradient
+                  // Calculate gradient line relative to sprite center (0, 0)
+                  const gradientLine = calculateGradientLine(
+                    gradientData.direction,
+                    vbWidth,
+                    vbHeight,
+                  );
+                  // Create gradient in current transformed coordinate space
+                  // calculateGradientLine returns coordinates with center at (width/2, height/2)
+                  // After our transforms, sprite center is at (0, 0), so adjust coordinates
+                  // The coordinate space is already scaled by ctx.scale(), so we use viewBox dimensions
+                  const gradientObj = ctx.createLinearGradient(
+                    gradientLine.x0 - vbWidth / 2,
+                    gradientLine.y0 - vbHeight / 2,
+                    gradientLine.x1 - vbWidth / 2,
+                    gradientLine.y1 - vbHeight / 2,
+                  );
+                  // Add color stops with opacity
+                  const numColors = gradientData.colors.length;
+                  if (numColors > 0) {
+                    gradientData.colors.forEach((color, index) => {
+                      const stop = numColors > 1 ? index / (numColors - 1) : 0;
+                      // Convert color to rgba format with opacity
+                      const colorObj = p.color(color);
+                      colorObj.setAlpha(opacityAlpha);
+                      // Use toString() to get rgba() format that canvas accepts
+                      const colorString = colorObj.toString();
+                      gradientObj.addColorStop(stop, colorString);
+                    });
+                    // Apply gradient to fill style
+                    ctx.fillStyle = gradientObj;
+                  } else {
+                    // Fallback to solid color if no gradient colors
+                    ctx.fillStyle = colorWithAlpha.toString();
+                  }
+                } else if (!useOutline) {
+                  // Ensure solid color is set if gradient is not used
+                  ctx.fillStyle = colorWithAlpha.toString();
+                }
                 
                 // Create and fill/stroke the path
                 // Check if this sprite uses fill-rule="evenodd" for boolean shapes
@@ -3456,13 +3573,16 @@ export const createSpriteController = (
       // This allows the background color to change while maintaining theme consistency
       const newBackgroundColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       
-      applyState(
-        {
-          colorSeedSuffix: newColorSeedSuffix,
-          backgroundColorSeedSuffix: newBackgroundColorSeedSuffix,
-        },
-        { recompute: true }
-      );
+      applyState({ 
+        colorSeedSuffix: newColorSeedSuffix,
+        backgroundColorSeedSuffix: newBackgroundColorSeedSuffix
+      }, { recompute: true });
+    },
+    randomizeGradientColors: () => {
+      // Re-apply gradient colors by updating the seed suffix
+      // This will cause gradient colors to be recalculated with new random palette color selections
+      const newGradientColorSeedSuffix = `-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      applyState({ spriteGradientColorSeedSuffix: newGradientColorSeedSuffix }, { recompute: true });
     },
     randomizeScale: () => {
       stateRef.current.scaleBase = randomInt(50, 88);
@@ -4056,13 +4176,8 @@ export const createSpriteController = (
       }
       document.documentElement.style.setProperty('--canvas-aspect-ratio', `${paddingTopPercent}%`);
       
-      // Trigger canvas resize by dispatching a window resize event
-      // This will call performResize through the windowResized handler
-      if (p5Instance) {
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-        }, 100);
-      }
+      // Trigger canvas resize - p5.js will handle it automatically via ResizeObserver
+      // The ResizeObserver will detect the container size change and resize the canvas
     },
     setCustomAspectRatio: (width: number, height: number) => {
       const clampedWidth = Math.max(320, Math.min(7680, width));
@@ -4076,13 +4191,8 @@ export const createSpriteController = (
       const paddingTopPercent = (clampedHeight / clampedWidth) * 100;
       document.documentElement.style.setProperty('--canvas-aspect-ratio', `${paddingTopPercent}%`);
       
-      // Trigger canvas resize by dispatching a window resize event
-      // This will call performResize through the windowResized handler
-      if (p5Instance) {
-        setTimeout(() => {
-          window.dispatchEvent(new Event('resize'));
-        }, 100);
-      }
+      // Trigger canvas resize - p5.js will handle it automatically via ResizeObserver
+      // The ResizeObserver will detect the container size change and resize the canvas
     },
     applySingleTilePreset: () => {
       updateSeed();

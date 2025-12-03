@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/catalyst/dialog";
+import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
-import { Label } from "@/components/catalyst/fieldset";
+import { Label } from "@/components/ui/fieldset";
 import { Loader2 } from "lucide-react";
 import { optimizeSvg } from "@/lib/utils/svgOptimizer";
 
@@ -105,7 +105,7 @@ export function OptimizeSvgDialog({
               </div>
             </div>
           ) : error ? (
-            <div className="text-sm text-red-600 dark:text-red-400" role="alert">
+            <div className="text-sm text-status-error" role="alert">
               {error}
             </div>
           ) : (
@@ -148,7 +148,7 @@ export function OptimizeSvgDialog({
                   <p className="text-xs text-theme-muted mt-1">
                     {optimizedSize} bytes
                     {reductionPercent > 0 && (
-                      <span className="text-green-600 dark:text-green-400 ml-1">
+                      <span className="text-status-success ml-1">
                         (-{reductionPercent}%)
                       </span>
                     )}
@@ -158,8 +158,8 @@ export function OptimizeSvgDialog({
 
               {/* Stats */}
               {reductionPercent > 0 && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                  <p className="text-sm text-green-800 dark:text-green-200">
+                <div className="bg-status-success border border-status-success rounded-lg p-4">
+                  <p className="text-sm text-status-success">
                     Optimization reduced file size by <strong>{reductionPercent}%</strong> ({originalSize - optimizedSize} bytes saved)
                   </p>
                 </div>

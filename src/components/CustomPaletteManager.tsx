@@ -3,7 +3,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Download, Upload } from "lucide-react";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
-import { Input } from "@/components/catalyst/input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/Label";
 import {
   getAllCustomPalettes,
@@ -528,7 +528,7 @@ export const CustomPaletteManager = ({
                           size="md"
                           variant="link"
                           onClick={() => handleDelete(palette.id)}
-                          className="text-red-600 dark:text-red-400"
+                          className="text-status-error"
                         >
                           Delete
                         </Button>

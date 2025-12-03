@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/Button";
-import { Badge } from "@/components/catalyst/badge";
+import { Badge } from "@/components/ui/badge";
 import { Maximize2, X, RefreshCw, Bookmark, Camera, HelpCircle, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { animatePulse } from "@/lib/utils/animations";

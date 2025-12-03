@@ -6,6 +6,7 @@ import { DisplayTab } from "@/components/Settings/DisplayTab";
 import { RemoteControlTab } from "@/components/Settings/RemoteControlTab";
 import { IntegrationsTab } from "@/components/Settings/IntegrationsTab";
 import { PerformanceTab } from "@/components/Settings/PerformanceTab";
+import { ThemeTab } from "@/components/Settings/ThemeTab";
 import { AnimationPage } from "@/pages/AnimationPage";
 import { SpritesPage } from "@/pages/SpritesPage";
 import { PalettesPage } from "@/pages/PalettesPage";
@@ -113,6 +114,12 @@ export const SettingsPage = ({
             <PerformanceTab frameRate={frameRate} ready={ready} />
           </SettingsSectionWrapper>
         );
+      case "theme":
+        return (
+          <SettingsSectionWrapper title="Theme">
+            <ThemeTab />
+          </SettingsSectionWrapper>
+        );
       default:
         return (
           <SettingsSectionWrapper title="Display">
@@ -130,32 +137,36 @@ export const SettingsPage = ({
       {/* Main content area with sidebar */}
       <div className="flex flex-1 flex-col lg:flex-row min-h-0">
         {/* Settings Sidebar */}
-        <div className="w-full lg:w-64 border-r border-theme-panel bg-theme-bg-base flex-shrink-0">
+        <div className="w-full lg:w-64 border-r border-theme-structural bg-theme-bg-base flex-shrink-0">
           <SettingsSidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
         </div>
 
         {/* Content area */}
-        <main className="flex-1 min-w-0 overflow-y-auto bg-theme-bg-base">
-          <div className="w-full">
+        <main className="flex-1 min-w-0 flex flex-col bg-theme-bg-base" style={{ transition: 'none' }}>
+          <div className="w-full flex-1 flex flex-col" style={{ transition: 'none' }}>
             {/* Breadcrumb - at top of main container */}
-            <div className="w-full py-4 px-6 border-b border-theme-panel bg-theme-bg-base">
+            <div className="w-full py-4 px-6 border-b border-theme-structural bg-theme-bg-base flex-shrink-0">
               <SettingsBreadcrumb onNavigateHome={onClose} />
             </div>
 
             {/* Content */}
-            {isFullPage ? (
-              <div className="h-full w-full" style={{ minHeight: 'calc(100vh - 12rem)' }}>
-                {renderContent()}
-              </div>
-            ) : (
-              <div className="w-full">
-                {renderContent()}
-              </div>
-            )}
+            <div className="flex-1 overflow-y-auto">
+              {isFullPage ? (
+                <div className="h-full w-full" style={{ minHeight: 'calc(100vh - 12rem)' }}>
+                  {renderContent()}
+                </div>
+              ) : (
+                <div className="w-full">
+                  {renderContent()}
+                </div>
+              )}
+            </div>
             
-            {/* Footer */}
-            <div className="mt-8 pt-6 pb-4 px-6 border-t border-theme-panel">
-              <SettingsFooter />
+            {/* Footer - sticks to bottom */}
+            <div className="w-full mt-auto flex-shrink-0" style={{ transition: 'none' }}>
+              <div className="mt-6 pt-6 pb-4 px-6 border-t border-theme-structural">
+                <SettingsFooter />
+              </div>
             </div>
           </div>
         </main>

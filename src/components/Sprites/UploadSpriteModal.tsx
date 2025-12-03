@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/catalyst/dialog";
+import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/catalyst/input";
-import { Label, Field } from "@/components/catalyst/fieldset";
-import { SwitchField } from "@/components/catalyst/switch";
-import { Switch } from "@/components/catalyst/switch-adapter";
+import { Input } from "@/components/ui/input";
+import { Label, Field } from "@/components/ui/fieldset";
+import { SwitchField } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/switch-adapter";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { validateSvg, extractSpriteNameFromSvg, optimizeSvg } from "@/lib/utils/svgOptimizer";
@@ -375,7 +375,7 @@ export function UploadSpriteModal({
 
           {/* Error Message */}
           {error && (
-            <div className="text-sm text-red-600 dark:text-red-400" role="alert">
+            <div className="text-sm text-status-error" role="alert">
               {error}
             </div>
           )}

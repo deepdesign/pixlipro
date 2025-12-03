@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Accordion } from "@/components/ui/Accordion";
-import { Input } from "@/components/catalyst/input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/Label";
 import { Settings2, Share2, Copy, Check, Download } from "lucide-react";
 import p5 from "p5";

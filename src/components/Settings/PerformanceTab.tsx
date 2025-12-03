@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Field, Label } from "@/components/catalyst/fieldset";
-import { Badge } from "@/components/catalyst/badge";
+import { Field, Label } from "@/components/ui/fieldset";
+import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface PerformanceTabProps {
@@ -94,8 +94,8 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
   return (
     <div className="space-y-6 px-6">
       {/* Performance Overview Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-base font-semibold text-theme-primary">
@@ -176,8 +176,8 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
       </div>
 
       {/* System Information Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <h3 className="text-base font-semibold text-theme-primary">
             System Information
           </h3>
@@ -226,8 +226,8 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
       </div>
 
       {/* Performance Tips Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <h3 className="text-base font-semibold text-theme-primary flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             Performance Tips
@@ -237,7 +237,7 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
           <ul className="space-y-2 text-sm text-theme-muted">
             {frameRate < 30 && (
               <li className="flex items-start gap-2">
-                <span className="text-red-500 mt-0.5">•</span>
+                <span className="text-status-error mt-0.5">•</span>
                 <span>
                   <strong>Low FPS detected:</strong> Try reducing sprite density, disabling
                   complex effects, or closing other applications.
@@ -246,7 +246,7 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
             )}
             {frameTime > 20 && (
               <li className="flex items-start gap-2">
-                <span className="text-yellow-500 mt-0.5">•</span>
+                <span className="text-status-warning mt-0.5">•</span>
                 <span>
                   <strong>High frame time:</strong> Consider reducing canvas resolution or
                   simplifying animations.
@@ -255,7 +255,7 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
             )}
             {memoryUsage && memoryUsage > 500 && (
               <li className="flex items-start gap-2">
-                <span className="text-yellow-500 mt-0.5">•</span>
+                <span className="text-status-warning mt-0.5">•</span>
                 <span>
                   <strong>High memory usage:</strong> Close unused browser tabs or restart the
                   application.
@@ -263,13 +263,13 @@ export function PerformanceTab({ frameRate, ready }: PerformanceTabProps) {
               </li>
             )}
             <li className="flex items-start gap-2">
-              <span className="text-blue-500 mt-0.5">•</span>
+              <span className="text-status-info mt-0.5">•</span>
               <span>
                 Use hardware acceleration by enabling GPU rendering in your browser settings.
               </span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-blue-500 mt-0.5">•</span>
+              <span className="text-status-info mt-0.5">•</span>
               <span>
                 For best performance, use a modern browser with WebGL 2.0 support.
               </span>

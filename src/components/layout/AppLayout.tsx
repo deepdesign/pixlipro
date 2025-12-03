@@ -26,11 +26,11 @@ const LayoutContent: React.FC<AppLayoutProps> = ({ children, sidebarProps, hideS
         </div>
       )}
       <div
-        className={`flex-1 min-w-0 h-full border-t border-theme-panel ${
+        className={`flex-1 min-w-0 h-full ${
           hideSidebar 
             ? "lg:ml-0" 
             : shouldUseWideMargin
-              ? "lg:ml-[370px]" 
+              ? "lg:ml-[362px]" 
               : "lg:ml-[64px]"
         } ${isMobileOpen ? "ml-0" : ""}`}
       >

@@ -24,18 +24,114 @@ export function SpriteCard({
   const [editName, setEditName] = useState(sprite.name);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Create blob URL for SVG preview
+  // Create blob URL for SVG preview with theme colors
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    return document.documentElement.getAttribute('data-theme') || 'dark';
+  });
+
+  // Listen for theme changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const observer = new MutationObserver(() => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      setTheme(currentTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
-    const blob = new Blob([sprite.svgContent], { type: 'image/svg+xml' });
+    // Get the sprite preview color based on current theme
+    // Light mode: slate-800 (#1e293b - one shade lighter than slate-900, dark sprites)
+    // Dark mode: slate-100 (#f1f5f9 - one shade darker than slate-50, light sprites)
+    const getSpriteColor = () => {
+      // Use theme state to determine color directly
+      if (theme === 'light') {
+        return '#1e293b'; // slate-800 - one shade lighter for light mode (dark sprites)
+      } else {
+        return '#f1f5f9'; // slate-100 - one shade darker for dark mode (light sprites)
+      }
+    };
+
+    const spriteColor = getSpriteColor();
+
+    // Process SVG to remove background and apply theme colors
+    let processedSvg = sprite.svgContent;
+    
+    // Remove background rectangles (common in SVG sprites)
+    // Remove rects that are likely backgrounds (full width/height or large fills)
+    processedSvg = processedSvg.replace(/<rect[^>]*fill\s*=\s*["']#[fF]{6}["'][^>]*\/?>/gi, ''); // Remove white backgrounds
+    processedSvg = processedSvg.replace(/<rect[^>]*fill\s*=\s*["']#000000["'][^>]*\/?>/gi, ''); // Remove black backgrounds
+    processedSvg = processedSvg.replace(/<rect[^>]*fill\s*=\s*["']none["'][^>]*\/?>/gi, ''); // Remove transparent rects
+    
+    // Replace fill colors in attributes (fill="color")
+    processedSvg = processedSvg.replace(/fill\s*=\s*["']([^"']+)["']/gi, (match, color) => {
+      const lowerColor = color.toLowerCase();
+      // Keep "none" and "transparent" as-is
+      if (lowerColor === 'none' || lowerColor === 'transparent') {
+        return match;
+      }
+      // Replace all other colors with the theme color
+      return `fill="${spriteColor}"`;
+    });
+    
+    // Replace stroke colors in attributes (stroke="color")
+    processedSvg = processedSvg.replace(/stroke\s*=\s*["']([^"']+)["']/gi, (match, color) => {
+      const lowerColor = color.toLowerCase();
+      if (lowerColor === 'none' || lowerColor === 'transparent') {
+        return match;
+      }
+      return `stroke="${spriteColor}"`;
+    });
+    
+    // Replace fill colors in style attributes (style="fill: color")
+    processedSvg = processedSvg.replace(/style\s*=\s*["']([^"']*)["']/gi, (match, styleContent) => {
+      // Replace fill: color in styles, but preserve fill: none
+      let newStyle = styleContent.replace(/fill\s*:\s*([^;]+)/gi, (fillMatch, fillValue) => {
+        const trimmedFill = fillValue.trim().toLowerCase();
+        if (trimmedFill === 'none' || trimmedFill === 'transparent') {
+          return fillMatch;
+        }
+        return `fill: ${spriteColor}`;
+      });
+      // Replace stroke: color in styles, but preserve stroke: none
+      newStyle = newStyle.replace(/stroke\s*:\s*([^;]+)/gi, (strokeMatch, strokeValue) => {
+        const trimmedStroke = strokeValue.trim().toLowerCase();
+        if (trimmedStroke === 'none' || trimmedStroke === 'transparent') {
+          return strokeMatch;
+        }
+        return `stroke: ${spriteColor}`;
+      });
+      return `style="${newStyle}"`;
+    });
+    
+    // Ensure the root SVG element has the theme color as the default fill
+    // Elements without explicit fill will inherit this color
+    const svgMatch = processedSvg.match(/<svg([^>]*)>/i);
+    if (svgMatch) {
+      const svgAttrs = svgMatch[1];
+      // If root SVG doesn't have a fill attribute, add it so elements inherit the theme color
+      if (!svgAttrs.includes('fill=')) {
+        processedSvg = processedSvg.replace(/<svg([^>]*)>/i, `<svg$1 fill="${spriteColor}">`);
+      }
+    }
+    
+    const blob = new Blob([processedSvg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     setPreviewUrl(url);
 
     return () => {
       URL.revokeObjectURL(url);
     };
-  }, [sprite.svgContent]);
+  }, [sprite.svgContent, theme]);
 
 
   // Focus input when editing starts
@@ -71,14 +167,14 @@ export function SpriteCard({
   };
 
   return (
-    <div className="group relative bg-theme-card rounded-lg border border-theme-panel p-2 hover:shadow-md transition-shadow overflow-visible">
+    <div className="group relative bg-theme-card rounded-lg border border-theme-card p-2 hover:shadow-md transition-shadow overflow-visible">
       {/* SVG Preview */}
-      <div className="w-full aspect-square bg-theme-panel rounded mb-2 flex items-center justify-center overflow-hidden relative">
+      <div className="w-full aspect-square rounded mb-2 flex items-center justify-center overflow-hidden relative">
         {previewUrl ? (
           <img
             src={previewUrl}
             alt={sprite.name}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain sprite-preview"
           />
         ) : (
           <div className="text-theme-subtle text-xs">Loading...</div>
@@ -102,7 +198,7 @@ export function SpriteCard({
             variant="background"
             size="icon"
             onClick={handleDelete}
-            className="bg-theme-panel/90 backdrop-blur-sm hover:bg-red-50 hover:dark:bg-red-900/20 shadow-md text-red-600 dark:text-red-400"
+            className="bg-theme-panel/90 backdrop-blur-sm hover:bg-status-error shadow-md text-status-error"
             title="Delete sprite"
             aria-label="Delete sprite"
           >

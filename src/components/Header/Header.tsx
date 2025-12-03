@@ -3,7 +3,7 @@ import { PixliLogo } from "./PixliLogo";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useSidebar } from "@/context/SidebarContext";
 import { Menu, X } from "lucide-react";
-import { Navbar, NavbarSection } from "@/components/catalyst/navbar";
+import { Navbar, NavbarSection } from "@/components/ui/navbar";
 interface HeaderProps {
   themeMode?: "system" | "light" | "dark";
   onThemeModeChange?: (mode: "system" | "light" | "dark") => void;

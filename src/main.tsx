@@ -8,9 +8,13 @@ import App from "./App";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { initializeSettings } from "./lib/storage/settingsStorage";
+import { initializeDefaultTheme } from "./lib/storage/themeStorage";
 
 // Initialize settings (e.g., reduced motion preference)
 initializeSettings();
+
+// Initialize default theme if it doesn't exist
+initializeDefaultTheme();
 
 const container = document.getElementById("app");
 

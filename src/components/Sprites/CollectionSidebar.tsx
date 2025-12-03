@@ -65,9 +65,9 @@ export function CollectionSidebar({
   };
 
   return (
-    <div className="w-64 h-full flex flex-col bg-theme-panel border-r border-theme-panel">
+    <div className="w-64 h-full flex flex-col bg-theme-panel border-r border-theme-card">
       {/* Header */}
-      <div className="p-4 border-b border-theme-divider">
+      <div className="p-4 border-b border-theme-card">
         <Button
           type="button"
           size="md"
@@ -151,7 +151,7 @@ export function CollectionSidebar({
                         e.stopPropagation();
                         handleDelete(collection);
                       }}
-                      className="h-6 w-6 text-red-600 dark:text-red-400"
+                      className="h-6 w-6 text-status-error"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>

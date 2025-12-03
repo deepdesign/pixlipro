@@ -132,23 +132,23 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-zinc-900 p-4">
+    <div className="min-h-screen bg-theme-bg-base p-4">
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-2xl font-bold text-theme-primary mb-2">
             Pixli Remote
           </h1>
           <div className="flex items-center gap-2">
             {connected ? (
               <>
                 <Wifi className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-green-600 dark:text-green-400">Connected</span>
+                <span className="text-sm text-status-success">Connected</span>
               </>
             ) : (
               <>
                 <WifiOff className="h-4 w-4 text-red-500" />
-                <span className="text-sm text-red-600 dark:text-red-400">Disconnected</span>
+                <span className="text-sm text-status-error">Disconnected</span>
               </>
             )}
           </div>
@@ -156,16 +156,16 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
 
         {/* Current Scene */}
         {currentScene && (
-          <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 mb-4 shadow-sm">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Current Scene</p>
-            <p className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="bg-theme-card rounded-lg p-4 mb-4 shadow-sm">
+            <p className="text-sm text-theme-muted mb-1">Current Scene</p>
+            <p className="text-lg font-semibold text-theme-primary">
               {currentScene.name}
             </p>
           </div>
         )}
 
         {/* Scene Navigation */}
-        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 mb-4 shadow-sm">
+        <div className="bg-theme-card rounded-lg p-4 mb-4 shadow-sm">
           <div className="flex items-center justify-between gap-2 mb-4">
             <Button
               type="button"
@@ -178,7 +178,7 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
               <ChevronLeft className="h-5 w-5" />
             </Button>
             <div className="flex-1 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-theme-muted">
                 {scenes.length > 0
                   ? `${(currentScene ? scenes.findIndex((s) => s.id === currentScene.id) : 0) + 1} / ${scenes.length}`
                   : "No scenes"}
@@ -206,8 +206,8 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
                   onClick={() => handleLoadScene(scene.id)}
                   className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                     currentScene?.id === scene.id
-                      ? "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
-                      : "bg-gray-50 dark:bg-zinc-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-zinc-600"
+                      ? "bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]"
+                      : "bg-[var(--icon-bg)] text-theme-primary hover:bg-[var(--icon-hover)]"
                   }`}
                 >
                   <p className="font-medium">{scene.name}</p>
@@ -218,7 +218,7 @@ export function MobileRemote({ wsUrl }: MobileRemoteProps) {
         </div>
 
         {/* Actions */}
-        <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 shadow-sm">
+        <div className="bg-theme-card rounded-lg p-4 shadow-sm">
           <Button
             type="button"
             variant="outline"

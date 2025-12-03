@@ -101,7 +101,7 @@ export function SequencePlayer({
     if (playbackState === "playing" && currentItem) {
       loadCurrentScene();
     }
-  }, [currentIndex, playbackState, loadCurrentPreset, currentItem]);
+  }, [currentIndex, playbackState, loadCurrentScene, currentItem]);
 
   const handlePlay = () => {
     if (!sequence || sequenceItems.length === 0) return;
@@ -163,7 +163,7 @@ export function SequencePlayer({
   }
 
   return (
-    <div className="bg-theme-card rounded-lg border border-theme-panel shadow-sm p-6">
+    <div className="bg-theme-card rounded-lg border border-theme-card shadow-sm p-6">
       <div className="space-y-4">
         {/* Sequence Info */}
         <div>
@@ -272,7 +272,7 @@ export function SequencePlayer({
         {currentItem && currentItem.duration > 0 && playbackState === "playing" && (
           <div className="w-full bg-theme-icon rounded-full h-2">
             <div
-              className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-1000"
+              className="bg-status-info h-2 rounded-full transition-all duration-1000"
               style={{
                 width: `${(timeRemaining / currentItem.duration) * 100}%`,
               }}

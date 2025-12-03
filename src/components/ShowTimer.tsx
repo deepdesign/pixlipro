@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/catalyst/input";
-import { Field, Label } from "@/components/catalyst/fieldset";
+import { Input } from "@/components/ui/input";
+import { Field, Label } from "@/components/ui/fieldset";
 import { Play, Pause, Square, Clock, AlertCircle } from "lucide-react";
-import { Badge } from "@/components/catalyst/badge";
+import { Badge } from "@/components/ui/badge";
 
 interface ShowTimerProps {
   className?: string;
@@ -114,7 +114,7 @@ export function ShowTimer({ className }: ShowTimerProps) {
   }, []);
 
   return (
-    <div className={`bg-theme-card rounded-lg border border-theme-panel shadow-sm p-4 ${className}`}>
+    <div className={`bg-theme-card rounded-lg border border-theme-card shadow-sm p-4 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-theme-muted" />
@@ -136,7 +136,7 @@ export function ShowTimer({ className }: ShowTimerProps) {
           <div
             className={`text-4xl font-mono font-bold ${
               remaining <= 300 && state === "running"
-                ? "text-red-600 dark:text-red-400"
+                ? "text-status-error"
                 : "text-theme-heading"
             }`}
           >

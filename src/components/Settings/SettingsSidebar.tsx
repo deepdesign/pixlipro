@@ -7,7 +7,8 @@ import {
   Monitor, 
   Smartphone, 
   Plug, 
-  Zap
+  Zap,
+  Paintbrush
 } from "lucide-react";
 import { 
   Sidebar, 
@@ -16,7 +17,7 @@ import {
   SidebarHeading, 
   SidebarItem, 
   SidebarLabel 
-} from "@/components/catalyst/sidebar";
+} from "@/components/ui/sidebar";
 
 interface SettingsSidebarProps {
   activeSection: string;
@@ -42,11 +43,12 @@ const configurationItems: NavItem[] = [
   { id: "remote-control", label: "Remote Control", icon: Smartphone },
   { id: "integrations", label: "Integrations", icon: Plug },
   { id: "performance", label: "Performance", icon: Zap },
+  { id: "theme", label: "Theme", icon: Paintbrush },
 ];
 
 export function SettingsSidebar({ activeSection, onSectionChange }: SettingsSidebarProps) {
   return (
-    <Sidebar className="settings-sidebar-nav bg-theme-panel border-r border-theme-panel [&_*[data-slot='icon']]:!fill-none [&_*[data-slot='icon']]:stroke-2">
+    <Sidebar className="settings-sidebar-nav bg-theme-panel [&_*[data-slot='icon']]:!fill-none [&_*[data-slot='icon']]:stroke-2">
       <SidebarBody>
         {/* Canvas Section */}
         <SidebarSection>

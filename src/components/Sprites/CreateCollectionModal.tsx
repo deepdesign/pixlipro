@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/catalyst/dialog";
+import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/catalyst/input";
-import { Label, Field } from "@/components/catalyst/fieldset";
+import { Input } from "@/components/ui/input";
+import { Label, Field } from "@/components/ui/fieldset";
 
 interface CreateCollectionModalProps {
   isOpen: boolean;

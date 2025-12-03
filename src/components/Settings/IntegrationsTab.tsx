@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Field, Label, Description } from "@/components/catalyst/fieldset";
-import { Switch } from "@/components/catalyst/switch";
-import { Input } from "@/components/catalyst/input";
+import { Field, Label, Description } from "@/components/ui/fieldset";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/Button";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
 import { Check, X } from "lucide-react";
-import { Select } from "@/components/catalyst/select";
+import { Select } from "@/components/ui/select";
 import { createMIDIClient, type MIDIDevice } from "@/lib/integrations/midi";
 
 interface IntegrationsTabProps {
@@ -232,33 +232,28 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
   return (
     <div className="space-y-6 px-6">
       {/* OSC Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
-          <div>
-              <h3 className="text-base font-semibold text-theme-primary">
-                OSC (Open Sound Control)
-              </h3>
-            <p className="text-sm text-theme-muted mt-1">
-              Control Pixli via OSC messages from lighting consoles and other devices.
-            </p>
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-semibold text-theme-primary">
+                  OSC (Open Sound Control)
+                </h3>
+                <Switch
+                  checked={settings.integrations.osc.enabled}
+                  onChange={handleOSCToggle}
+                />
+              </div>
+              <p className="text-sm text-theme-muted mt-1">
+                Control Pixli via OSC messages from lighting consoles and other devices.
+              </p>
+            </div>
           </div>
         </div>
-        <div className="p-6">
-          <Field>
-            <div className="flex items-center justify-between">
-              <Label>Enable OSC</Label>
-              <Switch
-                checked={settings.integrations.osc.enabled}
-                onChange={handleOSCToggle}
-              />
-            </div>
-            <Description className="mt-2">
-              Enables OSC message sending and receiving. Requires backend server.
-            </Description>
-          </Field>
-
-          {settings.integrations.osc.enabled && (
-            <div className="mt-6 pt-6 border-t border-theme-divider space-y-4">
+        {settings.integrations.osc.enabled && (
+          <div className="p-6">
+            <div className="space-y-4">
               <Field>
                 <Label htmlFor="osc-port">OSC Port</Label>
                 <Input
@@ -298,38 +293,33 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                 </ul>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* MIDI Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
-          <div>
-              <h3 className="text-base font-semibold text-theme-primary">
-                MIDI
-              </h3>
-            <p className="text-sm text-theme-muted mt-1">
-              Control Pixli via MIDI controllers and keyboards.
-            </p>
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-semibold text-theme-primary">
+                  MIDI
+                </h3>
+                <Switch
+                  checked={settings.integrations.midi.enabled}
+                  onChange={handleMIDIToggle}
+                />
+              </div>
+              <p className="text-sm text-theme-muted mt-1">
+                Control Pixli via MIDI controllers and keyboards.
+              </p>
+            </div>
           </div>
         </div>
-        <div className="p-6">
-          <Field>
-            <div className="flex items-center justify-between">
-              <Label>Enable MIDI</Label>
-              <Switch
-                checked={settings.integrations.midi.enabled}
-                onChange={handleMIDIToggle}
-              />
-            </div>
-            <Description className="mt-2">
-              Enables MIDI input from connected devices. Requires browser permission.
-            </Description>
-          </Field>
-
-          {settings.integrations.midi.enabled && (
-            <div className="mt-6 pt-6 border-t border-theme-divider space-y-4">
+        {settings.integrations.midi.enabled && (
+          <div className="p-6">
+            <div className="space-y-4">
               <Field>
                 <Label htmlFor="midi-device">MIDI Device</Label>
                 <Select
@@ -398,38 +388,33 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                 </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* DMX/Art-Net Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
-          <div>
-              <h3 className="text-base font-semibold text-theme-primary">
-                DMX/Art-Net
-              </h3>
-            <p className="text-sm text-theme-muted mt-1">
-              Send DMX output to lighting consoles via Art-Net protocol.
-            </p>
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-base font-semibold text-theme-primary">
+                  DMX/Art-Net
+                </h3>
+                <Switch
+                  checked={settings.integrations.dmx.enabled}
+                  onChange={handleDMXToggle}
+                />
+              </div>
+              <p className="text-sm text-theme-muted mt-1">
+                Send DMX output to lighting consoles via Art-Net protocol.
+              </p>
+            </div>
           </div>
         </div>
-        <div className="p-6">
-          <Field>
-            <div className="flex items-center justify-between">
-              <Label>Enable DMX</Label>
-              <Switch
-                checked={settings.integrations.dmx.enabled}
-                onChange={handleDMXToggle}
-              />
-            </div>
-            <Description className="mt-2">
-              Enables DMX output. Requires backend server and Art-Net compatible hardware.
-            </Description>
-          </Field>
-
-          {settings.integrations.dmx.enabled && (
-            <div className="mt-6 pt-6 border-t border-theme-divider space-y-4">
+        {settings.integrations.dmx.enabled && (
+          <div className="p-6">
+            <div className="space-y-4">
               <Field>
                 <Label htmlFor="dmx-universe">DMX Universe</Label>
                 <Input
@@ -500,8 +485,8 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                 </ul>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

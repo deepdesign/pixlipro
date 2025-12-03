@@ -126,27 +126,6 @@ export const palettes: Palette[] = [
     colors: ["#000000", "#000000", "#000000", "#000000", "#000000"],
     category: "Black & White",
   },
-  // Internal palettes - used for animation thumbnails, not user-selectable
-  {
-    id: "slate",
-    name: "Slate Gray",
-    colors: ["#f8fafc", "#1e293b", "#0f172a", "#0f172a", "#0f172a"], // slate-50 (index 0) for light sprite, slate-800 (index 1) for dark sprite, slate-900 (index 2+) for darker secondary sprites (darker than card)
-  },
-  {
-    id: "slate-bg",
-    name: "Slate Background",
-    colors: ["#1e293b", "#1e293b", "#1e293b", "#1e293b", "#1e293b"], // slate-800 for background (dark mode)
-  },
-  {
-    id: "slate-light",
-    name: "Slate Gray (Light Mode)",
-    colors: ["#1e293b", "#f8fafc", "#cbd5e1", "#cbd5e1", "#cbd5e1"], // slate-800 (index 0) for dark sprite, slate-50 (index 1) for light sprite, slate-300 (index 2+) for secondary sprites - darker for light mode
-  },
-  {
-    id: "slate-bg-light",
-    name: "Slate Background (Light Mode)",
-    colors: ["#ffffff", "#ffffff", "#ffffff", "#ffffff", "#ffffff"], // white for background (light mode) - matches card background
-  },
 ];
 
 export const defaultPaletteId = "neon";
@@ -168,6 +147,11 @@ const getCustomPalettes = (): Palette[] => {
 };
 
 export const getPalette = (id: string) => {
+  // Handle removed slate palettes - fallback to default
+  if (id === "slate" || id === "slate-bg" || id === "slate-light" || id === "slate-bg-light") {
+    return palettes.find((p) => p.id === defaultPaletteId) || palettes[0];
+  }
+  
   // Check built-in palettes first
   const builtIn = palettes.find((palette) => palette.id === id);
   if (builtIn) {

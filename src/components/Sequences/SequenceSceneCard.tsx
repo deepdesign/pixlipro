@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Input } from "@/components/catalyst/input";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/Button";
 import { DurationControl } from "./DurationControl";
 import { FadeControl } from "./FadeControl";
@@ -95,7 +95,7 @@ export function SequenceSceneCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-theme-card border border-theme-panel rounded-lg p-6 ${
+      className={`bg-theme-card border border-theme-card rounded-lg p-6 ${
         isDragging ? "shadow-lg" : "shadow-sm"
       } transition-shadow`}
     >
@@ -143,7 +143,7 @@ export function SequenceSceneCard({
                 Imported JSON scene
               </span>
             ) : (
-              <span className="text-red-600 dark:text-red-400">
+              <span className="text-status-error">
                 Scene not found
               </span>
             )}

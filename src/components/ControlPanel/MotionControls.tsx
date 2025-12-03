@@ -1,4 +1,4 @@
-import { Switch } from "@/components/catalyst/switch-adapter";
+import { Switch } from "@/components/ui/switch-adapter";
 import { MOVEMENT_MODES, formatMovementMode } from "@/constants/movement";
 import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
 import { speedToUi, uiToSpeed } from "@/lib/utils";

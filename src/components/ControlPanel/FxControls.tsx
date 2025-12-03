@@ -1,4 +1,4 @@
-import { Switch } from "@/components/catalyst/switch-adapter";
+import { Switch } from "@/components/ui/switch-adapter";
 import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
 import type {
   GeneratorState,

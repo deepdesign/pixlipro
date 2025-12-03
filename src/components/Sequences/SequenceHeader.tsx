@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/catalyst/input";
+import { Input } from "@/components/ui/input";
 import { BackgroundColorPicker } from "./BackgroundColorPicker";
 import type { Sequence } from "@/lib/storage/sequenceStorage";
 import { ArrowLeft, Save, Download } from "lucide-react";

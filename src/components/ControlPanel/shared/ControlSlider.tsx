@@ -112,7 +112,7 @@ export function ControlSlider({
           className={cn(
             "absolute inset-0 w-full h-full",
             "appearance-none bg-transparent cursor-pointer",
-            "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none",
+            "disabled:cursor-not-allowed disabled:pointer-events-none",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2"
           )}
           min={min}

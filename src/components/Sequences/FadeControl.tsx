@@ -5,7 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
-import { Label } from "@/components/catalyst/fieldset";
+import { Label } from "@/components/ui/fieldset";
 import type { FadeType } from "@/lib/storage/sequenceStorage";
 
 interface FadeControlProps {

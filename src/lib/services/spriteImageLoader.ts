@@ -258,7 +258,7 @@ async function processSvgContent(svgText: string): Promise<string> {
     
     const points = pointsMatch[1].trim();
     // Convert points to path data: M firstPoint L restOfPoints Z
-    const pointPairs = points.split(/[\s,]+/).filter(p => p.trim());
+    const pointPairs = points.split(/[\s,]+/).filter((p: string) => p.trim());
     if (pointPairs.length < 2) return match; // Need at least one point (x,y)
     
     let pathData = '';

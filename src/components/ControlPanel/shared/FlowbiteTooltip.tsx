@@ -97,22 +97,20 @@ export function FlowbiteTooltip({
 
   const tooltipBgColor =
     style === "dark"
-      ? "bg-gray-900 dark:bg-gray-700 text-white"
-      : "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-600";
+      ? "text-theme-primary"
+      : "bg-theme-panel dark:text-theme-primary text-theme-primary dark:text-theme-muted border border-theme-card dark:border-theme-card";
 
   const arrowPosition =
     placement === "top"
-      ? "bottom-[-8px] left-1/2 -translate-x-1/2 border-t-gray-900 dark:border-t-gray-700 border-x-transparent border-b-transparent"
+      ? "bottom-[-5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[var(--theme-primary-tint700)]"
       : placement === "bottom"
-      ? "top-[-8px] left-1/2 -translate-x-1/2 border-b-gray-900 dark:border-b-gray-700 border-x-transparent border-t-transparent"
+      ? "top-[-5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-[var(--theme-primary-tint700)]"
       : placement === "left"
-      ? "right-[-8px] top-1/2 -translate-y-1/2 border-l-gray-900 dark:border-l-gray-700 border-y-transparent border-r-transparent"
-      : "left-[-8px] top-1/2 -translate-y-1/2 border-r-gray-900 dark:border-r-gray-700 border-y-transparent border-l-transparent";
+      ? "right-[-5px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-l-[6px] border-t-transparent border-b-transparent border-l-[var(--theme-primary-tint700)]"
+      : "left-[-5px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-[6px] border-t-transparent border-b-transparent border-r-[var(--theme-primary-tint700)]";
 
-  const arrowBgColor =
-    style === "dark"
-      ? arrowPosition
-      : arrowPosition.replace(/border-[trbl]-(gray-900|gray-700)/g, "border-t-white border-r-white border-b-white border-l-white dark:border-t-gray-800 dark:border-r-gray-800 dark:border-b-gray-800 dark:border-l-gray-800");
+  // Arrow should match tooltip background
+  const arrowBgColor = arrowPosition;
 
   return (
     <>
@@ -123,7 +121,7 @@ export function FlowbiteTooltip({
         ref={tooltipRef}
         id={id}
         role="tooltip"
-        className={`absolute z-10 inline-block px-3 py-2 text-sm font-medium rounded-lg shadow-sm transition-opacity duration-300 ${tooltipBgColor} ${
+        className={`absolute z-10 inline-block px-3 py-2 text-xs font-medium rounded-lg shadow-sm transition-opacity duration-300 ${tooltipBgColor} ${
           isVisible ? "opacity-100 !visible" : "opacity-0 invisible"
         }`}
         style={{
@@ -137,10 +135,11 @@ export function FlowbiteTooltip({
               ? "translateY(-50%)"
               : "none",
           zIndex: 1000,
+          backgroundColor: "var(--theme-primary-tint700)",
         }}
       >
         {content}
-        <div className={`absolute w-2 h-2 border-4 ${arrowBgColor}`} />
+        <div className={`absolute ${arrowPosition}`} />
       </div>
     </>
   );

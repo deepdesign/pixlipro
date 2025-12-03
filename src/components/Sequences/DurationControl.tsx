@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Input } from "@/components/catalyst/input";
-import { Label } from "@/components/catalyst/fieldset";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/fieldset";
 import type { DurationMode } from "@/lib/storage/sequenceStorage";
 
 interface DurationControlProps {

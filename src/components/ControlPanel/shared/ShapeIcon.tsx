@@ -6,7 +6,7 @@ interface ShapeIconProps {
   size?: number;
   svgPath?: string; // Optional SVG path for custom sprite icons
   svgContent?: string; // Optional SVG content (for custom sprites from localStorage)
-  "data-slot"?: string; // For Catalyst icon button pattern
+  "data-slot"?: string; // For Headless UI icon button pattern
 }
 
 /**

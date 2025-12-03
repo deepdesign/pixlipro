@@ -125,20 +125,20 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         scaleSpread: 0, // No spread - thumbnail mode will control sizes
         selectedSprites: [squareSpritePath], // Force square sprite using SVG path
         randomSprites: false,
-        // Use theme-aware palette: light mode uses slate-light, dark mode uses slate
-        paletteId: isLightMode ? "slate-light" : "slate",
+        // Use neutral palette for thumbnails
+        paletteId: "snow-white",
         paletteVariance: 0, // No color variation - use exact palette colors
         seed: `animation-thumbnail-${animation.id}`, // Unique seed per animation
         colorSeedSuffix: "", // No suffix to use default color RNG
-        // Use theme-aware background: light mode uses slate-bg-light, dark mode uses slate-bg
-        backgroundMode: isLightMode ? "slate-bg-light" : "slate-bg",
+        // Use auto background mode (uses same palette as sprites)
+        backgroundMode: "auto",
         backgroundBrightness: 100,
         backgroundHueShift: 0,
         backgroundColorIndex: 0,
-        // Thumbnail mode: control primary and secondary sprites (inverted for light mode)
+        // Thumbnail mode: control primary and secondary sprites
         thumbnailMode: {
-          primaryColorIndex: isLightMode ? 0 : 0, // dark sprite (slate-800) in light mode, light sprite (slate-50) in dark mode
-          secondaryColorIndex: isLightMode ? 2 : 2, // darker secondary sprites than card background in both modes
+          primaryColorIndex: 0, // First color for main sprite
+          secondaryColorIndex: 0, // First color for background sprites
           primaryScale: primaryScale,
           secondaryScale: secondaryScale,
           secondaryCount: 7,
@@ -173,20 +173,20 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         scaleSpread: 0, // No spread - thumbnail mode will control sizes
         selectedSprites: [squareSpritePath], // Force square sprite using SVG path
         randomSprites: false,
-        // Use theme-aware palette: light mode uses slate-light, dark mode uses slate
-        paletteId: isLightMode ? "slate-light" : "slate",
+        // Use neutral palette for thumbnails
+        paletteId: "snow-white",
         paletteVariance: 0, // No color variation - use exact palette colors
         seed: `animation-thumbnail-${animation.id}`, // Unique seed per animation
         colorSeedSuffix: "", // No suffix to use default color RNG
-        // Use theme-aware background: light mode uses slate-bg-light, dark mode uses slate-bg
-        backgroundMode: isLightMode ? "slate-bg-light" : "slate-bg",
+        // Use auto background mode (uses same palette as sprites)
+        backgroundMode: "auto",
         backgroundBrightness: 100,
         backgroundHueShift: 0,
         backgroundColorIndex: 0,
-        // Thumbnail mode: control primary and secondary sprites (inverted for light mode)
+        // Thumbnail mode: control primary and secondary sprites
         thumbnailMode: {
-          primaryColorIndex: isLightMode ? 0 : 0, // dark sprite (slate-800) in light mode, light sprite (slate-50) in dark mode
-          secondaryColorIndex: isLightMode ? 2 : 2, // darker secondary sprites than card background in both modes
+          primaryColorIndex: 0, // First color for main sprite
+          secondaryColorIndex: 0, // First color for background sprites
           primaryScale: primaryScale,
           secondaryScale: secondaryScale,
           secondaryCount: 7,

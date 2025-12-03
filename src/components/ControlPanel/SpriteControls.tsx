@@ -1,6 +1,6 @@
 import { useRef, useMemo } from "react";
 import { Button } from "@/components/Button";
-import { Switch } from "@/components/catalyst/switch-adapter";
+import { Switch } from "@/components/ui/switch-adapter";
 import { Lock, Unlock, RefreshCw, ChevronDown } from "lucide-react";
 import { SPRITE_MODES } from "@/constants/sprites";
 import { getAllCollections, getCollection, getSpriteIdentifierFromMode } from "@/constants/spriteCollections";
@@ -196,6 +196,7 @@ export function SpriteControls({
                       type="button"
                       size="icon"
                       variant={isSelected ? "default" : "background"}
+                      data-selected={isSelected ? "true" : undefined}
                       onClick={() => {
                         if (spriteIdentifier && controller?.toggleSpriteSelection) {
                           controller.toggleSpriteSelection(spriteIdentifier);

@@ -92,17 +92,17 @@ export function AnimationCard({
 
   return (
     <div
-      className={`group relative bg-theme-card rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
+      className={`group relative bg-theme-panel rounded-lg border transition-all cursor-pointer overflow-hidden ${
         isSelected
           ? "border-[var(--accent-primary)] shadow-lg"
-          : "border-theme-card hover:border-theme-panel hover:shadow-md"
+          : "border-theme-card hover:shadow-md"
       }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleSelect}
     >
       {/* Thumbnail Preview */}
-      <div className="w-full aspect-video bg-theme-card flex items-center justify-center overflow-hidden relative">
+      <div className="w-full aspect-video bg-theme-panel flex items-center justify-center overflow-hidden relative">
         <AnimationThumbnail animation={animation} size={320} />
         
         {/* Lock icon for default animations */}
@@ -147,7 +147,7 @@ export function AnimationCard({
                 variant="background"
                 size="icon"
                 onClick={handleDelete}
-                className="bg-theme-panel/90 backdrop-blur-sm hover:bg-red-50 hover:dark:bg-red-900/20 shadow-md text-red-600 dark:text-red-400"
+                className="bg-theme-panel/90 backdrop-blur-sm hover:bg-status-error shadow-md text-status-error"
                 title="Delete animation"
                 aria-label="Delete animation"
               >

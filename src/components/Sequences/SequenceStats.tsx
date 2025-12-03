@@ -111,7 +111,7 @@ export function SequenceStats() {
         return (
           <div
             key={stat.name}
-            className="relative overflow-hidden rounded-lg bg-theme-card px-4 py-5 shadow-sm border border-theme-panel sm:px-6"
+            className="relative overflow-hidden rounded-lg bg-theme-card px-4 py-5 shadow-sm border border-theme-card sm:px-6"
           >
             <dt>
               <div className="absolute rounded-md bg-theme-icon p-3">

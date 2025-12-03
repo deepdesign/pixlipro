@@ -89,17 +89,18 @@ export function TextWithTooltip({ id, text, children, className = "" }: TextWith
           ref={tooltipRef}
           id={id}
           role="tooltip"
-          className="absolute z-10 inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 dark:bg-gray-700 rounded-lg shadow-sm transition-opacity duration-300 opacity-100"
+          className="absolute z-10 inline-block px-3 py-2 text-xs font-medium text-theme-primary rounded-lg shadow-sm transition-opacity duration-300 opacity-100"
           style={{
             position: "fixed",
             top: `${position.top}px`,
             left: `${position.left}px`,
             transform: "translateX(-50%)",
             zIndex: 1000,
+            backgroundColor: "var(--theme-primary-tint700)",
           }}
         >
           {text}
-          <div className="absolute bottom-[-8px] left-1/2 -translate-x-1/2 w-2 h-2 border-4 border-t-gray-900 dark:border-t-gray-700 border-x-transparent border-b-transparent" />
+          <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[var(--theme-primary-tint700)]" />
         </div>
       )}
     </>

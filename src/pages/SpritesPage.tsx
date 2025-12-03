@@ -211,7 +211,7 @@ export function SpritesPage() {
             />
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-visible p-6">
+            <div className="flex-1 overflow-y-auto overflow-x-visible p-6 bg-theme-panel">
               {isFileBasedCollection ? (
                 <div className="flex items-center justify-center h-64 text-theme-muted">
                   <div className="text-center">

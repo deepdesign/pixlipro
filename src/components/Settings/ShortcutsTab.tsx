@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Label } from "@/components/catalyst/fieldset";
-import { Input } from "@/components/catalyst/input";
+import { Label } from "@/components/ui/fieldset";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/Button";
 import {
   loadShortcuts,
@@ -125,8 +125,8 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
   return (
     <div className="space-y-6">
       {/* Keyboard Shortcuts Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <div className="flex items-start justify-between">
             <div>
               <h3 className="text-base font-semibold text-theme-primary flex items-center gap-2">
@@ -141,7 +141,7 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
         </div>
         <div className="p-6">
           {shortcutGroups.map((group, groupIndex) => (
-            <div key={groupIndex} className={groupIndex > 0 ? "mt-6 pt-6 border-t border-theme-divider" : ""}>
+            <div key={groupIndex} className={groupIndex > 0 ? "mt-6 pt-6 border-t border-theme-card" : ""}>
               <h4 className="text-sm font-semibold text-theme-primary mb-3">
                 {group.title}
               </h4>
@@ -206,8 +206,8 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
       </div>
 
       {/* Instructions Card */}
-      <div className="bg-theme-panel rounded-lg border border-theme-panel shadow-sm">
-        <div className="p-6 border-b border-theme-divider">
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
           <h3 className="text-base font-semibold text-theme-primary">
             How to Set Shortcuts
           </h3>

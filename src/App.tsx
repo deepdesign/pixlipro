@@ -31,6 +31,8 @@ import { useMIDI } from "./hooks/useMIDI";
 import { useDMX } from "./hooks/useDMX";
 import { getAllScenes, loadSceneState } from "./lib/storage/sceneStorage";
 import { loadSettings } from "./lib/storage/settingsStorage";
+import { getActiveTheme } from "./lib/storage/themeStorage";
+import { applyTheme } from "./lib/theme/themeApplier";
 
 // Lazy load modals for better initial load performance
 const SceneManager = lazy(() => import("./components/SceneManager").then(module => ({ default: module.SceneManager })));
@@ -119,15 +121,23 @@ const App = () => {
   useEffect(() => {
     controllerRef.current = controller;
   }, [controller]);
+
+  // Apply active theme on app initialization
+  useEffect(() => {
+    const activeTheme = getActiveTheme();
+    if (activeTheme) {
+      applyTheme(activeTheme);
+    }
+  }, []);
   
-  // Stream canvas frames to projector window
+  // Sync state to projector window (no longer streaming frames - projector creates its own controller)
   useEffect(() => {
     if (isProjectorMode) {
-      return; // Don't stream if we're in projector mode
+      return; // Don't sync if we're in projector mode
     }
 
-    if (!controller || !dualMonitor.isProjectorMode) {
-      return;
+    if (!dualMonitor.isEnabled) {
+      return; // Only set up channel if dual monitor is enabled
     }
 
     if (typeof BroadcastChannel === "undefined") {
@@ -135,85 +145,38 @@ const App = () => {
     }
 
     const channel = new BroadcastChannel("pixli-projector-sync");
-    let animationFrameId: number | null = null;
-    let lastFrameTime = 0;
-    const targetFPS = 60;
-    const frameInterval = 1000 / targetFPS;
 
-    const streamCanvas = () => {
-      const p5Instance = controller?.getP5Instance();
-      if (!hasCanvas(p5Instance)) {
-        animationFrameId = requestAnimationFrame(streamCanvas);
-        return;
-      }
-
-      const canvas = p5Instance.canvas;
-      const currentTime = performance.now();
-
-      // Throttle to target FPS
-      if (currentTime - lastFrameTime >= frameInterval) {
-        try {
-          // Capture canvas directly as data URL (faster than toBlob + FileReader)
-          const imageData = canvas.toDataURL("image/png");
-          
-          // Calculate aspect ratio percentage for projector window
-          let aspectRatioPercent = 56.25; // Default to 16:9
-          if (spriteState) {
-            switch (spriteState.aspectRatio) {
-              case "16:9":
-                aspectRatioPercent = 56.25; // 9/16 * 100
-                break;
-              case "21:9":
-                aspectRatioPercent = 42.857; // 9/21 * 100
-                break;
-              case "16:10":
-                aspectRatioPercent = 62.5; // 10/16 * 100
-                break;
-              case "custom":
-                const custom = spriteState.customAspectRatio;
-                aspectRatioPercent = (custom.height / custom.width) * 100;
-                break;
-              default:
-                aspectRatioPercent = 56.25;
-            }
-          }
-          
+    // Handle state requests - respond immediately even if spriteState isn't ready yet
+    channel.onmessage = (event) => {
+      console.log("[App] Received message:", event.data.type);
+      if (event.data.type === "request-state") {
+        if (spriteState) {
+          console.log("[App] Sending state update in response to request");
           channel.postMessage({
-            type: "canvas-frame",
-            imageData,
-            aspectRatio: aspectRatioPercent,
+            type: "state-update",
+            state: spriteState,
             timestamp: Date.now(),
           });
-        } catch (error) {
-          console.error("Error capturing canvas frame:", error);
+        } else {
+          console.log("[App] State request received but spriteState not ready yet");
         }
-        lastFrameTime = currentTime;
-      }
-
-      animationFrameId = requestAnimationFrame(streamCanvas);
-    };
-
-    // Start streaming
-    streamCanvas();
-
-    // Handle state requests
-    channel.onmessage = (event) => {
-      if (event.data.type === "request-state" && spriteState) {
-        channel.postMessage({
-          type: "state-update",
-          state: spriteState,
-          timestamp: Date.now(),
-        });
       }
     };
+
+    // Send state updates whenever spriteState changes (if available)
+    if (spriteState) {
+      console.log("[App] Sending initial state update");
+      channel.postMessage({
+        type: "state-update",
+        state: spriteState,
+        timestamp: Date.now(),
+      });
+    }
 
     return () => {
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-      }
       channel.close();
     };
-  }, [isProjectorMode, controller, dualMonitor.isProjectorMode, spriteState]);
+  }, [isProjectorMode, spriteState, dualMonitor.isEnabled]);
   
   const [activePanel, setActivePanel] = useState<"sprites" | "colours" | "motion" | "fx">("sprites");
   const [showSceneManager, setShowSceneManager] = useState(false);
@@ -826,6 +789,7 @@ const App = () => {
     remoteControlPort,
     remoteControlEnabled,
     handleLoadSceneById,
+    handleLoadSceneById, // onPresetLoad - backward compatibility
     handleRandomiseAll,
     getCurrentState,
     getScenes
@@ -961,7 +925,7 @@ const App = () => {
           <SpritesPage />
         )}
         
-        {(currentPage === "presets" || currentPage === "scenes") && (
+        {currentPage === "scenes" && (
         <ScenesPage
           currentState={spriteState}
           onLoadScene={handleLoadPreset}

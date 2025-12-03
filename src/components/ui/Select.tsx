@@ -1,123 +1,193 @@
-import { forwardRef } from "react";
-import type React from "react";
-import * as SelectPrimitive from "@radix-ui/react-select";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
-import clsx from "clsx";
+import * as Headless from '@headlessui/react'
+import * as RadixSelect from '@radix-ui/react-select'
+import clsx from 'clsx'
+import React, { forwardRef } from 'react'
+import { ChevronDownIcon, CheckIcon } from 'lucide-react'
 
-export const Select = SelectPrimitive.Root;
+// Export Headless UI Select for backward compatibility (simple form select)
+export const HeadlessSelect = forwardRef(function HeadlessSelect(
+  { className, multiple, ...props }: { className?: string } & Omit<Headless.SelectProps, 'as' | 'className'>,
+  ref: React.ForwardedRef<HTMLSelectElement>
+) {
+  return (
+    <span
+      data-slot="control"
+      className={clsx([
+        className,
+        // Basic layout
+        'group relative block w-full',
+        // Background color + shadow applied to inset pseudo element, so shadow blends with border in light mode
+        'before:absolute before:inset-px before:rounded-[calc(var(--radius-lg)-1px)] before:bg-[var(--select-bg)] before:shadow-sm',
+        // Background color is moved to control and shadow is removed in dark mode so hide `before` pseudo
+        'dark:before:hidden',
+        // Focus ring
+        'after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent after:ring-inset has-data-focus:after:ring-2 has-data-focus:after:ring-blue-500',
+        // Disabled state
+        'has-data-disabled:opacity-50 has-data-disabled:before:bg-[var(--select-bg)] has-data-disabled:before:shadow-none',
+      ])}
+    >
+      <Headless.Select
+        ref={ref}
+        multiple={multiple}
+        {...props}
+        className={clsx([
+          // Basic layout
+          'relative block w-full appearance-none rounded-lg py-[calc(--spacing(2.5)-1px)] sm:py-[calc(--spacing(1.5)-1px)]',
+          // Horizontal padding
+          multiple
+            ? 'px-[calc(--spacing(3.5)-1px)] sm:px-[calc(--spacing(3)-1px)]'
+            : 'pr-[calc(--spacing(10)-1px)] pl-[calc(--spacing(3.5)-1px)] sm:pr-[calc(--spacing(9)-1px)] sm:pl-[calc(--spacing(3)-1px)]',
+          // Options (multi-select)
+          '[&_optgroup]:font-semibold',
+          // Typography
+          'text-base/6 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] sm:text-sm/6',
+          // Border
+          'border border-[var(--select-border)] data-hover:border-[var(--select-hover)]',
+          // Background color
+          'bg-[var(--select-bg)]',
+          // Hide default focus styles
+          'focus:outline-hidden',
+          // Invalid state
+          'data-invalid:border-[var(--status-error)] data-invalid:data-hover:border-[var(--status-error)]',
+          // Disabled state
+          'data-disabled:border-[var(--select-border)] data-disabled:bg-[var(--select-bg)] data-disabled:opacity-100',
+        ])}
+      />
+      {!multiple && (
+        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+          <svg
+            className="size-5 stroke-[var(--text-subtle)] group-has-data-disabled:stroke-[var(--text-muted)] sm:size-4 forced-colors:stroke-[CanvasText]"
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            fill="none"
+          >
+            <path d="M5.75 10.75L8 13L10.25 10.75" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10.25 5.25L8 3L5.75 5.25" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      )}
+    </span>
+  )
+})
+
+// Radix UI Select components - main export used by components
+export const Select = RadixSelect.Root
+export const SelectRoot = RadixSelect.Root // Alias for clarity
 
 export const SelectTrigger = forwardRef<
-  HTMLButtonElement,
-  SelectPrimitive.SelectTriggerProps
+  React.ElementRef<typeof RadixSelect.Trigger>,
+  React.ComponentPropsWithoutRef<typeof RadixSelect.Trigger>
 >(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Trigger
+  <RadixSelect.Trigger
     ref={ref}
-      className={clsx(
-        "grid w-full cursor-default grid-cols-1 rounded-md h-9 pr-2 pl-3 text-left",
-        "bg-theme-select text-theme-primary outline-1 -outline-offset-1 outline-theme-panel",
-        "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent-primary)]",
-        "text-[0.65rem] uppercase tracking-[0.18em]",
-        "data-disabled:cursor-not-allowed data-disabled:opacity-50",
-        "[&>span[data-placeholder]]:text-theme-subtle", // Placeholder text styling
-        "[&>span:not([data-placeholder])]:uppercase [&>span:not([data-placeholder])]:text-[0.65rem] [&>span:not([data-placeholder])]:tracking-[0.18em]", // Selected value styling
-        "[&>span[data-radix-select-value]]:text-[0.65rem] [&>span[data-radix-select-value]]:uppercase [&>span[data-radix-select-value]]:tracking-[0.18em]", // Direct SelectValue styling
-        className
-      )}
+    className={clsx(
+      'group relative block w-full appearance-none rounded-lg py-[calc(--spacing(2.5)-1px)] sm:py-[calc(--spacing(1.5)-1px)]',
+      'pr-[calc(--spacing(10)-1px)] pl-[calc(--spacing(3.5)-1px)] sm:pr-[calc(--spacing(9)-1px)] sm:pl-[calc(--spacing(3)-1px)]',
+      // Text colors - use theme variables
+      'text-base/6 sm:text-sm/6',
+      'text-[var(--text-primary)]',
+      'placeholder:text-[var(--text-subtle)]',
+      // Border - use theme variables
+      'border border-[var(--select-border)]',
+      'data-hover:border-[var(--select-hover)]',
+      // Background - use theme variables
+      'bg-[var(--select-bg)]',
+      'focus:outline-hidden',
+      // Invalid state
+      'data-[invalid]:border-[var(--status-error)] data-[invalid]:data-hover:border-[var(--status-error)]',
+      // Disabled state
+      'data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed',
+      'flex items-center justify-between',
+      className
+    )}
     {...props}
   >
-    <span className="col-start-1 row-start-1 flex items-center gap-3 pr-6">
-      {children}
-    </span>
-    <SelectPrimitive.Icon asChild>
-      <ChevronDown className="col-start-1 row-start-1 size-5 self-center justify-self-end text-theme-subtle sm:size-4" />
-    </SelectPrimitive.Icon>
-  </SelectPrimitive.Trigger>
-));
-SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
+    {children}
+    <RadixSelect.Icon className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+      <ChevronDownIcon className="size-5 stroke-[var(--text-muted)] group-data-[disabled]:stroke-[var(--text-subtle)] sm:size-4" />
+    </RadixSelect.Icon>
+  </RadixSelect.Trigger>
+))
+SelectTrigger.displayName = RadixSelect.Trigger.displayName
 
-export const SelectValue = SelectPrimitive.Value;
+export const SelectValue = RadixSelect.Value
 
 export const SelectContent = forwardRef<
-  HTMLDivElement,
-  SelectPrimitive.SelectContentProps
->(
-  (
-    { className, children, position = "popper", sideOffset = 8, ...props },
-    ref,
-  ) => (
-    <SelectPrimitive.Portal>
-      <SelectPrimitive.Content
-        ref={ref}
-        className={clsx(
-          "relative z-50 max-h-56 w-[var(--radix-select-trigger-width)] overflow-auto rounded-md py-1 text-base",
-          "bg-theme-select outline-1 -outline-offset-1 outline-theme-panel",
-          "sm:text-sm",
-          "data-leave:transition data-leave:duration-100 data-leave:ease-in data-closed:data-leave:opacity-0",
-          className
-        )}
-        position={position}
-        sideOffset={sideOffset}
-        {...props}
-      >
-        <SelectPrimitive.ScrollUpButton className="flex h-6 items-center justify-center bg-theme-select text-theme-subtle">
-          <ChevronUp className="h-3 w-3" />
-        </SelectPrimitive.ScrollUpButton>
-        <SelectPrimitive.Viewport>
-          {children}
-        </SelectPrimitive.Viewport>
-        <SelectPrimitive.ScrollDownButton className="flex h-6 items-center justify-center bg-theme-select text-theme-subtle">
-          <ChevronDown className="h-3 w-3" />
-        </SelectPrimitive.ScrollDownButton>
-      </SelectPrimitive.Content>
-    </SelectPrimitive.Portal>
-  ),
-);
-SelectContent.displayName = SelectPrimitive.Content.displayName;
-
-export const SelectGroup = SelectPrimitive.Group;
+  React.ElementRef<typeof RadixSelect.Content>,
+  React.ComponentPropsWithoutRef<typeof RadixSelect.Content>
+>(({ className, children, ...props }, ref) => (
+  <RadixSelect.Portal>
+    <RadixSelect.Content
+      ref={ref}
+      className={clsx(
+        'control-dropdown-menu',
+        'relative z-50',
+        'min-w-[8rem] overflow-hidden',
+        className
+      )}
+      position="popper"
+      sideOffset={4}
+      {...props}
+    >
+      <RadixSelect.Viewport className="control-select-viewport">
+        {children}
+      </RadixSelect.Viewport>
+      <RadixSelect.ScrollUpButton className="control-select-scroll control-select-scroll-up">
+        <ChevronDownIcon className="size-4 rotate-180" />
+      </RadixSelect.ScrollUpButton>
+      <RadixSelect.ScrollDownButton className="control-select-scroll control-select-scroll-down">
+        <ChevronDownIcon className="size-4" />
+      </RadixSelect.ScrollDownButton>
+    </RadixSelect.Content>
+  </RadixSelect.Portal>
+))
+SelectContent.displayName = RadixSelect.Content.displayName
 
 export const SelectItem = forwardRef<
-  HTMLDivElement,
-  SelectPrimitive.SelectItemProps
+  React.ElementRef<typeof RadixSelect.Item>,
+  React.ComponentPropsWithoutRef<typeof RadixSelect.Item>
 >(({ className, children, ...props }, ref) => (
-  <SelectPrimitive.Item
+  <RadixSelect.Item
     ref={ref}
     className={clsx(
-      "group relative cursor-default py-2 pr-9 pl-3 select-none outline-hidden",
-      "text-theme-primary data-[highlighted]:bg-[var(--accent-primary)] data-[highlighted]:text-[var(--accent-primary-contrast)]",
-      "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      'control-dropdown-item',
+      'relative flex w-full cursor-pointer select-none items-center rounded-sm',
+      'focus:bg-accent focus:text-accent-foreground',
+      'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
     {...props}
   >
-    <SelectPrimitive.ItemText className="flex items-center gap-2 text-[0.65rem] uppercase tracking-[0.16em] whitespace-nowrap">
-      {children}
-    </SelectPrimitive.ItemText>
-      <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-[var(--accent-primary)] group-data-[highlighted]:text-[var(--accent-primary-contrast)]">
-      <SelectPrimitive.ItemIndicator>
-        <Check className="size-5" />
-      </SelectPrimitive.ItemIndicator>
-    </span>
-  </SelectPrimitive.Item>
-));
-SelectItem.displayName = SelectPrimitive.Item.displayName;
+    <RadixSelect.ItemText>{children}</RadixSelect.ItemText>
+    <RadixSelect.ItemIndicator className="control-select-indicator">
+      <CheckIcon className="select-check-icon" />
+    </RadixSelect.ItemIndicator>
+  </RadixSelect.Item>
+))
+SelectItem.displayName = RadixSelect.Item.displayName
+
+export const SelectGroup = RadixSelect.Group
 
 export const SelectLabel = forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<'div'>
+  React.ElementRef<typeof RadixSelect.Label>,
+  React.ComponentPropsWithoutRef<typeof RadixSelect.Label>
 >(({ className, ...props }, ref) => (
-  <SelectPrimitive.Label
+  <RadixSelect.Label
     ref={ref}
-    className={clsx(
-      "px-2 py-2 pt-3 text-[0.6rem] uppercase tracking-[0.2em] font-semibold",
-      "text-theme-subtle",
-      "pointer-events-none select-none",
-      className
-    )}
+    className={clsx('control-select-category-label', className)}
     {...props}
   />
-));
-SelectLabel.displayName = "SelectLabel";
+))
+SelectLabel.displayName = RadixSelect.Label.displayName
 
-export const SelectSeparator = SelectPrimitive.Separator;
-
+export const SelectSeparator = forwardRef<
+  React.ElementRef<typeof RadixSelect.Separator>,
+  React.ComponentPropsWithoutRef<typeof RadixSelect.Separator>
+>(({ className, ...props }, ref) => (
+  <RadixSelect.Separator
+    ref={ref}
+    className={clsx('my-1 h-px bg-muted', className)}
+    {...props}
+  />
+))
+SelectSeparator.displayName = RadixSelect.Separator.displayName
