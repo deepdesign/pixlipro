@@ -11,7 +11,7 @@ import {
 } from "./data/palettes";
 // import { getGradientsForPalette } from "./data/gradients"; // Unused
 import { calculateGradientLine } from "./lib/utils";
-import { getCollection, getSpriteInCollection, getAllCollections, getSpriteIdentifier } from "./constants/spriteCollections";
+import { getCollection, getSpriteInCollection, getAllCollections, getSpriteIdentifier, findSpriteByIdentifier } from "./constants/spriteCollections";
 import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache, preloadSpriteImages } from "./lib/services/spriteImageLoader";
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 import { applyNoiseOverlay } from "./lib/utils/fxNoise";
@@ -4057,42 +4057,32 @@ export const createSpriteController = (
         // This ensures new/modified SVG files are reloaded
         clearSpriteImageCache();
         
-        // If current sprite mode is not in new collection, switch to first sprite
-        const currentSpriteId = stateRef.current.spriteMode;
-        const spriteInCollection = collection.sprites.find(s => 
-          s.id === currentSpriteId || s.spriteMode === currentSpriteId
-        );
+        const currentState = stateRef.current;
+        const currentSelectedSprites = currentState.selectedSprites ?? [];
         
-        // All collections are now SVG-based - preload sprites
-        if (!spriteInCollection && collection.sprites.length > 0) {
-          const firstSprite = collection.sprites[0];
-          if (firstSprite.svgPath) {
-            // Preload the first sprite before switching
-            if (!getCachedSpriteImage(firstSprite.svgPath)) {
-              loadSpriteImage(firstSprite.svgPath).catch(error => {
-                console.warn(`Failed to preload sprite: ${firstSprite.svgPath}`, error);
-              });
-            }
-            // Use the sprite's identifier (svgPath or custom identifier)
-            const spriteIdentifier = getSpriteIdentifier(firstSprite, collectionId);
-            applyState({ 
-              spriteCollectionId: collectionId,
-              spriteMode: firstSprite.id as SpriteMode,
-              selectedSprites: [spriteIdentifier]
-            });
-          } else {
-            applyState({ spriteCollectionId: collectionId });
+        // Preserve all currently selected sprites (from all collections)
+        // No auto-selection - user must manually select sprites
+        const newSelectedSprites = [...currentSelectedSprites];
+        
+        // Only update spriteMode if there are already selected sprites from the new collection
+        // This maintains the current mode when switching to a collection that has selected sprites
+        let spriteModeToSet: SpriteMode | undefined = undefined;
+        const spritesFromNewCollection = currentSelectedSprites.filter(identifier => {
+          const spriteInfo = findSpriteByIdentifier(identifier);
+          return spriteInfo && spriteInfo.collectionId === collectionId;
+        });
+        
+        if (spritesFromNewCollection.length > 0) {
+          // Use the first selected sprite from the new collection as the current mode
+          const firstSelectedIdentifier = spritesFromNewCollection[0];
+          const spriteInfo = findSpriteByIdentifier(firstSelectedIdentifier);
+          if (spriteInfo) {
+            spriteModeToSet = spriteInfo.sprite.id as SpriteMode;
           }
-          return;
         }
         
-        // Determine which sprite to use
-        const spriteToUse = spriteInCollection || (collection.sprites.length > 0 ? collection.sprites[0] : null);
-        
-        if (spriteToUse && spriteToUse.svgPath) {
-          // CRITICAL: Preload ALL sprites in the collection immediately when switching collections
-          // This prevents lag/stutter when selecting individual sprites later
-          // Large/complex SVGs (like snowflakes) take time to process, so preload everything upfront
+        // Preload all sprites in the new collection
+        if (collection.sprites.length > 0) {
           const pathsToPreload = collection.sprites
             .filter(s => s.svgPath && !getCachedSpriteImage(s.svgPath!))
             .map(s => s.svgPath!);
@@ -4103,30 +4093,19 @@ export const createSpriteController = (
               console.warn("Failed to preload some sprites", error);
             });
           }
-          
-          // Also ensure the sprite we're switching to is prioritized
-          const spritePath = spriteToUse.svgPath;
-          if (!getCachedSpriteImage(spritePath)) {
-            loadSpriteImage(spritePath).catch(error => {
-              console.warn(`Failed to preload sprite: ${spritePath}`, error);
-            });
-          }
-          
-          // Apply state change
-          if (spriteInCollection) {
-            // Keep current sprite, just update collection ID
-            applyState({ spriteCollectionId: collectionId });
-          } else {
-            // Switch to first sprite in collection
-            applyState({ 
-              spriteCollectionId: collectionId,
-              spriteMode: spriteToUse.id as SpriteMode
-            });
-          }
-          } else {
-            // Fallback: just update collection ID
-          applyState({ spriteCollectionId: collectionId });
         }
+        
+        // Apply state change - preserve all selected sprites (from all collections)
+        const stateUpdate: Partial<GeneratorState> = {
+          spriteCollectionId: collectionId,
+          selectedSprites: newSelectedSprites,
+        };
+        
+        if (spriteModeToSet !== undefined) {
+          stateUpdate.spriteMode = spriteModeToSet;
+        }
+        
+        applyState(stateUpdate);
       }
     },
     setHueRotationEnabled: (enabled: boolean) => {
