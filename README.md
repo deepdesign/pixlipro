@@ -313,7 +313,14 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.1 Beta (Latest)
+### v0.3.2 Beta (Latest)
+
+**Improvements:**
+- Fixed footer positioning to stick to bottom of viewport in settings page
+- Added top margin above footer to prevent cards from touching it
+- Removed transition animations that caused lag during window resizing
+
+### v0.3.1 Beta
 
 **New Features:**
 - Added Canvas adjustment sliders (Hue, Saturation, Brightness, Contrast) matching Palette section controls
