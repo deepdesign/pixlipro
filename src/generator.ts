@@ -3991,6 +3991,11 @@ export const createSpriteController = (
       // Background hue shift is stored as 0-100 (maps to 0-360 degrees)
       applyState({ backgroundHueShift: clamp(value, 0, 100) });
     },
+    setBackgroundSaturation: (value: number) => {
+      // Background saturation affects background color rendering
+      // Background saturation is stored as 0-200 (100 = normal, 0 = grayscale, 200 = max saturation)
+      applyState({ backgroundSaturation: clamp(value, 0, 200) });
+    },
     setBackgroundBrightness: (value: number) => {
       applyState({ backgroundBrightness: clamp(value, 0, 100) });
     },
