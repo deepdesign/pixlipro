@@ -7,7 +7,6 @@
 import type { CustomTheme } from "../storage/themeStorage";
 import { buildThemeFromColors } from "./themeBuilder";
 import { generateThemeCSS, generateSemanticCSS } from "./generator";
-import type { ThemeMode } from "./template";
 
 const THEME_STYLE_ID = "pixli-dynamic-theme";
 

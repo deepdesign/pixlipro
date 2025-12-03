@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/Button";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
 import { Check, X } from "lucide-react";
-import { Select } from "@/components/ui/Select";
 import { createMIDIClient, type MIDIDevice } from "@/lib/integrations/midi";
 
 interface IntegrationsTabProps {
