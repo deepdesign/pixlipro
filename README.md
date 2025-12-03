@@ -313,7 +313,24 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.2 Beta (Latest)
+### v0.3.3 Beta (Latest)
+
+**New Features:**
+- Added pixelation effect with adjustable block size (1-50px)
+- Added colour quantization effect with adjustable bit depth (4-bit, 8-bit, 16-bit, 24-bit)
+- Added lines ratio slider to control ratio of line sprites to other sprites (0-100%, where 100% = 10x more lines)
+- Line sprites are now twice as long (20x width instead of 10x)
+
+**Improvements:**
+- Separated pixelation and colour quantization into independent FX sections
+- Lines ratio slider only appears when line sprite is selected
+- Updated palette colours: Ember Glow and Molten Core are now more distinct
+- Removed "Snow White" and "Black Panther" palettes and "Black & White" category
+- Hidden blinking cursor across app while preserving copy/paste functionality
+- Standardized heading positions and gaps across all settings screens
+- Improved sprite performance when switching collections and selecting sprites
+
+### v0.3.2 Beta
 
 **Improvements:**
 - Fixed footer positioning to stick to bottom of viewport in settings page
