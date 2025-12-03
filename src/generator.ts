@@ -2932,20 +2932,75 @@ export const createSpriteController = (
             } else {
               ctx.filter = 'none';
             }
-            const halfSize = svgSize / 2;
-            const allowableOverflow = Math.max(Math.max(p.width, p.height) * 0.6, svgSize * 1.25);
+            // All shape rendering code has been removed - all sprites now use SVG files exclusively
+            // The SVG rendering code continues below
+            // Load and draw SVG image
+            // Use synchronous cache lookup - images should be preloaded
+            // SVGO processing should have already cleaned up the SVGs to remove frames
+            const cachedImg = getCachedSpriteImage(tile.svgPath);
+            
+            // Calculate final rendered dimensions BEFORE clamping for accurate position bounds
+            // This is especially important for the line sprite which has non-uniform scaling
+            let finalWidth = svgSize;
+            let finalHeight = svgSize;
+            const isLineSprite = tile.spriteId === "line";
+            
+            if (cachedImg) {
+              const svgViewBox = (cachedImg as any).__svgViewBox;
+              let vbWidth: number;
+              let vbHeight: number;
+              
+              if (svgViewBox) {
+                // Use viewBox dimensions directly - these are the sprite's true dimensions
+                vbWidth = svgViewBox.width;
+                vbHeight = svgViewBox.height;
+              } else {
+                // Fallback to natural image dimensions
+                vbWidth = cachedImg.naturalWidth || cachedImg.width || 1;
+                vbHeight = cachedImg.naturalHeight || cachedImg.height || 1;
+              }
+              
+              // CRITICAL: Sprite aspect ratio is INDEPENDENT of canvas aspect ratio
+              // The sprite's aspect ratio MUST NEVER change, regardless of canvas shape
+              // Calculate uniform scale - ONE scale factor for BOTH dimensions
+              // This ensures the sprite maintains its original proportions
+              const scaleForWidth = svgSize / vbWidth;
+              const scaleForHeight = svgSize / vbHeight;
+              // Use the MINIMUM scale to ensure sprite fits within svgSize
+              // This guarantees uniform scaling - both dimensions scaled by the SAME factor
+              let uniformScale = Math.min(scaleForWidth, scaleForHeight);
+              
+              // For line sprite, we need non-uniform scaling: 10x width, 1x height
+              let scaleX = uniformScale;
+              let scaleY = uniformScale;
+              if (isLineSprite) {
+                // Make line 10x longer (width) but keep same thickness (height)
+                scaleX = uniformScale * 10;
+                scaleY = uniformScale;
+              }
+              
+              // Calculate final rendered dimensions
+              // For line sprite, use non-uniform scale; otherwise use uniform scale
+              finalWidth = vbWidth * scaleX;
+              finalHeight = vbHeight * scaleY;
+            }
+            
+            // Use actual rendered dimensions for clamping (especially important for line sprite)
+            const halfWidth = finalWidth / 2;
+            const halfHeight = finalHeight / 2;
+            const allowableOverflow = Math.max(Math.max(p.width, p.height) * 0.6, Math.max(finalWidth, finalHeight) * 1.25);
             
             // Clamp positions to canvas bounds with overflow allowance
             // Note: baseX/baseY already includes movement.offsetX/offsetY, so don't add it again
             const clampedX = clamp(
               baseX,
-              offsetX + halfSize - allowableOverflow,
-              offsetX + p.width - halfSize + allowableOverflow,
+              offsetX + halfWidth - allowableOverflow,
+              offsetX + p.width - halfWidth + allowableOverflow,
             );
             const clampedY = clamp(
               baseY,
-              offsetY + halfSize - allowableOverflow,
-              offsetY + p.height - halfSize + allowableOverflow,
+              offsetY + halfHeight - allowableOverflow,
+              offsetY + p.height - halfHeight + allowableOverflow,
             );
             
             p.translate(clampedX, clampedY);
@@ -3062,12 +3117,6 @@ export const createSpriteController = (
                 p.noStroke();
             }
 
-            // All shape rendering code has been removed - all sprites now use SVG files exclusively
-            // The SVG rendering code continues below
-            // Load and draw SVG image
-            // Use synchronous cache lookup - images should be preloaded
-            // SVGO processing should have already cleaned up the SVGs to remove frames
-            const cachedImg = getCachedSpriteImage(tile.svgPath);
             if (cachedImg) {
               ctx.save();
               ctx.globalAlpha = opacityAlpha / 255;
@@ -3090,9 +3139,6 @@ export const createSpriteController = (
                 vbHeight = cachedImg.naturalHeight || cachedImg.height || 1;
               }
               
-              // Special handling for line sprite: make it 10x longer but same thickness on canvas
-              const isLineSprite = tile.spriteId === "line";
-              
               // CRITICAL: Sprite aspect ratio is INDEPENDENT of canvas aspect ratio
               // The sprite's aspect ratio MUST NEVER change, regardless of canvas shape
               // Calculate uniform scale - ONE scale factor for BOTH dimensions
@@ -3112,18 +3158,18 @@ export const createSpriteController = (
                 scaleY = uniformScale;
               }
               
-              // Calculate final rendered dimensions
+              // Recalculate final rendered dimensions (already calculated above, but recalculate for consistency)
               // For line sprite, use non-uniform scale; otherwise use uniform scale
-              const finalWidth = vbWidth * scaleX;
-              const finalHeight = vbHeight * scaleY;
+              const recalculatedFinalWidth = vbWidth * scaleX;
+              const recalculatedFinalHeight = vbHeight * scaleY;
               
-              // CRITICAL VERIFICATION: finalWidth / finalHeight MUST equal vbWidth / vbHeight
+              // CRITICAL VERIFICATION: recalculatedFinalWidth / recalculatedFinalHeight MUST equal vbWidth / vbHeight
               // This mathematical guarantee ensures aspect ratio is preserved
               // If this assertion fails, there's a bug in the scale calculation
               // (Skip this check for line sprite since it intentionally changes aspect ratio)
               if (!isLineSprite) {
               const originalAspectRatio = vbWidth / vbHeight;
-              const finalAspectRatio = finalWidth / finalHeight;
+              const finalAspectRatio = recalculatedFinalWidth / recalculatedFinalHeight;
               // Allow tiny floating point differences
               if (Math.abs(originalAspectRatio - finalAspectRatio) > 0.0001) {
                 console.error(`Aspect ratio mismatch! Original: ${originalAspectRatio}, Final: ${finalAspectRatio}, uniformScale: ${uniformScale}`);
@@ -3283,15 +3329,15 @@ export const createSpriteController = (
                 ctx.restore();
               } else {
                 // Fallback: Draw image if path data not available
-                // Use finalWidth/finalHeight (non-uniform for line sprite)
+                // Use recalculatedFinalWidth/recalculatedFinalHeight (non-uniform for line sprite)
                 // Apply blend mode to canvas context
                 ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
                 ctx.drawImage(
                   cachedImg, 
-                  -finalWidth / 2, 
-                  -finalHeight / 2, 
-                  finalWidth, 
-                  finalHeight
+                  -recalculatedFinalWidth / 2, 
+                  -recalculatedFinalHeight / 2, 
+                  recalculatedFinalWidth, 
+                  recalculatedFinalHeight
                 );
                 
                 // Apply tint color using multiply (this is separate from blend mode)
@@ -3299,7 +3345,7 @@ export const createSpriteController = (
                 ctx.save();
                 ctx.globalCompositeOperation = "multiply";
                 ctx.fillStyle = animatedTileColor;
-                ctx.fillRect(-finalWidth / 2, -finalHeight / 2, finalWidth, finalHeight);
+                ctx.fillRect(-recalculatedFinalWidth / 2, -recalculatedFinalHeight / 2, recalculatedFinalWidth, recalculatedFinalHeight);
                 ctx.restore();
                 // Restore blend mode after tinting
                 ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
@@ -3779,17 +3825,31 @@ export const createSpriteController = (
             });
           }
           
-          // Always preload all sprites in the collection when switching individual sprites
-          // This ensures smooth switching between sprites, especially for large collections like snowflakes
-          if (collection.sprites.length > 0) {
-            const pathsToPreload = collection.sprites
-              .filter(s => s.svgPath && !getCachedSpriteImage(s.svgPath!))
-              .map(s => s.svgPath!);
-            if (pathsToPreload.length > 0) {
-              // Preload in background - don't wait for it
-              preloadSpriteImages(pathsToPreload).catch(error => {
+          // Defer preloading of other sprites in the collection to idle time
+          // Only preload the specific sprite being selected immediately
+          const otherPathsToPreload = collection.sprites
+            .filter(s => {
+              if (!s.svgPath) return false;
+              // Skip if already cached
+              if (getCachedSpriteImage(s.svgPath)) return false;
+              // Skip the sprite we're currently selecting (already preloading above)
+              if (s.svgPath === spritePath) return false;
+              return true;
+            })
+            .map(s => s.svgPath!);
+          
+          if (otherPathsToPreload.length > 0) {
+            // Use requestIdleCallback with setTimeout fallback for deferred preloading
+            const deferredPreload = () => {
+              preloadSpriteImages(otherPathsToPreload).catch(error => {
                 console.warn("Failed to preload some sprites", error);
               });
+            };
+            
+            if (typeof requestIdleCallback !== 'undefined') {
+              requestIdleCallback(deferredPreload, { timeout: 2000 });
+            } else {
+              setTimeout(deferredPreload, 100);
             }
           }
         }
@@ -3851,9 +3911,19 @@ export const createSpriteController = (
         const newSelected = [...selectedSprites];
         newSelected.splice(index, 1);
         // Explicitly set to empty array if no sprites remain (allows empty canvas)
+        // Need to recompute because computeSprite uses selectedSprites to determine which sprites to render
         applyState({ selectedSprites: newSelected });
       } else {
         // Sprite is not selected - add it
+        // Preload the sprite image before adding to selection
+        const spriteInfo = findSpriteByIdentifier(spriteIdentifier);
+        if (spriteInfo && spriteInfo.sprite.svgPath && !getCachedSpriteImage(spriteInfo.sprite.svgPath)) {
+          // Preload immediately for selected sprite
+          loadSpriteImage(spriteInfo.sprite.svgPath).catch(error => {
+            console.warn(`Failed to preload sprite: ${spriteInfo.sprite.svgPath}`, error);
+          });
+        }
+        // Need to recompute because computeSprite uses selectedSprites to determine which sprites to render
         applyState({ selectedSprites: [...selectedSprites, spriteIdentifier] });
       }
     },
@@ -4053,9 +4123,8 @@ export const createSpriteController = (
     setSpriteCollection: (collectionId: string) => {
       const collection = getCollection(collectionId);
       if (collection) {
-        // Clear sprite image cache when switching collections
-        // This ensures new/modified SVG files are reloaded
-        clearSpriteImageCache();
+        // Cache should persist across collections - sprites from different collections can coexist
+        // Removed clearSpriteImageCache() to avoid expensive reloads
         
         const currentState = stateRef.current;
         const currentSelectedSprites = currentState.selectedSprites ?? [];
@@ -4064,38 +4133,78 @@ export const createSpriteController = (
         // No auto-selection - user must manually select sprites
         const newSelectedSprites = [...currentSelectedSprites];
         
+        // Cache lookup results to avoid repeated searches
+        const lookupCache = new Map<string, { sprite: any; collectionId: string } | null>();
+        const getCachedLookup = (identifier: string) => {
+          if (!lookupCache.has(identifier)) {
+            lookupCache.set(identifier, findSpriteByIdentifier(identifier));
+          }
+          return lookupCache.get(identifier);
+        };
+        
         // Only update spriteMode if there are already selected sprites from the new collection
         // This maintains the current mode when switching to a collection that has selected sprites
         let spriteModeToSet: SpriteMode | undefined = undefined;
         const spritesFromNewCollection = currentSelectedSprites.filter(identifier => {
-          const spriteInfo = findSpriteByIdentifier(identifier);
+          const spriteInfo = getCachedLookup(identifier);
           return spriteInfo && spriteInfo.collectionId === collectionId;
         });
         
         if (spritesFromNewCollection.length > 0) {
           // Use the first selected sprite from the new collection as the current mode
           const firstSelectedIdentifier = spritesFromNewCollection[0];
-          const spriteInfo = findSpriteByIdentifier(firstSelectedIdentifier);
+          const spriteInfo = getCachedLookup(firstSelectedIdentifier);
           if (spriteInfo) {
             spriteModeToSet = spriteInfo.sprite.id as SpriteMode;
           }
         }
         
-        // Preload all sprites in the new collection
-        if (collection.sprites.length > 0) {
-          const pathsToPreload = collection.sprites
-            .filter(s => s.svgPath && !getCachedSpriteImage(s.svgPath!))
-            .map(s => s.svgPath!);
-          
-          if (pathsToPreload.length > 0) {
-            // Start preloading all sprites in background (non-blocking)
-            preloadSpriteImages(pathsToPreload).catch(error => {
+        // Only preload sprites that are actually selected from the new collection
+        // Defer non-critical preloading to idle time
+        const selectedPathsToPreload: string[] = [];
+        spritesFromNewCollection.forEach(identifier => {
+          const spriteInfo = getCachedLookup(identifier);
+          if (spriteInfo && spriteInfo.sprite.svgPath && !getCachedSpriteImage(spriteInfo.sprite.svgPath)) {
+            selectedPathsToPreload.push(spriteInfo.sprite.svgPath);
+          }
+        });
+        
+        // Preload selected sprites immediately (synchronously for critical path)
+        if (selectedPathsToPreload.length > 0) {
+          preloadSpriteImages(selectedPathsToPreload).catch(error => {
+            console.warn("Failed to preload selected sprites", error);
+          });
+        }
+        
+        // Defer preloading of other sprites in the collection to idle time
+        const otherPathsToPreload = collection.sprites
+          .filter(s => {
+            if (!s.svgPath) return false;
+            // Skip if already cached
+            if (getCachedSpriteImage(s.svgPath)) return false;
+            // Skip if already in selected paths
+            if (selectedPathsToPreload.includes(s.svgPath)) return false;
+            return true;
+          })
+          .map(s => s.svgPath!);
+        
+        if (otherPathsToPreload.length > 0) {
+          // Use requestIdleCallback with setTimeout fallback for deferred preloading
+          const deferredPreload = () => {
+            preloadSpriteImages(otherPathsToPreload).catch(error => {
               console.warn("Failed to preload some sprites", error);
             });
+          };
+          
+          if (typeof requestIdleCallback !== 'undefined') {
+            requestIdleCallback(deferredPreload, { timeout: 2000 });
+          } else {
+            setTimeout(deferredPreload, 100);
           }
         }
         
         // Apply state change - preserve all selected sprites (from all collections)
+        // Need to recompute when collection changes because available sprites are different
         const stateUpdate: Partial<GeneratorState> = {
           spriteCollectionId: collectionId,
           selectedSprites: newSelectedSprites,
@@ -4105,6 +4214,8 @@ export const createSpriteController = (
           stateUpdate.spriteMode = spriteModeToSet;
         }
         
+        // Recompute is needed when collection changes (even if selected sprites are preserved)
+        // The sprite structure needs to be regenerated with sprites from the new collection
         applyState(stateUpdate);
       }
     },

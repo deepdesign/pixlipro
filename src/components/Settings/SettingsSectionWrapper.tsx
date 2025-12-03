@@ -7,7 +7,7 @@ export function SettingsSectionWrapper({ title, children }: SettingsSectionWrapp
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="px-6 py-4 mb-6">
+      <div className="px-6 py-3 mb-3">
         <h2 className="text-xl font-semibold text-theme-primary">
           {title}
         </h2>

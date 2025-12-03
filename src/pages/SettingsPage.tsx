@@ -151,21 +151,21 @@ export const SettingsPage = ({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
-              {isFullPage ? (
-                <div className="h-full w-full" style={{ minHeight: 'calc(100vh - 12rem)' }}>
-                  {renderContent()}
-                </div>
-              ) : (
-                <div className="w-full">
-                  {renderContent()}
-                </div>
-              )}
+            {isFullPage ? (
+              <div className="h-full w-full" style={{ minHeight: 'calc(100vh - 12rem)' }}>
+                {renderContent()}
+              </div>
+            ) : (
+              <div className="w-full">
+                {renderContent()}
+              </div>
+            )}
             </div>
             
             {/* Footer - sticks to bottom */}
             <div className="w-full mt-auto flex-shrink-0" style={{ transition: 'none' }}>
               <div className="mt-6 pt-6 pb-4 px-6 border-t border-theme-structural">
-                <SettingsFooter />
+              <SettingsFooter />
               </div>
             </div>
           </div>
