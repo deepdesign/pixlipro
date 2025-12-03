@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Download, Upload, Trash2, Search } from "lucide-react";
 import {
   getAllScenes,
@@ -157,10 +157,10 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
               <Input
                 type="text"
                 value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSaveName(e.target.value)}
                 placeholder="Scene name"
                 className="flex-1"
-                onKeyDown={(e) => {
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                   if (e.key === "Enter") {
                     handleSave();
                   }
@@ -208,7 +208,7 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
               type="text"
               placeholder="Search scenes..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>

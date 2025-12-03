@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Field, Label, Description } from "@/components/ui/fieldset";
+import { Field, Label, Description } from "@/components/ui/Fieldset";
 import { Switch, SwitchField } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/Button";
 import { generateQRCodeDataURL, getWebSocketURL } from "@/lib/utils/qrCode";
 import { Wifi, WifiOff, Copy, Check } from "lucide-react";
@@ -140,7 +140,7 @@ export function RemoteControlTab({ onConnectionChange, webSocketState }: RemoteC
                     id="ws-port"
                     type="number"
                     value={port.toString()}
-                    onChange={(e) => handlePortChange(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePortChange(e.target.value)}
                     min={1024}
                     max={65535}
                     className="w-32"

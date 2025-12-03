@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Accordion } from "@/components/ui/Accordion";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Settings2, Share2, Copy, Check, Download } from "lucide-react";
 import p5 from "p5";
@@ -707,7 +707,7 @@ export const ExportModal = ({
                             type="number"
                             className="preset-name-input"
                             value={width}
-                            onChange={(e) => handleWidthChange(parseInt(e.target.value) || 0)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleWidthChange(parseInt(e.target.value) || 0)}
                             min={100}
                             max={16384}
                             disabled={isExporting}
@@ -718,7 +718,7 @@ export const ExportModal = ({
                             type="number"
                             className="preset-name-input"
                             value={height}
-                            onChange={(e) => handleHeightChange(parseInt(e.target.value) || 0)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleHeightChange(parseInt(e.target.value) || 0)}
                             min={100}
                             max={16384}
                             disabled={isExporting}
@@ -730,7 +730,7 @@ export const ExportModal = ({
                             type="checkbox"
                             id="aspect-ratio-lock"
                             checked={lockAspectRatio}
-                            onChange={(e) => setLockAspectRatio(e.target.checked)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLockAspectRatio(e.target.checked)}
                             disabled={isExporting}
                             className="export-aspect-ratio-checkbox"
                           />
@@ -859,7 +859,7 @@ export const ExportModal = ({
                         min={1}
                         max={120}
                         value={recordFps}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setRecordFps(Math.max(1, Math.min(120, parseInt(e.target.value) || 30)))
                         }
                         placeholder="30"
@@ -875,7 +875,7 @@ export const ExportModal = ({
                         min={1}
                         max={20}
                         value={recordDuration}
-                        onChange={(e) =>
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                           setRecordDuration(Math.max(1, Math.min(20, parseInt(e.target.value) || 3)))
                         }
                         placeholder="3"

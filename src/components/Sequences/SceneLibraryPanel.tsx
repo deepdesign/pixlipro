@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import type { Scene } from "@/lib/storage/sceneStorage";
 import type { GeneratorState } from "@/types/generator";
 import { Plus, Upload, Search } from "lucide-react";
@@ -64,7 +64,7 @@ export function SceneLibraryPanel({
             type="text"
             placeholder="Search scenes..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Field, Label, Description } from "@/components/ui/fieldset";
-import { Input } from "@/components/ui/input";
+import { Field, Label, Description } from "@/components/ui/Fieldset";
+import { Input } from "@/components/ui/Input";
 import { 
   saveTheme, 
   updateTheme, 
@@ -62,11 +62,11 @@ export function ThemeModal({ isOpen, onClose, editingTheme }: ThemeModalProps) {
     onClose();
   };
 
-  const getPrimaryColorHex = (color: PrimaryColor, shade: keyof typeof PRIMARY_COLORS.slate = "500") => {
+  const getPrimaryColorHex = (color: PrimaryColor, shade: "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | "950" = "500") => {
     return PRIMARY_COLORS[color]?.[shade] || PRIMARY_COLORS.slate[shade];
   };
 
-  const getAccentColorHex = (color: AccentColor, shade: keyof typeof ACCENT_COLORS.teal = "400") => {
+  const getAccentColorHex = (color: AccentColor, shade: "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | "950" = "400") => {
     return ACCENT_COLORS[color]?.[shade] || ACCENT_COLORS.teal[shade];
   };
 
@@ -84,7 +84,7 @@ export function ThemeModal({ isOpen, onClose, editingTheme }: ThemeModalProps) {
             <div data-slot="control" className="mt-4">
               <Input
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                 placeholder="e.g., Slate + Teal"
               />
             </div>

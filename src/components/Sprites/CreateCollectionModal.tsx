@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/ui/input";
-import { Label, Field } from "@/components/ui/fieldset";
+import { Input } from "@/components/ui/Input";
+import { Label, Field } from "@/components/ui/Fieldset";
 
 interface CreateCollectionModalProps {
   isOpen: boolean;
@@ -55,7 +55,7 @@ export function CreateCollectionModal({
               id="collection-name"
               type="text"
               value={collectionName}
-              onChange={(e) => setCollectionName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCollectionName(e.target.value)}
               placeholder="Enter collection name..."
               autoFocus
             />

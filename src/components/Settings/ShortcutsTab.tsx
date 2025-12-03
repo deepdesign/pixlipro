@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Label } from "@/components/ui/fieldset";
-import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/Fieldset";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/Button";
 import {
   loadShortcuts,
@@ -165,7 +165,7 @@ export function ShortcutsTab({ onShortcutChange }: ShortcutsTabProps) {
                             type="text"
                             value=""
                             placeholder="Press a key..."
-                            onKeyDown={(e) => handleKeyDown(e, action)}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => handleKeyDown(e, action)}
                             onBlur={handleCancelEdit}
                             className="w-48 text-sm"
                             autoFocus

@@ -337,7 +337,7 @@ export function CustomPalettesTab() {
             <Label>Use black canvas background (#000000)</Label>
             <Switch
               checked={canvasBlackBackground}
-              onCheckedChange={handleCanvasBlackBackgroundChange}
+              onChange={(checked: boolean) => handleCanvasBlackBackgroundChange(checked)}
             />
           </SwitchField>
           <p className="text-sm text-theme-muted mt-2">

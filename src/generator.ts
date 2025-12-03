@@ -9,7 +9,7 @@ import {
   getAllPalettes,
   palettes,
 } from "./data/palettes";
-import { getGradientsForPalette } from "./data/gradients";
+// import { getGradientsForPalette } from "./data/gradients"; // Unused
 import { calculateGradientLine } from "./lib/utils";
 import { getCollection, getSpriteInCollection, getAllCollections, getSpriteIdentifier } from "./constants/spriteCollections";
 import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache, preloadSpriteImages } from "./lib/services/spriteImageLoader";

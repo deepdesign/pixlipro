@@ -12,7 +12,7 @@ import {
 import { applyTheme } from "@/lib/theme/themeApplier";
 import { ThemeModal } from "./ThemeModal";
 import { Pencil, Trash2, Check, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { PRIMARY_COLORS, ACCENT_COLORS, getAccentColorName } from "@/lib/theme/tailwindColors";
 
 export function ThemeTab() {
@@ -105,11 +105,11 @@ export function ThemeTab() {
     loadThemes();
   };
 
-  const getPrimaryColorHex = (color: CustomTheme["primaryColor"], shade: keyof typeof PRIMARY_COLORS.slate = "500") => {
+  const getPrimaryColorHex = (color: CustomTheme["primaryColor"], shade: "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | "950" = "500") => {
     return PRIMARY_COLORS[color]?.[shade] || PRIMARY_COLORS.slate[shade];
   };
 
-  const getAccentColorHex = (color: CustomTheme["accentColor"], shade: keyof typeof ACCENT_COLORS.teal = "400") => {
+  const getAccentColorHex = (color: CustomTheme["accentColor"], shade: "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" | "950" = "400") => {
     return ACCENT_COLORS[color]?.[shade] || ACCENT_COLORS.teal[shade];
   };
 
@@ -159,8 +159,8 @@ export function ThemeTab() {
                         <div className="flex items-center gap-2">
                           <Input
                             value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            onKeyDown={(e) => {
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingName(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                               if (e.key === "Enter") {
                                 handleSaveRename(theme);
                               } else if (e.key === "Escape") {
@@ -216,7 +216,6 @@ export function ThemeTab() {
                       {!isActive && (
                         <Button
                           onClick={() => handleApplyTheme(theme)}
-                          size="sm"
                         >
                           Apply
                         </Button>

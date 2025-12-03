@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
-import { Label } from "@/components/ui/fieldset";
+import { Label } from "@/components/ui/Fieldset";
 import { Loader2 } from "lucide-react";
 import { optimizeSvg } from "@/lib/utils/svgOptimizer";
 

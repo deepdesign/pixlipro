@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/ui/input";
-import { Field, Label } from "@/components/ui/fieldset";
+import { Input } from "@/components/ui/Input";
+import { Field, Label } from "@/components/ui/Fieldset";
 import { Play, Pause, Square, Clock, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -157,7 +157,7 @@ export function ShowTimer({ className }: ShowTimerProps) {
               id="timer-duration"
               type="number"
               value={duration.toString()}
-              onChange={(e) => handleDurationChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDurationChange(e.target.value)}
               min={1}
               className="mt-1"
             />

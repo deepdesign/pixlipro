@@ -109,8 +109,7 @@ export function FlowbiteTooltip({
       ? "right-[-5px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-l-[6px] border-t-transparent border-b-transparent border-l-[var(--theme-primary-tint700)]"
       : "left-[-5px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-b-[6px] border-r-[6px] border-t-transparent border-b-transparent border-r-[var(--theme-primary-tint700)]";
 
-  // Arrow should match tooltip background
-  const arrowBgColor = arrowPosition;
+  // Arrow position is already set above
 
   return (
     <>

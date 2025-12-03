@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/Button";
 import { DurationControl } from "./DurationControl";
 import { FadeControl } from "./FadeControl";
@@ -116,7 +116,7 @@ export function SequenceSceneCard({
             {isEditingName ? (
               <Input
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
                 onBlur={handleNameSubmit}
                 onKeyDown={handleKeyDown}
                 className="w-full"

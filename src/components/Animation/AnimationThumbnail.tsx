@@ -75,7 +75,7 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
   useEffect(() => {
     if (!containerRef.current || !shouldInitialize) return;
 
-    const isLightMode = themeMode === 'light';
+    // const isLightMode = themeMode === 'light'; // Unused
 
     // Get square sprite - use the actual SVG path, not shape identifier
     const squareSpritePath = "/sprites/default/square.svg";

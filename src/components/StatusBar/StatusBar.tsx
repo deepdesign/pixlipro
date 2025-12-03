@@ -41,7 +41,7 @@ export function StatusBar({
   onMouseLeave,
   onRandomiseAll,
   onShowScenes,
-  onShowPresets = onShowScenes, // Backward compatibility
+  _onShowPresets = onShowScenes, // Backward compatibility - unused
   onShowExport,
   onFullscreenToggle,
   onFullscreenClose,

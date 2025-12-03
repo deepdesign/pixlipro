@@ -3,7 +3,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { Download, Upload } from "lucide-react";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import {
   getAllCustomPalettes,
@@ -330,8 +330,8 @@ export const CustomPaletteManager = ({
                         type="text"
                         placeholder="Enter image URL..."
                         value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        onKeyDown={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setImageUrl(e.target.value)}
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                           if (e.key === "Enter" && imageUrl.trim()) {
                             handleUrlExtract();
                           }
@@ -382,8 +382,8 @@ export const CustomPaletteManager = ({
                 type="text"
                 placeholder="Enter palette name..."
                 value={paletteName}
-                onChange={(e) => setPaletteName(e.target.value)}
-                onKeyDown={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaletteName(e.target.value)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                   if (e.key === "Enter" && paletteName.trim() && extractedColors.length > 0) {
                     handleSave();
                   }
@@ -460,8 +460,8 @@ export const CustomPaletteManager = ({
                             id={`edit-${palette.id}`}
                             type="text"
                             value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            onKeyDown={(e) => {
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingName(e.target.value)}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                               if (e.key === "Enter") {
                                 handleSaveEdit();
                               } else if (e.key === "Escape") {

@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/ui/input";
-import { Label, Field } from "@/components/ui/fieldset";
+import { Input } from "@/components/ui/Input";
+import { Label, Field } from "@/components/ui/Fieldset";
 import { SwitchField } from "@/components/ui/switch";
 import { Switch } from "@/components/ui/switch-adapter";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
@@ -282,7 +282,7 @@ export function UploadSpriteModal({
               id="sprite-name"
               type="text"
               value={spriteName}
-              onChange={(e) => setSpriteName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSpriteName(e.target.value)}
               placeholder="Enter sprite name..."
             />
           </Field>

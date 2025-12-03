@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { BackgroundColorPicker } from "./BackgroundColorPicker";
 import type { Sequence } from "@/lib/storage/sequenceStorage";
 import { ArrowLeft, Save, Download } from "lucide-react";
@@ -72,7 +72,7 @@ export function SequenceHeader({
         {isEditingName ? (
           <Input
             value={editName}
-            onChange={(e) => setEditName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
             onBlur={handleNameSubmit}
             onKeyDown={handleKeyDown}
             className="flex-1 min-w-0"

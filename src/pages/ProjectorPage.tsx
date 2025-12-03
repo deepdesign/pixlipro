@@ -60,7 +60,7 @@ export function ProjectorPage() {
     }
 
     const channel = new BroadcastChannel("pixli-projector-sync");
-    let lastStateUpdate: GeneratorState | null = null;
+    // let lastStateUpdate: GeneratorState | null = null; // Unused
 
     channel.onmessage = (event) => {
       console.log("[ProjectorPage] Received message:", event.data.type);

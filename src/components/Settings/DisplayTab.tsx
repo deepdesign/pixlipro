@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Field, Label, Description } from "@/components/ui/fieldset";
+import { Field, Label, Description } from "@/components/ui/Fieldset";
 import { RadioGroup, RadioField, Radio } from "@/components/ui/radio";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/switch";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
 import { useDualMonitor } from "@/hooks/useDualMonitor";
@@ -165,7 +165,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                       id="custom-width"
                       type="number"
                       value={customWidth}
-                      onChange={(e) => handleCustomWidthChange(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomWidthChange(e.target.value)}
                       min={320}
                       max={7680}
                     />
@@ -178,7 +178,7 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
                       id="custom-height"
                       type="number"
                       value={customHeight}
-                      onChange={(e) => handleCustomHeightChange(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleCustomHeightChange(e.target.value)}
                       min={240}
                       max={4320}
                     />

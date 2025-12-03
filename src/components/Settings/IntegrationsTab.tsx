@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Field, Label, Description } from "@/components/ui/fieldset";
+import { Field, Label, Description } from "@/components/ui/Fieldset";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/Button";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
 import { Check, X } from "lucide-react";
-import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/Select";
 import { createMIDIClient, type MIDIDevice } from "@/lib/integrations/midi";
 
 interface IntegrationsTabProps {
@@ -260,7 +260,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                   id="osc-port"
                   type="number"
                   value={settings.integrations.osc.port.toString()}
-                  onChange={(e) => handleOSCPortChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleOSCPortChange(e.target.value)}
                   min={1024}
                   max={65535}
                   className="mt-1 max-w-xs"
@@ -325,7 +325,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                 <Select
                   id="midi-device"
                   value={settings.integrations.midi.deviceId || ""}
-                  onChange={(e) => handleMIDIDeviceChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMIDIDeviceChange(e.target.value)}
                 >
                   <option value="">All Devices</option>
                   {midiDevices.map((device) => (
@@ -421,7 +421,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                   id="dmx-universe"
                   type="number"
                   value={settings.integrations.dmx.universe.toString()}
-                  onChange={(e) => handleDMXUniverseChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDMXUniverseChange(e.target.value)}
                   min={0}
                   max={15}
                   className="mt-1 max-w-xs"
@@ -437,7 +437,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                   id="dmx-ip"
                   type="text"
                   value={settings.integrations.dmx.ipAddress}
-                  onChange={(e) => handleDMXIPChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDMXIPChange(e.target.value)}
                   className="mt-1 max-w-xs"
                   placeholder="127.0.0.1"
                 />
@@ -452,7 +452,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                   id="dmx-port"
                   type="number"
                   value={settings.integrations.dmx.port.toString()}
-                  onChange={(e) => handleDMXPortChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDMXPortChange(e.target.value)}
                   min={1024}
                   max={65535}
                   className="mt-1 max-w-xs"

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/fieldset";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Fieldset";
 import type { DurationMode } from "@/lib/storage/sequenceStorage";
 
 interface DurationControlProps {
@@ -72,7 +72,7 @@ export function DurationControl({
             min="0"
             step="0.1"
             value={localSeconds}
-            onChange={(e) => handleSecondsChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSecondsChange(e.target.value)}
             className="w-24"
             placeholder="0"
           />

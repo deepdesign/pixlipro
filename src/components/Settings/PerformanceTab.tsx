@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Field, Label } from "@/components/ui/fieldset";
+import { Field, Label } from "@/components/ui/Fieldset";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, CheckCircle } from "lucide-react";
 

@@ -23,7 +23,7 @@ export function applyTheme(theme: CustomTheme): void {
   );
 
   // Get current theme mode from document
-  const currentMode = getCurrentThemeMode();
+  // const currentMode = getCurrentThemeMode(); // Unused
 
   // Generate CSS variables
   const darkVars = generateThemeCSS(themeDefinition.dark, "dark");

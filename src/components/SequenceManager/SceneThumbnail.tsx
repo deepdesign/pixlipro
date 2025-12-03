@@ -144,7 +144,8 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
               if (captured) return; // Already captured
               
               try {
-                const canvasToCapture = getCanvasFromP5(controller.getP5Instance() || null);
+                const p5Instance = controller.getP5Instance();
+                const canvasToCapture = p5Instance ? getCanvasFromP5(p5Instance) : null;
                 if (!canvasToCapture || canvasToCapture.width === 0 || canvasToCapture.height === 0) {
                   console.warn("SceneThumbnail: Canvas invalid during capture");
                   return;

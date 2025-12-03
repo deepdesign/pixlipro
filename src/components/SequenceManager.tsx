@@ -17,7 +17,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/Input";
 import {
   Select,
   SelectContent,
@@ -184,7 +184,7 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
           <Input
             type="number"
             value={item.duration}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               const newDuration = parseInt(e.target.value) || 0;
               if (newDuration !== item.duration) {
                 onUpdate({ ...item, duration: newDuration });
@@ -526,10 +526,10 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
               <Input
                 type="text"
                 value={newSequenceName}
-                onChange={(e) => setNewSequenceName(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewSequenceName(e.target.value)}
                 placeholder="New sequence name"
                 className="w-48"
-                onKeyDown={(e) => {
+                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
                   if (e.key === "Enter") {
                     handleCreateSequence();
                   }
