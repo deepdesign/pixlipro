@@ -322,10 +322,11 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
             <div className="space-y-4">
               <Field>
                 <Label htmlFor="midi-device">MIDI Device</Label>
-                <Select
+                <select
                   id="midi-device"
                   value={settings.integrations.midi.deviceId || ""}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMIDIDeviceChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleMIDIDeviceChange(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-theme-card bg-theme-panel px-3 py-2 text-sm text-theme-primary focus:border-[var(--accent-primary)] focus:outline-none"
                 >
                   <option value="">All Devices</option>
                   {midiDevices.map((device) => (
@@ -333,7 +334,7 @@ export function IntegrationsTab({ onMIDIMessage }: IntegrationsTabProps) {
                       {device.name} ({device.manufacturer})
                     </option>
                   ))}
-                </Select>
+                </select>
                 <Description className="mt-2">
                   Select a specific MIDI device or use all devices.
                 </Description>

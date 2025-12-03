@@ -11,7 +11,7 @@ import {
 } from "./data/palettes";
 // import { getGradientsForPalette } from "./data/gradients"; // Unused
 import { calculateGradientLine } from "./lib/utils";
-import { getCollection, getSpriteInCollection, getAllCollections, getSpriteIdentifier, findSpriteByIdentifier } from "./constants/spriteCollections";
+import { getCollection, getSpriteInCollection, getAllCollections, findSpriteByIdentifier } from "./constants/spriteCollections";
 import { loadSpriteImage, getCachedSpriteImage, clearSpriteImageCache, preloadSpriteImages } from "./lib/services/spriteImageLoader";
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 import { applyNoiseOverlay } from "./lib/utils/fxNoise";

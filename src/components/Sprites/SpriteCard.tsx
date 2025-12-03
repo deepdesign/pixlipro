@@ -93,20 +93,20 @@ export function SpriteCard({
     });
     
     // Replace fill colors in style attributes (style="fill: color")
-    processedSvg = processedSvg.replace(/style\s*=\s*["']([^"']*)["']/gi, (_match, styleContent) => {
+    processedSvg = processedSvg.replace(/style\s*=\s*["']([^"']*)["']/gi, (_match: string, styleContent: string) => {
       // Replace fill: color in styles, but preserve fill: none
-      let newStyle = styleContent.replace(/fill\s*:\s*([^;]+)/gi, (_fillMatch, fillValue) => {
+      let newStyle = styleContent.replace(/fill\s*:\s*([^;]+)/gi, (_fillMatch: string, fillValue: string) => {
         const trimmedFill = fillValue.trim().toLowerCase();
         if (trimmedFill === 'none' || trimmedFill === 'transparent') {
-          return fillMatch;
+          return _fillMatch;
         }
         return `fill: ${spriteColor}`;
       });
       // Replace stroke: color in styles, but preserve stroke: none
-      newStyle = newStyle.replace(/stroke\s*:\s*([^;]+)/gi, (_strokeMatch, strokeValue) => {
+      newStyle = newStyle.replace(/stroke\s*:\s*([^;]+)/gi, (_strokeMatch: string, strokeValue: string) => {
         const trimmedStroke = strokeValue.trim().toLowerCase();
         if (trimmedStroke === 'none' || trimmedStroke === 'transparent') {
-          return strokeMatch;
+          return _strokeMatch;
         }
         return `stroke: ${spriteColor}`;
       });

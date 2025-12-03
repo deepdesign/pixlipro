@@ -66,7 +66,6 @@ export function ProjectorPage() {
       console.log("[ProjectorPage] Received message:", event.data.type);
       if (event.data.type === "state-update" && controllerRef.current) {
         const state: GeneratorState = event.data.state;
-        lastStateUpdate = state;
         
         console.log("[ProjectorPage] Applying state update");
         // Apply entire state to controller using applyState method

@@ -78,15 +78,6 @@ export function applyTheme(theme: CustomTheme): void {
 }
 
 /**
- * Get the current theme mode from the document
- */
-function getCurrentThemeMode(): ThemeMode {
-  const root = document.documentElement;
-  const themeAttr = root.getAttribute("data-theme");
-  return themeAttr === "light" ? "light" : "dark";
-}
-
-/**
  * Remove the applied theme (restore default)
  */
 export function removeTheme(): void {
