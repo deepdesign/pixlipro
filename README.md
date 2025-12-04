@@ -313,7 +313,14 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.5 Beta (Latest)
+### v0.3.6 Beta (Latest)
+
+**Improvements:**
+- Removed accessibility focus highlighting (focus rings/halos) from all UI components
+- Organized documentation: moved stray .md files to docs/, created audits/ and migration-history/ subdirectories
+- Removed empty component folders (Onboarding, retroui)
+
+### v0.3.5 Beta
 
 **Improvements:**
 - Organized plan files into `plans/` directory with proper naming conventions
