@@ -313,7 +313,14 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.4 Beta (Latest)
+### v0.3.5 Beta (Latest)
+
+**Improvements:**
+- Organized plan files into `plans/` directory with proper naming conventions
+- Cleaned up temporary worktree files and stray files from root directory
+- Updated project documentation structure
+
+### v0.3.4 Beta
 
 **Improvements:**
 - Fixed projector mode connection issues - projector window now properly syncs with main canvas
