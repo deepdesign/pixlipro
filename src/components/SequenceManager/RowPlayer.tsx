@@ -4,11 +4,9 @@ import { Play, Pause, Square } from "lucide-react";
 import type { Sequence, SequenceItem } from "@/lib/storage/sequenceStorage";
 import type { GeneratorState } from "@/types/generator";
 import { getAllScenes, loadSceneState, type Scene } from "@/lib/storage/sceneStorage";
-import type { TransitionType } from "@/generator";
-
 interface RowPlayerProps {
   sequence: Sequence;
-  onLoadScene: (state: GeneratorState, transition?: TransitionType) => void;
+  onLoadScene: (state: GeneratorState) => void;
   onStateChange?: (sequenceId: string, state: "stopped" | "playing" | "paused", currentIndex: number) => void;
 }
 
@@ -17,7 +15,7 @@ type PlaybackState = "stopped" | "playing" | "paused";
 export function RowPlayer({ sequence, onLoadScene, onStateChange }: RowPlayerProps) {
   const [playbackState, setPlaybackState] = useState<PlaybackState>("stopped");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [, setTimeRemaining] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const allScenes = getAllScenes();
 
@@ -48,7 +46,7 @@ export function RowPlayer({ sequence, onLoadScene, onStateChange }: RowPlayerPro
     if (!currentItem || !currentScene) return;
     const state = loadSceneState(currentScene);
     if (state) {
-      onLoadScene(state, currentItem.transition);
+      onLoadScene(state);
     }
   }, [currentItem, currentScene, onLoadScene]);
 

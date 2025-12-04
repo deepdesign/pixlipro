@@ -60,7 +60,7 @@ const base = [
   'after:absolute after:inset-0 after:rounded-[calc(0.3125rem-1px)] after:shadow-[inset_0_1px_--theme(--color-white/15%)]',
   'dark:after:-inset-px dark:after:hidden dark:after:rounded-[0.3125rem] dark:group-data-checked:after:block',
   // Focus ring
-  'group-data-focus:outline-2 group-data-focus:outline-offset-2 group-data-focus:outline-blue-500',
+  'group-data-focus:outline-none',
   // Disabled state
   'group-data-disabled:opacity-50',
   'group-data-disabled:border-[var(--checkbox-border)] group-data-disabled:bg-[var(--checkbox-bg)] group-data-disabled:[--checkbox-check:var(--text-subtle)] group-data-disabled:before:bg-transparent',

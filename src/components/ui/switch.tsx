@@ -152,7 +152,7 @@ export function Switch({
         className,
         // Base styles - standard Tailwind switch
         'group relative inline-flex h-6 w-11 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500',
+        'focus-visible:outline-none',
         // Unchecked state - use icon-bg for consistency with slider and buttons
         'bg-[var(--icon-bg)]',
         // Checked state - use primary UI theme color variable

@@ -64,7 +64,7 @@ const base = [
   // Indicator color (light mode)
   '[--radio-indicator:transparent] group-data-checked:[--radio-indicator:var(--radio-checked-indicator)] group-data-hover:group-data-checked:[--radio-indicator:var(--radio-checked-indicator)] group-data-hover:[--radio-indicator:var(--theme-primary-panel)]',
   // Focus ring
-  'group-data-focus:outline group-data-focus:outline-2 group-data-focus:outline-offset-2 group-data-focus:outline-blue-500',
+  'group-data-focus:outline-none',
   // Disabled state
   'group-data-disabled:opacity-50',
   'group-data-disabled:border-[var(--checkbox-border)] group-data-disabled:bg-[var(--checkbox-bg)] group-data-disabled:[--radio-checked-indicator:var(--text-subtle)] group-data-disabled:before:bg-transparent',

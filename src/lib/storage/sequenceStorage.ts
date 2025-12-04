@@ -13,6 +13,7 @@ export interface SequenceItem {
   sceneId: string; // Updated from presetId
   duration: number; // seconds, 0 = manual advance
   transition: "instant" | "fade" | "smooth"; // transition type
+  fadeDuration?: number; // Duration of fade transition in seconds (default: 1.5)
   order: number; // for drag-drop reordering
   // Backward compatibility: support old presetId field
   presetId?: string; // Deprecated, use sceneId

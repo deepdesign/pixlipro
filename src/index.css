@@ -4161,10 +4161,9 @@ button.bg-primary.button-selected:active {
 
   /* Removed RetroUI mobile touch styles - using pure Tailwind components */
 
-  /* Focus rings - larger and more visible for touch */
+  /* Focus rings - removed accessibility highlighting */
   button:focus-visible {
-    outline: 3px solid var(--accent-primary);
-    outline-offset: 3px;
+    outline: none;
   }
 
   /* Disable hover effects that don't work well on touch */
@@ -4634,9 +4633,11 @@ button.bg-primary.button-selected:active {
   margin-top: -2px;
 }
 
-.tooltip-trigger:hover,
-.tooltip-trigger:focus-visible {
+.tooltip-trigger:hover {
   color: var(--accent-primary);
+}
+
+.tooltip-trigger:focus-visible {
   outline: none;
 }
 
@@ -5343,9 +5344,11 @@ aside[class*="sidebar"],
   text-decoration: none;
 }
 
-.external-links a:hover,
-.external-links a:focus-visible {
+.external-links a:hover {
   color: var(--link-hover);
+}
+
+.external-links a:focus-visible {
   outline: none;
 }
 
@@ -6162,8 +6165,7 @@ html[data-theme="dark"] .export-quick-section {
 }
 
 .retro-accordion-trigger:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: -2px;
+  outline: none;
 }
 
 .retro-accordion-trigger[data-state="open"] {
@@ -6664,9 +6666,11 @@ html[data-theme="dark"] .export-quick-section {
   text-decoration: none;
 }
 
-.app-footer a:hover,
-.app-footer a:focus-visible {
+.app-footer a:hover {
   color: color-mix(in srgb, var(--accent-primary) 80%, white);
+}
+
+.app-footer a:focus-visible {
   outline: none;
 }
 

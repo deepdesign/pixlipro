@@ -37,10 +37,8 @@ import {
   validateSequenceItems,
 } from "@/lib/storage/sequenceStorage";
 import { getAllScenes, type Scene, loadSceneState } from "@/lib/storage/sceneStorage";
-import { SequencePlayer } from "@/components/SequencePlayer";
 import { RowPlayer } from "@/components/SequenceManager/RowPlayer";
-import { GripVertical, Trash2, Plus, Copy, Download, Upload, Search, Eye } from "lucide-react";
-import { getPalette } from "@/data/palettes";
+import { GripVertical, Trash2, Plus, Copy, Download, Upload, Search } from "lucide-react";
 import { SPRITE_MODES } from "@/constants/sprites";
 import { formatMovementMode } from "@/constants/movement";
 import { findSpriteByIdentifier } from "@/constants/spriteCollections";
@@ -80,9 +78,6 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
 
   // Get scene state for thumbnail
   const sceneState = scene ? loadSceneState(scene) : null;
-  
-  // Get palette colors
-  const palette = scene ? getPalette(scene.state.paletteId) : null;
   
   // Get sprite labels - list all selected sprites
   const getSpriteLabels = (): string => {
@@ -271,7 +266,7 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
   );
 }
 
-export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClose: _onClose }: SequenceManagerProps) {
+export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }: SequenceManagerProps) {
   const handleLoadScene = onLoadScene || onLoadPreset; // Use onLoadScene if provided, fallback to onLoadPreset for backward compatibility
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
@@ -279,7 +274,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [newSequenceName, setNewSequenceName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [playingSequences, setPlayingSequences] = useState<Map<string, { state: "stopped" | "playing" | "paused"; currentIndex: number }>>(new Map());
+  const [, setPlayingSequences] = useState<Map<string, { state: "stopped" | "playing" | "paused"; currentIndex: number }>>(new Map());
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -679,7 +674,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
                     <div className="flex items-center gap-2">
                       <RowPlayer
                         sequence={sequence}
-                        onLoadScene={(state, transition) => {
+                        onLoadScene={(state) => {
                           if (handleLoadScene) {
                             handleLoadScene(state);
                           }
@@ -749,7 +744,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleDuplicateSequence}
+                  onClick={() => handleDuplicateSequence()}
                   title="Duplicate sequence"
                 >
                   <Copy className="h-4 w-4" />
@@ -757,7 +752,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, currentState, onClo
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleExportSequence}
+                  onClick={() => handleExportSequence()}
                   title="Export sequence"
                 >
                   <Download className="h-4 w-4" />

@@ -64,7 +64,7 @@ export function TableRow({
         className={clsx(
           className,
           href &&
-            'has-[[data-row-link][data-focus]]:outline-2 has-[[data-row-link][data-focus]]:-outline-offset-2 has-[[data-row-link][data-focus]]:outline-[var(--accent-primary)] focus-within:bg-[var(--icon-hover)]',
+            'focus-within:bg-[var(--icon-hover)]',
           striped && 'even:bg-[var(--icon-bg)]',
           href && striped && 'hover:bg-[var(--icon-hover)]',
           href && !striped && 'hover:bg-[var(--icon-hover)]'

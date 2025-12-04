@@ -34,8 +34,8 @@ export function Listbox<T>({
           'dark:before:hidden',
           // Hide default focus styles
           'focus:outline-hidden',
-          // Focus ring
-          'after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent after:ring-inset data-focus:after:ring-2 data-focus:after:ring-blue-500',
+          // Focus ring removed
+          'after:pointer-events-none after:absolute after:inset-0 after:rounded-lg after:ring-transparent',
           // Disabled state
           'data-disabled:opacity-50 data-disabled:before:bg-[var(--select-bg)] data-disabled:before:shadow-none',
         ])}
