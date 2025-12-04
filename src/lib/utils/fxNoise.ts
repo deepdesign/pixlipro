@@ -175,7 +175,8 @@ export const generateScanlines = (
   
   // Scanline spacing (every 2 pixels for classic CRT look)
   const scanlineHeight = 2;
-  const scanlineAlpha = Math.floor(strengthFactor * 180);
+  // Double the maximum strength (was 180, now 360, clamped to 255 for alpha channel)
+  const scanlineAlpha = Math.min(255, Math.floor(strengthFactor * 360));
 
   for (let y = 0; y < height; y++) {
     const isScanline = y % scanlineHeight === 0;

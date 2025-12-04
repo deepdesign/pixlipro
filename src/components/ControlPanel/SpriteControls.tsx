@@ -416,20 +416,18 @@ export function SpriteControls({
               </div>
               {spriteState.outlineMixed && (
                 <>
-                  <div className="mt-5">
-                    <ControlSlider
-                      id="outline-balance"
-                      label="Balance"
-                      min={0}
-                      max={100}
-                      value={spriteState.outlineBalance ?? 50}
-                      displayValue={`${Math.round(spriteState.outlineBalance ?? 50)}%`}
-                      onChange={onOutlineBalanceChange}
-                      disabled={!ready}
-                      tooltip="Controls the percentage of outlined sprites. 0% = all filled, 50% = half outlined/half filled, 100% = all outlined."
-                    />
-                  </div>
-                  <div className="control-field control-field--spaced-top">
+                  <ControlSlider
+                    id="outline-balance"
+                    label="Balance"
+                    min={0}
+                    max={100}
+                    value={spriteState.outlineBalance ?? 50}
+                    displayValue={`${Math.round(spriteState.outlineBalance ?? 50)}%`}
+                    onChange={onOutlineBalanceChange}
+                    disabled={!ready}
+                    tooltip="Controls the percentage of outlined sprites. 0% = all filled, 50% = half outlined/half filled, 100% = all outlined."
+                  />
+                  <div className="control-field mt-5">
                     <div className="switch-row">
                       <Button
                         ref={randomizeOutlineButtonRef}
