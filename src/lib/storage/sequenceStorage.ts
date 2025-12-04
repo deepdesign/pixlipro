@@ -34,6 +34,7 @@ export interface SequenceScene {
   durationSeconds?: number; // Only used when durationMode === 'seconds'
   durationMode: DurationMode; // 'seconds' | 'manual'
   fadeTypeOverride?: FadeType; // Override sequence default, undefined = use default
+  fadeDurationSeconds?: number; // Duration of fade transition in seconds (default: 1.5)
   notes?: string; // Optional notes for live performance
 }
 

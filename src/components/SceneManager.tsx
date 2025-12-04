@@ -11,10 +11,12 @@ import {
   exportScenesAsJSON,
   exportSceneAsJSON,
   importScenesFromJSON,
+  checkSceneNameConflict,
   type Scene,
 } from "@/lib/storage";
 import type { GeneratorState } from "@/generator";
 import { SceneThumbnail } from "@/components/SequenceManager/SceneThumbnail";
+import { SceneNameConflictDialog } from "@/components/SceneNameConflictDialog";
 
 interface SceneManagerProps {
   currentState: GeneratorState | null;
@@ -32,6 +34,12 @@ export const SceneManager = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [loadedSceneId, setLoadedSceneId] = useState<string | null>(null);
+  const [conflictDialog, setConflictDialog] = useState<{
+    isOpen: boolean;
+    existingSceneId: string;
+    existingSceneName: string;
+  }>({ isOpen: false, existingSceneId: "", existingSceneName: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const deleteButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -45,33 +53,122 @@ export const SceneManager = ({
       return;
     }
     setSaveError(null);
+    
+    const sceneName = saveName.trim() || "";
+    
+    // If a scene is loaded, offer to update it
+    if (loadedSceneId) {
+      const loadedScene = scenes.find((s) => s.id === loadedSceneId);
+      if (loadedScene) {
+        // Check if name changed or conflicts
+        const nameToUse = sceneName || loadedScene.name;
+        const conflict = checkSceneNameConflict(nameToUse, loadedSceneId);
+        
+        if (conflict) {
+          // Name conflicts with a different scene
+          setConflictDialog({
+            isOpen: true,
+            existingSceneId: conflict.existingSceneId,
+            existingSceneName: conflict.existingSceneName,
+          });
+          return;
+        }
+        
+        // Update the loaded scene
+        try {
+          saveScene(nameToUse, currentState, loadedSceneId);
+          setSaveName("");
+          refreshScenes();
+          if (saveButtonRef.current) {
+            animateSuccess(saveButtonRef.current);
+          }
+        } catch (error) {
+          setSaveError(error instanceof Error ? error.message : "Failed to update scene");
+          if (saveButtonRef.current) {
+            animateShake(saveButtonRef.current);
+          }
+        }
+        return;
+      }
+    }
+    
+    // New scene - check for conflicts
     try {
-      saveScene(saveName, currentState);
+      saveScene(sceneName, currentState);
       setSaveName("");
       refreshScenes();
-      // Animate success on save button
       if (saveButtonRef.current) {
         animateSuccess(saveButtonRef.current);
       }
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : "Failed to save scene");
-      // Animate shake on error
-      if (saveButtonRef.current) {
-        animateShake(saveButtonRef.current);
+      const errorMessage = error instanceof Error ? error.message : "Failed to save scene";
+      
+      // Check if it's a name conflict error
+      if (errorMessage.startsWith("SCENE_NAME_CONFLICT:")) {
+        const [, existingSceneId, existingSceneName] = errorMessage.split(":");
+        setConflictDialog({
+          isOpen: true,
+          existingSceneId,
+          existingSceneName: decodeURIComponent(existingSceneName),
+        });
+      } else {
+        setSaveError(errorMessage);
+        if (saveButtonRef.current) {
+          animateShake(saveButtonRef.current);
+        }
       }
     }
-  }, [currentState, saveName, refreshScenes]);
+  }, [currentState, saveName, refreshScenes, loadedSceneId, scenes]);
 
   const handleLoad = useCallback(
     (scene: Scene) => {
     const state = loadSceneState(scene);
     if (state) {
+      setLoadedSceneId(scene.id);
       onLoadScene(state);
       onClose();
     }
     },
     [onLoadScene, onClose],
   );
+  
+  const handleConflictUpdate = useCallback(() => {
+    if (!currentState || !conflictDialog.existingSceneId) return;
+    
+    try {
+      saveScene(saveName.trim() || conflictDialog.existingSceneName, currentState, conflictDialog.existingSceneId);
+      setSaveName("");
+      setConflictDialog({ isOpen: false, existingSceneId: "", existingSceneName: "" });
+      refreshScenes();
+      if (saveButtonRef.current) {
+        animateSuccess(saveButtonRef.current);
+      }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to update scene");
+      if (saveButtonRef.current) {
+        animateShake(saveButtonRef.current);
+      }
+    }
+  }, [currentState, conflictDialog, saveName, refreshScenes]);
+  
+  const handleConflictSaveNew = useCallback((newName: string) => {
+    if (!currentState) return;
+    
+    try {
+      saveScene(newName, currentState);
+      setSaveName("");
+      setConflictDialog({ isOpen: false, existingSceneId: "", existingSceneName: "" });
+      refreshScenes();
+      if (saveButtonRef.current) {
+        animateSuccess(saveButtonRef.current);
+      }
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to save scene");
+      if (saveButtonRef.current) {
+        animateShake(saveButtonRef.current);
+      }
+    }
+  }, [currentState, refreshScenes]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -344,6 +441,14 @@ export const SceneManager = ({
           </div>
         </div>
       </Card>
+      
+      <SceneNameConflictDialog
+        isOpen={conflictDialog.isOpen}
+        existingSceneName={conflictDialog.existingSceneName}
+        onUpdate={handleConflictUpdate}
+        onSaveNew={handleConflictSaveNew}
+        onCancel={() => setConflictDialog({ isOpen: false, existingSceneId: "", existingSceneName: "" })}
+      />
     </div>
   );
 };

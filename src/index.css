@@ -3323,7 +3323,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .section {
   @apply flex flex-col;
-  gap: theme("spacing.5"); /* section.gap.desktop */
+  gap: theme("spacing.4"); /* section.gap.desktop - 16px (reduced by 4px from spacing.5) */
 }
 
 .section + .section {
@@ -3392,9 +3392,14 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 
 .control-field {
   @apply flex flex-col;
-  gap: theme("spacing.3"); /* section.control.gap.desktop */
+  gap: theme("spacing.1"); /* section.control.gap.desktop - reduced by 8px from spacing.3 */
   overflow: visible;
   position: relative;
+}
+
+/* Increase gap for dropdown pickers (selects) by 4px */
+.control-field:has(.control-select-with-lock) {
+  gap: theme("spacing.2"); /* section.control.select.gap.desktop - 8px (4px base + 4px increase) */
 }
 
 .control-field--spaced {
@@ -3959,6 +3964,10 @@ button.bg-primary.button-selected:active {
   color: var(--text-muted); /* Light slate tint in dark mode */
   line-height: 1.2; /* Consistent line-height for alignment */
   font-weight: 400; /* Normal weight */
+}
+
+.field-label.leading-none {
+  line-height: 1 !important;
 }
 
 .field-value {

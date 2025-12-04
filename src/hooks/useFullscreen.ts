@@ -114,11 +114,13 @@ export function useFullscreen(canvasWrapperRef: React.RefObject<HTMLDivElement |
   }, []);
 
   const handleFullscreenToggle = useCallback(async () => {
-    // Use the Card element instead of canvasWrapper for fullscreen
-    const cardElement = document.querySelector('.canvas-card--fullscreen') || 
+    // Use the canvas-card-shell element for fullscreen
+    const cardElement = document.querySelector('.canvas-card-shell') || 
+      canvasWrapperRef.current?.closest('.canvas-card-shell') || 
       canvasWrapperRef.current?.closest('.canvas-card') || 
       canvasWrapperRef.current;
     if (!cardElement) {
+      console.warn("Fullscreen: Could not find canvas element");
       return;
     }
 

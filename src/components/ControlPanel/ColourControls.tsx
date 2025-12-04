@@ -351,16 +351,6 @@ export function ColourControls({
               </div>
             </div>
             <div className="control-field control-field--spaced-top">
-              <div className="field-heading">
-                <div className="field-heading-left">
-                  <TextWithTooltip
-                    id="randomize-gradient-colors-tip"
-                    text="Randomize which 2 colors from the palette are used for gradients"
-                  >
-                    <span className="field-label">Randomize gradient colors</span>
-                  </TextWithTooltip>
-                </div>
-              </div>
               <div className="switch-row">
                 <Button
                   ref={randomizeGradientColorsButtonRef}
@@ -379,6 +369,16 @@ export function ColourControls({
                 >
                   <RefreshCw className="h-6 w-6" />
                 </Button>
+                <div className="field-heading-left">
+                  <TextWithTooltip
+                    id="randomize-gradient-colors-tip"
+                    text="Randomize which 2 colors from the palette are used for gradients"
+                  >
+                    <span className="field-label" id="randomize-gradient-colors-label">
+                      Randomise gradient colours
+                    </span>
+                  </TextWithTooltip>
+                </div>
               </div>
             </div>
           </>
@@ -489,18 +489,6 @@ export function ColourControls({
         </div>
             {spriteState.blendModeAuto && (
           <div className="control-field control-field--spaced-top">
-            <div className="field-heading">
-              <div className="field-heading-left">
-                <TextWithTooltip
-                  id="randomize-blend-tip"
-                  text="Re-apply sprite blend modes randomly across sprites"
-                >
-                  <span className="field-label" id="randomize-blend-label">
-                    Re-apply sprite blends
-                  </span>
-                </TextWithTooltip>
-              </div>
-            </div>
             <div className="switch-row">
               <Button
                 ref={randomizeBlendButtonRef}
@@ -519,6 +507,16 @@ export function ColourControls({
               >
                 <RefreshCw className="h-6 w-6" />
               </Button>
+              <div className="field-heading-left">
+                <TextWithTooltip
+                  id="randomize-blend-tip"
+                  text="Re-apply sprite blend modes randomly across sprites"
+                >
+                  <span className="field-label" id="randomize-blend-label">
+                    Re-apply sprite blends
+                  </span>
+                </TextWithTooltip>
+              </div>
             </div>
           </div>
             )}

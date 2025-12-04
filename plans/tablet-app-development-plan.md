@@ -405,7 +405,7 @@ Add to `package.json`:
 ### New Files to Create
 
 ```
-docs/
+plans/
 └── tablet-app-development-plan.md (this file)
 
 public/

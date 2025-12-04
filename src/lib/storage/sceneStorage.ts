@@ -39,11 +39,58 @@ const generateSceneName = (state: GeneratorState): string => {
   return exportName.replace(/\.png$/, "").replace(/-\d{8}-\d{4}$/, "");
 };
 
-export const saveScene = (name: string, state: GeneratorState): Scene => {
+export interface SceneNameConflict {
+  existingSceneId: string;
+  existingSceneName: string;
+}
+
+export const checkSceneNameConflict = (name: string, excludeId?: string): SceneNameConflict | null => {
+  const scenes = getAllScenes();
+  const trimmedName = name.trim();
+  const existingScene = scenes.find(
+    (s) => s.name.toLowerCase() === trimmedName.toLowerCase() && s.id !== excludeId
+  );
+  if (existingScene) {
+    return {
+      existingSceneId: existingScene.id,
+      existingSceneName: existingScene.name,
+    };
+  }
+  return null;
+};
+
+export const saveScene = (name: string, state: GeneratorState, updateExistingId?: string): Scene => {
   const scenes = getAllScenes();
   const now = Date.now();
   const stateSnapshot: GeneratorState = { ...state };
   const sceneName = name.trim() || generateSceneName(state);
+  
+  // If updating existing scene
+  if (updateExistingId) {
+    const index = scenes.findIndex((s) => s.id === updateExistingId);
+    if (index !== -1) {
+      const scene = scenes[index];
+      scene.name = sceneName;
+      scene.updatedAt = now;
+      scene.state = stateSnapshot;
+      
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes));
+      } catch (error) {
+        console.error("Failed to update scene:", error);
+        throw new Error("Failed to update scene. Storage may be full.");
+      }
+      
+      return scene;
+    }
+  }
+  
+  // Check for name conflict
+  const conflict = checkSceneNameConflict(sceneName);
+  if (conflict) {
+    throw new Error(`SCENE_NAME_CONFLICT:${conflict.existingSceneId}:${conflict.existingSceneName}`);
+  }
+  
   const scene: Scene = {
     id: `scene-${now}-${Math.random().toString(36).substring(2, 9)}`,
     name: sceneName,
@@ -75,7 +122,15 @@ export const updateScene = (id: string, name: string, state: GeneratorState): Sc
   }
 
   const scene = scenes[index];
-  scene.name = name.trim() || scene.name;
+  const newName = name.trim() || scene.name;
+  
+  // Check for name conflict (excluding current scene)
+  const conflict = checkSceneNameConflict(newName, id);
+  if (conflict) {
+    throw new Error(`SCENE_NAME_CONFLICT:${conflict.existingSceneId}:${conflict.existingSceneName}`);
+  }
+  
+  scene.name = newName;
   scene.updatedAt = Date.now();
   scene.state = { ...state };
 

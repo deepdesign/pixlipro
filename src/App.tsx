@@ -1012,6 +1012,10 @@ const App = () => {
     
         {currentPage === "sequences" && (
         <SequencesPage
+          onNavigateToCanvas={() => {
+            setCurrentPage("create");
+            handleNavigate("create");
+          }}
           currentState={spriteState}
           onLoadPreset={handleLoadPreset}
         />

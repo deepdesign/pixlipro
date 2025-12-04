@@ -52,6 +52,8 @@ Plans serve as:
 - `custom-animation-designer.md` - Custom animation creation and management system
 - `settings-page-sidenav-plan.md` - Settings page side navigation implementation
 - `nightclub-projection-features.md` - Nightclub projection features and requirements
+- `performance-mode-integration-plan.md` - Performance Mode integration into Sequences page with live preview and playback controls
+- `tablet-app-development-plan.md` - Native tablet app development using Capacitor
 - `typography-documentation-prompt.md` - Typography documentation guidelines
 
 ## Creating a New Plan
