@@ -14,13 +14,8 @@ export function ProjectorPage() {
   const controllerRef = useRef<SpriteController | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  // Log that projector page loaded
-  useEffect(() => {
-    console.warn("🔴 [ProjectorPage] Projector page loaded, pathname:", window.location.pathname);
-    console.warn("🔴 [ProjectorPage] Window opener:", window.opener);
-    console.warn("🔴 [ProjectorPage] BroadcastChannel available:", typeof BroadcastChannel !== "undefined");
-  }, []);
+  const [controllerReady, setControllerReady] = useState(false);
+  const controllerReadyRef = useRef(false);
 
   // Apply active theme on projector page load
   useEffect(() => {
@@ -30,9 +25,9 @@ export function ProjectorPage() {
     }
   }, []);
 
-  // Initialize sprite controller
+  // Initialize sprite controller (only once on mount)
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized || controllerRef.current) {
       return;
     }
 
@@ -41,16 +36,9 @@ export function ProjectorPage() {
 
     const initializeController = () => {
       const container = containerRef.current;
-      console.warn("🔴 [ProjectorPage] Controller init check:", { 
-        hasContainer: !!container, 
-        isInitialized,
-        hasParent: !!container?.parentNode,
-        containerWidth: container?.clientWidth || 0
-      });
       
       if (!container || !isMounted) {
         if (!container) {
-          console.warn("🔴 [ProjectorPage] No container element yet, retrying...");
           timeoutId = setTimeout(() => {
             if (isMounted) {
               initializeController();
@@ -60,9 +48,8 @@ export function ProjectorPage() {
         return;
       }
 
-      // Ensure container is attached to DOM
+      // Ensure container is attached to DOM and has dimensions
       if (!container.parentNode) {
-        console.warn("🔴 [ProjectorPage] Container not attached to DOM, retrying...");
         timeoutId = setTimeout(() => {
           if (isMounted) {
             initializeController();
@@ -71,10 +58,8 @@ export function ProjectorPage() {
         return;
       }
 
-      // Check if container has dimensions
       const containerWidth = container.clientWidth || container.offsetWidth || 0;
       if (containerWidth === 0) {
-        console.warn("🔴 [ProjectorPage] Container has no width yet, retrying...");
         timeoutId = setTimeout(() => {
           if (isMounted) {
             initializeController();
@@ -82,8 +67,6 @@ export function ProjectorPage() {
         }, 100);
         return;
       }
-
-      console.warn("🔴 [ProjectorPage] Creating sprite controller...");
       try {
         const controller = createSpriteController(container, {
           onStateChange: () => {
@@ -95,10 +78,16 @@ export function ProjectorPage() {
         });
 
         controllerRef.current = controller;
+        controllerReadyRef.current = true;
         setIsInitialized(true);
-        console.warn("🔴 [ProjectorPage] Controller initialized successfully!");
+        setControllerReady(true);
       } catch (error) {
         console.error("🔴 [ProjectorPage] Failed to initialize projector controller:", error);
+        // Clear refs on error
+        controllerRef.current = null;
+        controllerReadyRef.current = false;
+        setIsInitialized(false);
+        setControllerReady(false);
         // Retry on error
         timeoutId = setTimeout(() => {
           if (isMounted && !isInitialized) {
@@ -127,9 +116,10 @@ export function ProjectorPage() {
           console.error("🔴 [ProjectorPage] Error destroying projector controller:", error);
         }
         controllerRef.current = null;
+        controllerReadyRef.current = false;
       }
     };
-  }, [isInitialized]);
+  }, []); // Only run on mount/unmount, not when isInitialized changes
 
   // Sync state from main window via BroadcastChannel
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
@@ -137,8 +127,11 @@ export function ProjectorPage() {
   const windowMessageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
   
   useEffect(() => {
-    if (!isInitialized || !controllerRef.current) {
-      console.log("🔴 [ProjectorPage] Waiting for initialization...", { isInitialized, hasController: !!controllerRef.current });
+    // Check refs directly to ensure we have current values
+    const currentRefReady = controllerReadyRef.current;
+    const currentHasController = !!controllerRef.current;
+    
+    if (!currentRefReady || !currentHasController) {
       return;
     }
 
@@ -149,38 +142,28 @@ export function ProjectorPage() {
       try {
         // Create channel once and keep it open
         if (!broadcastChannelRef.current) {
-          console.warn("🔴 [ProjectorPage] Setting up BroadcastChannel");
           const channel = new BroadcastChannel("pixli-projector-sync");
           broadcastChannelRef.current = channel;
 
           channel.onmessage = (event) => {
-            console.log("🔴 [ProjectorPage] Received message via BroadcastChannel:", event.data.type, event.data);
             if (event.data.type === "state-update" && controllerRef.current) {
               const state: GeneratorState = event.data.state;
-              
-              console.log("[ProjectorPage] Applying state update", state);
-              // Apply entire state to controller using applyState method
               try {
-                const controller = controllerRef.current;
-                controller.applyState(state, "instant");
-                
+                controllerRef.current.applyState(state, "instant");
                 if (!isConnected) {
-                  console.log("[ProjectorPage] Connected!");
                   setIsConnected(true);
-                  // Clear retry interval once connected
                   if (retryIntervalRef.current) {
                     clearInterval(retryIntervalRef.current);
                     retryIntervalRef.current = null;
                   }
                 }
               } catch (error) {
-                console.error("[ProjectorPage] Error applying state to projector controller:", error);
+                console.error("[ProjectorPage] Error applying state:", error);
               }
             }
           };
 
           // Request initial state immediately
-          console.warn("🔴 [ProjectorPage] Requesting initial state via BroadcastChannel");
           channel.postMessage({ type: "request-state" });
         }
       } catch (error) {
@@ -191,25 +174,16 @@ export function ProjectorPage() {
 
     // Fallback to window.postMessage if BroadcastChannel not available
     if (!useBroadcastChannel || !broadcastChannelRef.current) {
-      console.log("[ProjectorPage] Using window.postMessage fallback");
-      
-      // Set up window message listener
       const handleMessage = (event: MessageEvent) => {
-        // Only accept messages from same origin
         if (event.origin !== window.location.origin) {
           return;
         }
         
-        if (event.data && event.data.type === "pixli-state-update" && controllerRef.current) {
-          console.log("[ProjectorPage] Received state via window.postMessage:", event.data.state);
+        if (event.data?.type === "pixli-state-update" && controllerRef.current) {
           const state: GeneratorState = event.data.state;
-          
           try {
-            const controller = controllerRef.current;
-            controller.applyState(state, "instant");
-            
+            controllerRef.current.applyState(state, "instant");
             if (!isConnected) {
-              console.log("[ProjectorPage] Connected via window.postMessage!");
               setIsConnected(true);
               if (retryIntervalRef.current) {
                 clearInterval(retryIntervalRef.current);
@@ -227,7 +201,6 @@ export function ProjectorPage() {
       
       // Request state from opener window
       if (window.opener && !window.opener.closed) {
-        console.log("[ProjectorPage] Requesting state from opener window");
         window.opener.postMessage({ type: "pixli-request-state" }, window.location.origin);
       }
     }
@@ -237,10 +210,8 @@ export function ProjectorPage() {
       retryIntervalRef.current = setInterval(() => {
         if (controllerRef.current && !isConnected) {
           if (broadcastChannelRef.current) {
-            console.log("[ProjectorPage] Retrying state request via BroadcastChannel...");
             broadcastChannelRef.current.postMessage({ type: "request-state" });
           } else if (window.opener && !window.opener.closed) {
-            console.log("[ProjectorPage] Retrying state request via window.postMessage...");
             window.opener.postMessage({ type: "pixli-request-state" }, window.location.origin);
           }
         } else if (isConnected && retryIntervalRef.current) {
@@ -261,19 +232,16 @@ export function ProjectorPage() {
       }
       // Don't close channel here - keep it open
     };
-  }, [isInitialized, isConnected]);
+  }, [isInitialized, controllerReady, isConnected]);
   
   // Cleanup channel on unmount
   useEffect(() => {
     return () => {
-      console.log("[ProjectorPage] Cleaning up BroadcastChannel");
       if (retryIntervalRef.current) {
         clearInterval(retryIntervalRef.current);
-        retryIntervalRef.current = null;
       }
       if (broadcastChannelRef.current) {
         broadcastChannelRef.current.close();
-        broadcastChannelRef.current = null;
       }
     };
   }, []);

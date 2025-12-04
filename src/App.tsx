@@ -143,32 +143,24 @@ const App = () => {
   
   // Set up BroadcastChannel immediately on mount (before spriteState is ready)
   useEffect(() => {
-    console.warn("🟢 [App] Setting up projector sync, isProjectorMode:", isProjectorMode, "pathname:", window.location.pathname);
-    
     if (isProjectorMode) {
-      console.warn("🟢 [App] In projector mode, skipping BroadcastChannel setup");
       return; // Don't sync if we're in projector mode
     }
 
     if (typeof BroadcastChannel === "undefined") {
-      console.warn("[App] BroadcastChannel not available");
       return;
     }
 
     // Create channel once and keep it open
     if (!broadcastChannelRef.current) {
-      console.warn("🟢 [App] Setting up BroadcastChannel for projector sync");
       const channel = new BroadcastChannel("pixli-projector-sync");
       broadcastChannelRef.current = channel;
 
       // Handle state requests - respond immediately even if spriteState isn't ready yet
       channel.onmessage = (event) => {
-        console.log("🟢 [App] Received message via BroadcastChannel:", event.data.type, event.data);
         if (event.data.type === "request-state") {
-          // Get current spriteState from the ref to avoid stale closure
           const currentState = spriteStateRef.current;
           if (currentState) {
-            console.log("[App] Sending state update in response to request", currentState);
             try {
               channel.postMessage({
                 type: "state-update",
@@ -178,8 +170,6 @@ const App = () => {
             } catch (error) {
               console.error("[App] Error sending state update:", error);
             }
-          } else {
-            console.log("[App] State request received but spriteState not ready yet - will send when available");
           }
         }
       };
@@ -196,11 +186,9 @@ const App = () => {
           projectorWindowsRef.current.add(event.source as Window);
         }
         
-        if (event.data && event.data.type === "pixli-request-state") {
-          console.log("[App] Received state request via window.postMessage from:", event.source);
+        if (event.data?.type === "pixli-request-state") {
           const currentState = spriteStateRef.current;
           if (currentState && event.source) {
-            console.log("[App] Sending state via window.postMessage", currentState);
             try {
               (event.source as Window).postMessage({
                 type: "pixli-state-update",
@@ -210,8 +198,6 @@ const App = () => {
             } catch (error) {
               console.error("[App] Error sending state via window.postMessage:", error);
             }
-          } else if (!currentState) {
-            console.log("[App] State request received but spriteState not ready yet");
           }
         }
       };
@@ -221,11 +207,8 @@ const App = () => {
       // Store handler for cleanup
       (channel as any)._windowMessageHandler = handleWindowMessage;
       
-      console.log("[App] BroadcastChannel set up, ready to receive requests");
-      
       // Send initial state if available
       if (spriteStateRef.current) {
-        console.log("[App] Sending initial state on channel setup");
         try {
           channel.postMessage({
             type: "state-update",

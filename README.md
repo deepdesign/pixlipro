@@ -313,7 +313,16 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.3 Beta (Latest)
+### v0.3.4 Beta (Latest)
+
+**Improvements:**
+- Fixed projector mode connection issues - projector window now properly syncs with main canvas
+- Improved BroadcastChannel communication reliability between main window and projector window
+- Added window.postMessage fallback for cross-window communication
+- Code cleanup: removed excessive debug logging and simplified projector mode implementation
+- Improved error handling and retry logic for projector mode initialization
+
+### v0.3.3 Beta
 
 **New Features:**
 - Added pixelation effect with adjustable block size (1-50px)
