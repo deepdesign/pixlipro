@@ -9,6 +9,8 @@
 export const applyPixelation = (
   canvas: HTMLCanvasElement,
   blockSize: number,
+  showGrid: boolean = false,
+  gridBrightness: number = 100,
 ): HTMLCanvasElement => {
   if (blockSize <= 1) return canvas;
 
@@ -43,6 +45,36 @@ export const applyPixelation = (
 
   // Draw temp canvas scaled up back to original size
   ctx.drawImage(tempCanvas, 0, 0, width, height);
+
+  // Draw grid lines if enabled
+  if (showGrid) {
+    // Calculate actual block size based on how the downscaled canvas was scaled up
+    // Each pixel in the downscaled canvas becomes a block of this size
+    const actualBlockWidth = width / downscaledWidth;
+    const actualBlockHeight = height / downscaledHeight;
+    
+    // Convert brightness (0-100) to grayscale value (0-255)
+    const brightnessValue = Math.round((gridBrightness / 100) * 255);
+    ctx.strokeStyle = `rgb(${brightnessValue}, ${brightnessValue}, ${brightnessValue})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    
+    // Draw vertical lines at block boundaries
+    for (let i = 0; i <= downscaledWidth; i++) {
+      const x = i * actualBlockWidth;
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+    }
+    
+    // Draw horizontal lines at block boundaries
+    for (let i = 0; i <= downscaledHeight; i++) {
+      const y = i * actualBlockHeight;
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+    }
+    
+    ctx.stroke();
+  }
 
   // Re-enable image smoothing for future operations
   ctx.imageSmoothingEnabled = true;
@@ -109,11 +141,13 @@ export const applyColorQuantization = (
 export const applyPixelationEffects = (
   canvas: HTMLCanvasElement,
   pixelationSize: number,
+  pixelationGridEnabled: boolean,
+  pixelationGridBrightness: number,
   colorQuantizationBits: number | null,
 ): HTMLCanvasElement => {
   // Apply pixelation first (if enabled)
   if (pixelationSize > 1) {
-    applyPixelation(canvas, pixelationSize);
+    applyPixelation(canvas, pixelationSize, pixelationGridEnabled, pixelationGridBrightness);
   }
 
   // Apply color quantization (if enabled)

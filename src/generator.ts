@@ -244,6 +244,8 @@ export interface GeneratorState {
   // Pixelation
   pixelationEnabled: boolean;
   pixelationSize: number; // 1-50 pixels (block size)
+  pixelationGridEnabled: boolean; // Show 1px white grid lines between pixels
+  pixelationGridBrightness: number; // 0-100, brightness of grid lines (100 = white, 0 = black)
   colorQuantizationEnabled: boolean;
   colorQuantizationBits: number; // 4, 8, 16, or 24 (bit depth)
   // Thumbnail mode settings (for animation thumbnails)
@@ -366,6 +368,8 @@ export const DEFAULT_STATE: GeneratorState = {
   noiseStrength: 30, // Default 30% strength
   pixelationEnabled: false,
   pixelationSize: 1, // Default 1px (full quality)
+  pixelationGridEnabled: false, // Default: no grid
+  pixelationGridBrightness: 100, // Default 100% brightness (white)
   colorQuantizationEnabled: false,
   colorQuantizationBits: 24, // Default 24-bit (full quality)
 };
@@ -1566,6 +1570,8 @@ export interface SpriteController {
   // Pixelation
   setPixelationEnabled: (enabled: boolean) => void;
   setPixelationSize: (size: number) => void;
+  setPixelationGridEnabled: (enabled: boolean) => void;
+  setPixelationGridBrightness: (brightness: number) => void;
   setColorQuantizationEnabled: (enabled: boolean) => void;
   setColorQuantizationBits: (bits: number) => void;
   applySingleTilePreset: () => void;
@@ -3521,8 +3527,10 @@ export const createSpriteController = (
         const canvas = p5Instance.canvas as HTMLCanvasElement;
         if (canvas) {
           const pixelationSize = currentState.pixelationEnabled ? currentState.pixelationSize : 1;
+          const pixelationGridEnabled = currentState.pixelationGridEnabled;
+          const pixelationGridBrightness = currentState.pixelationGridBrightness;
           const quantizationBits = currentState.colorQuantizationEnabled ? currentState.colorQuantizationBits : null;
-          applyPixelationEffects(canvas, pixelationSize, quantizationBits);
+          applyPixelationEffects(canvas, pixelationSize, pixelationGridEnabled, pixelationGridBrightness, quantizationBits);
         }
       }
       
@@ -4221,6 +4229,12 @@ export const createSpriteController = (
     },
     setPixelationSize: (size: number) => {
       applyState({ pixelationSize: clamp(size, 1, 50) }, { recompute: false });
+    },
+    setPixelationGridEnabled: (enabled: boolean) => {
+      applyState({ pixelationGridEnabled: enabled }, { recompute: false });
+    },
+    setPixelationGridBrightness: (brightness: number) => {
+      applyState({ pixelationGridBrightness: clamp(brightness, 0, 100) }, { recompute: false });
     },
     setColorQuantizationEnabled: (enabled: boolean) => {
       applyState({ colorQuantizationEnabled: enabled }, { recompute: false });

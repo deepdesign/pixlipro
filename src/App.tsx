@@ -131,52 +131,147 @@ const App = () => {
   }, []);
   
   // Sync state to projector window (no longer streaming frames - projector creates its own controller)
+  // Set up BroadcastChannel once and keep it open
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  const spriteStateRef = useRef(spriteState);
+  const projectorWindowsRef = useRef<Set<Window>>(new Set());
+  
+  // Keep spriteStateRef in sync with spriteState
   useEffect(() => {
+    spriteStateRef.current = spriteState;
+  }, [spriteState]);
+  
+  // Set up BroadcastChannel immediately on mount (before spriteState is ready)
+  useEffect(() => {
+    console.warn("🟢 [App] Setting up projector sync, isProjectorMode:", isProjectorMode, "pathname:", window.location.pathname);
+    
     if (isProjectorMode) {
+      console.warn("🟢 [App] In projector mode, skipping BroadcastChannel setup");
       return; // Don't sync if we're in projector mode
     }
 
-    if (!dualMonitor.isEnabled) {
-      return; // Only set up channel if dual monitor is enabled
-    }
-
     if (typeof BroadcastChannel === "undefined") {
+      console.warn("[App] BroadcastChannel not available");
       return;
     }
 
-    const channel = new BroadcastChannel("pixli-projector-sync");
+    // Create channel once and keep it open
+    if (!broadcastChannelRef.current) {
+      console.warn("🟢 [App] Setting up BroadcastChannel for projector sync");
+      const channel = new BroadcastChannel("pixli-projector-sync");
+      broadcastChannelRef.current = channel;
 
-    // Handle state requests - respond immediately even if spriteState isn't ready yet
-    channel.onmessage = (event) => {
-      console.log("[App] Received message:", event.data.type);
-      if (event.data.type === "request-state") {
-        if (spriteState) {
-          console.log("[App] Sending state update in response to request");
+      // Handle state requests - respond immediately even if spriteState isn't ready yet
+      channel.onmessage = (event) => {
+        console.log("🟢 [App] Received message via BroadcastChannel:", event.data.type, event.data);
+        if (event.data.type === "request-state") {
+          // Get current spriteState from the ref to avoid stale closure
+          const currentState = spriteStateRef.current;
+          if (currentState) {
+            console.log("[App] Sending state update in response to request", currentState);
+            try {
+              channel.postMessage({
+                type: "state-update",
+                state: currentState,
+                timestamp: Date.now(),
+              });
+            } catch (error) {
+              console.error("[App] Error sending state update:", error);
+            }
+          } else {
+            console.log("[App] State request received but spriteState not ready yet - will send when available");
+          }
+        }
+      };
+      
+      // Also listen for window.postMessage as fallback
+      const handleWindowMessage = (event: MessageEvent) => {
+        // Only accept messages from same origin
+        if (event.origin !== window.location.origin) {
+          return;
+        }
+        
+        // Track the source window if it's a projector window
+        if (event.source && event.source !== window) {
+          projectorWindowsRef.current.add(event.source as Window);
+        }
+        
+        if (event.data && event.data.type === "pixli-request-state") {
+          console.log("[App] Received state request via window.postMessage from:", event.source);
+          const currentState = spriteStateRef.current;
+          if (currentState && event.source) {
+            console.log("[App] Sending state via window.postMessage", currentState);
+            try {
+              (event.source as Window).postMessage({
+                type: "pixli-state-update",
+                state: currentState,
+                timestamp: Date.now(),
+              }, window.location.origin);
+            } catch (error) {
+              console.error("[App] Error sending state via window.postMessage:", error);
+            }
+          } else if (!currentState) {
+            console.log("[App] State request received but spriteState not ready yet");
+          }
+        }
+      };
+      
+      window.addEventListener("message", handleWindowMessage);
+      
+      // Store handler for cleanup
+      (channel as any)._windowMessageHandler = handleWindowMessage;
+      
+      console.log("[App] BroadcastChannel set up, ready to receive requests");
+      
+      // Send initial state if available
+      if (spriteStateRef.current) {
+        console.log("[App] Sending initial state on channel setup");
+        try {
           channel.postMessage({
             type: "state-update",
-            state: spriteState,
+            state: spriteStateRef.current,
             timestamp: Date.now(),
           });
-        } else {
-          console.log("[App] State request received but spriteState not ready yet");
+        } catch (error) {
+          console.error("[App] Error sending initial state:", error);
         }
       }
-    };
-
-    // Send state updates whenever spriteState changes (if available)
-    if (spriteState) {
-      console.log("[App] Sending initial state update");
-      channel.postMessage({
-        type: "state-update",
-        state: spriteState,
-        timestamp: Date.now(),
-      });
     }
 
     return () => {
-      channel.close();
+      // Don't close the channel here - keep it open for the lifetime of the component
     };
-  }, [isProjectorMode, spriteState, dualMonitor.isEnabled]);
+  }, [isProjectorMode]);
+
+  // Send state updates whenever spriteState changes (if available)
+  useEffect(() => {
+    if (isProjectorMode || !broadcastChannelRef.current || !spriteState) {
+      return;
+    }
+
+    console.log("[App] Sending state update (spriteState changed)", spriteState);
+    broadcastChannelRef.current.postMessage({
+      type: "state-update",
+      state: spriteState,
+      timestamp: Date.now(),
+    });
+  }, [isProjectorMode, spriteState]);
+
+  // Cleanup channel on unmount
+  useEffect(() => {
+    return () => {
+      if (broadcastChannelRef.current) {
+        console.log("[App] Closing BroadcastChannel");
+        // Remove window message listener if it exists
+        const handler = (broadcastChannelRef.current as any)?._windowMessageHandler;
+        if (handler) {
+          window.removeEventListener("message", handler);
+        }
+        broadcastChannelRef.current.close();
+        broadcastChannelRef.current = null;
+      }
+    };
+  }, []);
   
   const [activePanel, setActivePanel] = useState<"sprites" | "colours" | "motion" | "fx">("sprites");
   const [showSceneManager, setShowSceneManager] = useState(false);

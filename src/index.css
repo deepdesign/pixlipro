@@ -3358,8 +3358,10 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   margin-bottom: theme("spacing.0"); /* section.heading.margin.bottom.desktop */
 }
 
-/* Dark mode: section titles should be white */
-/* Removed hardcoded dark mode override - uses CSS variable */
+/* Dark mode: section titles should be slate-050 */
+[data-theme="dark"] .section-title {
+  color: #f8fafc !important; /* slate-050 */
+}
 
 .section-subheading {
   font-size: 0.7rem;
@@ -3370,9 +3372,9 @@ body:has(.app-frame--stacked) .canvas-card-shell {
   margin-bottom: theme("spacing.0");
 }
 
-/* Dark mode: section subheadings should use theme color */
+/* Dark mode: section subheadings should be slate-200 */
 [data-theme="dark"] .section-subheading {
-  color: var(--text-primary) !important;
+  color: #e2e8f0 !important; /* slate-200 */
 }
 
 .section-hint {
@@ -5755,6 +5757,136 @@ body:has(.app-layout--wide) .app-footer {
   border-radius: var(--radius-sm);
 }
 
+/* Scene Manager Modal - same styling as preset manager */
+.scene-manager-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-base) 60%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.scene-manager-modal {
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: visible;
+  padding: theme("spacing.6");
+  position: relative;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+.scene-manager-header {
+  @apply flex items-center justify-between;
+  margin-bottom: theme("spacing.4");
+}
+
+.scene-manager-title {
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--heading-color);
+  margin: 0;
+}
+
+.scene-manager-close {
+  @apply flex items-center justify-center;
+  width: 32px;
+  height: 32px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.scene-manager-close:hover {
+  color: var(--accent-primary);
+}
+
+.scene-manager-content {
+  @apply flex flex-col;
+  gap: theme("spacing.5");
+}
+
+.scene-manager-content .section {
+  gap: theme("spacing.2");
+}
+
+.scene-manager-content .section-title {
+  margin-bottom: theme("spacing.2");
+}
+
+.scene-save-form {
+  @apply flex gap-2;
+}
+
+.scene-name-input {
+  @apply flex-1;
+  padding: theme("spacing.2") theme("spacing.3");
+  font-size: 0.875rem;
+  background: var(--panel-bg);
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease;
+}
+
+.scene-name-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.scene-name-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.scene-error {
+  margin-top: theme("spacing.2");
+  padding: theme("spacing.2");
+  font-size: 0.75rem;
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 15%, transparent);
+  border: 1px solid var(--destructive);
+  border-radius: var(--radius-sm);
+}
+
+.scene-success {
+  margin-top: theme("spacing.2");
+  padding: theme("spacing.2");
+  font-size: 0.75rem;
+  color: hsl(142 76% 36%);
+  background: color-mix(in srgb, hsl(142 76% 36%) 15%, transparent);
+  border: 1px solid hsl(142 76% 36%);
+  border-radius: var(--radius-sm);
+}
+
+.scene-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  padding: theme("spacing.4");
+}
+
+.scene-import-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* Export Modal */
 .export-modal-overlay {
   position: fixed;
@@ -5885,22 +6017,14 @@ body:has(.app-layout--wide) .app-footer {
   background: var(--card-bg) !important; /* Default - one shade lighter */
 }
 
-/* Light mode: one shade lighter than panel-bg */
-html[data-theme="light"] .export-action-button {
-  background: #f4f4f5 !important; /* zinc-100 - one shade lighter */
-}
-
-/* Dark mode: one shade lighter than panel-bg */
-html[data-theme="dark"] .export-action-button {
-  background: #1e293b !important; /* slate-800 - one shade lighter than slate-900 panel-bg */
-}
-
 .export-action-button:hover:not(:disabled) {
-  background-color: rgba(226, 232, 240, 0.8) !important; /* slate-200 with opacity - lighter */
+  background-color: var(--theme-primary-tint100) !important;
+  opacity: 0.8;
 }
 
 html[data-theme="dark"] .export-action-button:hover:not(:disabled) {
-  background-color: rgba(51, 65, 85, 0.8) !important; /* slate-700 with opacity - lighter than button bg */
+  background-color: var(--theme-primary-tint700) !important;
+  opacity: 0.8;
 }
 
 .export-error {
@@ -5921,9 +6045,9 @@ html[data-theme="dark"] .export-action-button:hover:not(:disabled) {
   border-radius: var(--radius-sm);
 }
 
-/* Darker slate background in dark mode */
+/* Darker background in dark mode */
 html[data-theme="dark"] .export-quick-section {
-  background: #020617; /* slate-950 - darker shade */
+  background: var(--theme-primary-bg-base) !important;
 }
 
 .export-preview-compact {

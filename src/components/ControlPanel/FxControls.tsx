@@ -220,17 +220,42 @@ export function FxControls({
           />
         </div>
         {spriteState.pixelationEnabled && (
-          <ControlSlider
-            id="pixelation-size"
-            label="Pixelation size"
-            min={1}
-            max={50}
-            value={Math.round(spriteState.pixelationSize)}
-            displayValue={`${Math.round(spriteState.pixelationSize)}px`}
-            onChange={(value) => controller?.setPixelationSize(value)}
-            disabled={!ready}
-            tooltip="Size of pixel blocks. Higher values create more blocky, retro look."
-          />
+          <>
+            <ControlSlider
+              id="pixelation-size"
+              label="Pixelation size"
+              min={1}
+              max={50}
+              value={Math.round(spriteState.pixelationSize)}
+              displayValue={`${Math.round(spriteState.pixelationSize)}px`}
+              onChange={(value) => controller?.setPixelationSize(value)}
+              disabled={!ready}
+              tooltip="Size of pixel blocks. Higher values create more blocky, retro look."
+            />
+            <div className="flex items-center justify-between gap-2 mt-2">
+              <h4 className="section-subheading">Show grid</h4>
+              <Switch
+                id="pixelation-grid-enabled"
+                checked={spriteState.pixelationGridEnabled}
+                onCheckedChange={(checked) => controller?.setPixelationGridEnabled(checked)}
+                disabled={!ready}
+                aria-label="Show pixelation grid"
+              />
+            </div>
+            {spriteState.pixelationGridEnabled && (
+              <ControlSlider
+                id="pixelation-grid-brightness"
+                label="Grid brightness"
+                min={0}
+                max={100}
+                value={Math.round(spriteState.pixelationGridBrightness)}
+                displayValue={`${Math.round(spriteState.pixelationGridBrightness)}%`}
+                onChange={(value) => controller?.setPixelationGridBrightness(value)}
+                disabled={!ready}
+                tooltip="Adjust the brightness of the pixelation grid lines. 100% is white, 0% is black."
+              />
+            )}
+          </>
         )}
       </div>
 
