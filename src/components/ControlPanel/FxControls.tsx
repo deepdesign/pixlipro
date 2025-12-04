@@ -1,5 +1,9 @@
+import { useRef } from "react";
 import { Switch } from "@/components/ui/switch-adapter";
+import { Button } from "@/components/Button";
+import { RefreshCw } from "lucide-react";
 import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
+import { animatePulse } from "@/lib/utils/animations";
 import type {
   GeneratorState,
   SpriteController,
@@ -21,6 +25,8 @@ export function FxControls({
   controller,
   ready,
 }: FxControlsProps) {
+  const randomizeGridColorButtonRef = useRef<HTMLButtonElement>(null);
+  
   return (
     <>
       <h2 className="panel-heading">FX</h2>
@@ -243,17 +249,62 @@ export function FxControls({
               />
             </div>
             {spriteState.pixelationGridEnabled && (
-              <ControlSlider
-                id="pixelation-grid-brightness"
-                label="Grid brightness"
-                min={0}
-                max={100}
-                value={Math.round(spriteState.pixelationGridBrightness)}
-                displayValue={`${Math.round(spriteState.pixelationGridBrightness)}%`}
-                onChange={(value) => controller?.setPixelationGridBrightness(value)}
-                disabled={!ready}
-                tooltip="Adjust the brightness of the pixelation grid lines. 100% is white, 0% is black."
-              />
+              <>
+                <ControlSlider
+                  id="pixelation-grid-brightness"
+                  label="Grid brightness"
+                  min={0}
+                  max={100}
+                  value={Math.round(spriteState.pixelationGridBrightness)}
+                  displayValue={`${Math.round(spriteState.pixelationGridBrightness)}%`}
+                  onChange={(value) => controller?.setPixelationGridBrightness(value)}
+                  disabled={!ready}
+                  tooltip="Adjust the brightness of the pixelation grid lines. 0% is black, 50% is the palette colour, 100% is white."
+                />
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <h4 className="section-subheading">Use palette colour</h4>
+                  <Switch
+                    id="pixelation-grid-use-palette"
+                    checked={spriteState.pixelationGridUsePalette}
+                    onCheckedChange={(checked) => controller?.setPixelationGridUsePalette(checked)}
+                    disabled={!ready}
+                    aria-label="Use palette colour for grid"
+                  />
+                </div>
+                {spriteState.pixelationGridUsePalette && (
+                  <div className="control-field control-field--spaced-top">
+                    <div className="switch-row">
+                      <Button
+                        ref={randomizeGridColorButtonRef}
+                        type="button"
+                        size="icon"
+                        variant="background"
+                        onClick={() => {
+                          if (randomizeGridColorButtonRef.current) {
+                            animatePulse(randomizeGridColorButtonRef.current);
+                          }
+                          controller?.randomizePixelationGridColor();
+                        }}
+                        disabled={!ready}
+                        aria-label="Randomise grid colour"
+                        title="Randomise grid colour"
+                      >
+                        <RefreshCw className="h-6 w-6" />
+                      </Button>
+                      <div className="field-heading-left">
+                        <TextWithTooltip
+                          id="randomise-grid-colour-tip"
+                          text="Randomise the palette colour used for the grid lines."
+                        >
+                          <span className="field-label" id="randomise-grid-colour-label">
+                            Randomise colour
+                          </span>
+                        </TextWithTooltip>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

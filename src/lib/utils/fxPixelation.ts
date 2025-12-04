@@ -4,6 +4,32 @@
  */
 
 /**
+ * Convert hex color to RGB
+ */
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  // Remove # if present
+  const cleaned = hex.replace('#', '');
+  
+  // Handle 3-digit hex
+  if (cleaned.length === 3) {
+    const r = parseInt(cleaned[0] + cleaned[0], 16);
+    const g = parseInt(cleaned[1] + cleaned[1], 16);
+    const b = parseInt(cleaned[2] + cleaned[2], 16);
+    return { r, g, b };
+  }
+  
+  // Handle 6-digit hex
+  if (cleaned.length === 6) {
+    const r = parseInt(cleaned.substring(0, 2), 16);
+    const g = parseInt(cleaned.substring(2, 4), 16);
+    const b = parseInt(cleaned.substring(4, 6), 16);
+    return { r, g, b };
+  }
+  
+  return null;
+}
+
+/**
  * Apply pixelation effect by downscaling and upscaling canvas
  */
 export const applyPixelation = (
@@ -11,6 +37,7 @@ export const applyPixelation = (
   blockSize: number,
   showGrid: boolean = false,
   gridBrightness: number = 100,
+  gridColor?: string, // Optional palette color for grid lines
 ): HTMLCanvasElement => {
   if (blockSize <= 1) return canvas;
 
@@ -53,9 +80,38 @@ export const applyPixelation = (
     const actualBlockWidth = width / downscaledWidth;
     const actualBlockHeight = height / downscaledHeight;
     
-    // Convert brightness (0-100) to grayscale value (0-255)
-    const brightnessValue = Math.round((gridBrightness / 100) * 255);
-    ctx.strokeStyle = `rgb(${brightnessValue}, ${brightnessValue}, ${brightnessValue})`;
+    // Use palette color if provided, otherwise use grayscale based on brightness
+    if (gridColor) {
+      // Interpolate between black (0%), palette color (50%), and white (100%)
+      const color = hexToRgb(gridColor);
+      if (color) {
+        let r: number, g: number, b: number;
+        
+        if (gridBrightness <= 50) {
+          // Interpolate between black (0%) and palette color (50%)
+          const t = gridBrightness / 50; // 0 to 1
+          r = Math.round(color.r * t);
+          g = Math.round(color.g * t);
+          b = Math.round(color.b * t);
+        } else {
+          // Interpolate between palette color (50%) and white (100%)
+          const t = (gridBrightness - 50) / 50; // 0 to 1
+          r = Math.round(color.r + (255 - color.r) * t);
+          g = Math.round(color.g + (255 - color.g) * t);
+          b = Math.round(color.b + (255 - color.b) * t);
+        }
+        
+        ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+      } else {
+        // Fallback to grayscale if color parsing fails
+        const grayscaleValue = Math.round((gridBrightness / 100) * 255);
+        ctx.strokeStyle = `rgb(${grayscaleValue}, ${grayscaleValue}, ${grayscaleValue})`;
+      }
+    } else {
+      // Convert brightness (0-100) to grayscale value (0-255)
+      const grayscaleValue = Math.round((gridBrightness / 100) * 255);
+      ctx.strokeStyle = `rgb(${grayscaleValue}, ${grayscaleValue}, ${grayscaleValue})`;
+    }
     ctx.lineWidth = 1;
     ctx.beginPath();
     
@@ -144,10 +200,11 @@ export const applyPixelationEffects = (
   pixelationGridEnabled: boolean,
   pixelationGridBrightness: number,
   colorQuantizationBits: number | null,
+  gridColor?: string, // Optional palette color for grid lines
 ): HTMLCanvasElement => {
   // Apply pixelation first (if enabled)
   if (pixelationSize > 1) {
-    applyPixelation(canvas, pixelationSize, pixelationGridEnabled, pixelationGridBrightness);
+    applyPixelation(canvas, pixelationSize, pixelationGridEnabled, pixelationGridBrightness, gridColor);
   }
 
   // Apply color quantization (if enabled)

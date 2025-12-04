@@ -244,8 +244,10 @@ export interface GeneratorState {
   // Pixelation
   pixelationEnabled: boolean;
   pixelationSize: number; // 1-50 pixels (block size)
-  pixelationGridEnabled: boolean; // Show 1px white grid lines between pixels
-  pixelationGridBrightness: number; // 0-100, brightness of grid lines (100 = white, 0 = black)
+  pixelationGridEnabled: boolean; // Show 1px grid lines between pixels
+  pixelationGridBrightness: number; // 0-100, brightness of grid lines (100 = full brightness, 0 = black)
+  pixelationGridUsePalette: boolean; // Use palette color instead of black for grid lines
+  pixelationGridPaletteColorIndex: number; // Index of palette color to use for grid (0-based)
   colorQuantizationEnabled: boolean;
   colorQuantizationBits: number; // 4, 8, 16, or 24 (bit depth)
   // Thumbnail mode settings (for animation thumbnails)
@@ -369,7 +371,9 @@ export const DEFAULT_STATE: GeneratorState = {
   pixelationEnabled: false,
   pixelationSize: 1, // Default 1px (full quality)
   pixelationGridEnabled: false, // Default: no grid
-  pixelationGridBrightness: 100, // Default 100% brightness (white)
+  pixelationGridBrightness: 100, // Default 100% brightness
+  pixelationGridUsePalette: false, // Default: use black (not palette)
+  pixelationGridPaletteColorIndex: 0, // Default: first palette color
   colorQuantizationEnabled: false,
   colorQuantizationBits: 24, // Default 24-bit (full quality)
 };
@@ -1572,6 +1576,8 @@ export interface SpriteController {
   setPixelationSize: (size: number) => void;
   setPixelationGridEnabled: (enabled: boolean) => void;
   setPixelationGridBrightness: (brightness: number) => void;
+  setPixelationGridUsePalette: (usePalette: boolean) => void;
+  randomizePixelationGridColor: () => void;
   setColorQuantizationEnabled: (enabled: boolean) => void;
   setColorQuantizationBits: (bits: number) => void;
   applySingleTilePreset: () => void;
@@ -3530,7 +3536,19 @@ export const createSpriteController = (
           const pixelationGridEnabled = currentState.pixelationGridEnabled;
           const pixelationGridBrightness = currentState.pixelationGridBrightness;
           const quantizationBits = currentState.colorQuantizationEnabled ? currentState.colorQuantizationBits : null;
-          applyPixelationEffects(canvas, pixelationSize, pixelationGridEnabled, pixelationGridBrightness, quantizationBits);
+          
+          // Get palette color for grid if enabled
+          let gridColor: string | undefined;
+          if (pixelationGridEnabled && currentState.pixelationGridUsePalette) {
+            const palette = getPalette(currentState.paletteId);
+            if (palette.colors.length > 0) {
+              const colorIndex = currentState.pixelationGridPaletteColorIndex % palette.colors.length;
+              gridColor = palette.colors[colorIndex];
+            }
+          }
+          // If not using palette, gridColor remains undefined and will default to black
+          
+          applyPixelationEffects(canvas, pixelationSize, pixelationGridEnabled, pixelationGridBrightness, quantizationBits, gridColor);
         }
       }
       
@@ -4235,6 +4253,19 @@ export const createSpriteController = (
     },
     setPixelationGridBrightness: (brightness: number) => {
       applyState({ pixelationGridBrightness: clamp(brightness, 0, 100) }, { recompute: false });
+    },
+    setPixelationGridUsePalette: (usePalette: boolean) => {
+      applyState({ pixelationGridUsePalette: usePalette }, { recompute: false });
+    },
+    randomizePixelationGridColor: () => {
+      const palette = getPalette(getState().paletteId);
+      if (palette.colors.length > 0) {
+        const randomIndex = Math.floor(Math.random() * palette.colors.length);
+        applyState({ 
+          pixelationGridPaletteColorIndex: randomIndex,
+          pixelationGridUsePalette: true 
+        }, { recompute: false });
+      }
     },
     setColorQuantizationEnabled: (enabled: boolean) => {
       applyState({ colorQuantizationEnabled: enabled }, { recompute: false });
