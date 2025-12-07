@@ -159,18 +159,18 @@ export function SpriteControls({
             <Button
               type="button"
               size="icon"
-              variant="lock"
+              variant="link"
               data-locked={lockedSpriteMode}
               onClick={() => onLockSpriteMode(!lockedSpriteMode)}
               disabled={!ready}
-              className="control-lock-button"
+              className="btn-error"
               aria-label={lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"}
               title={lockedSpriteMode ? "Unlock sprite mode" : "Lock sprite mode"}
             >
               {lockedSpriteMode ? (
-                <Lock className="h-6 w-6" data-slot="icon" />
+                <Lock className="h-4 w-4" data-slot="icon" />
               ) : (
-                <Unlock className="h-6 w-6" data-slot="icon" />
+                <Unlock className="h-4 w-4" data-slot="icon" />
               )}
             </Button>
           </div>
@@ -211,7 +211,7 @@ export function SpriteControls({
                       key={mode.value}
                       type="button"
                       size="icon"
-                      variant={isSelected ? "default" : "background"}
+                      variant={isSelected ? "default" : "secondary"}
                       data-selected={isSelected ? "true" : undefined}
                       onClick={() => {
                         if (spriteIdentifier && controller?.toggleSpriteSelection) {
@@ -253,7 +253,7 @@ export function SpriteControls({
               ref={randomizeButtonRef}
               type="button"
               size="icon"
-              variant="background"
+              variant="secondary"
               onClick={() => {
                 if (randomizeButtonRef.current) {
                   animatePulse(randomizeButtonRef.current);
@@ -435,7 +435,7 @@ export function SpriteControls({
                         ref={randomizeOutlineButtonRef}
                         type="button"
                         size="icon"
-                        variant="background"
+                        variant="secondary"
                         onClick={() => {
                           if (randomizeOutlineButtonRef.current) {
                             animatePulse(randomizeOutlineButtonRef.current);

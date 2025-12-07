@@ -170,7 +170,7 @@ export function ColourControls({
               ref={refreshPaletteButtonRef}
               type="button"
               size="icon"
-              variant="background"
+              variant="secondary"
               onClick={() => {
                 if (refreshPaletteButtonRef.current) {
                   animatePulse(refreshPaletteButtonRef.current);
@@ -356,7 +356,7 @@ export function ColourControls({
                   ref={randomizeGradientColorsButtonRef}
                   type="button"
                   size="icon"
-                  variant="background"
+                  variant="secondary"
                   onClick={() => {
                     if (randomizeGradientColorsButtonRef.current) {
                       animatePulse(randomizeGradientColorsButtonRef.current);
@@ -364,8 +364,8 @@ export function ColourControls({
                     controller?.randomizeGradientColors();
                   }}
                   disabled={!ready}
-                  aria-label="Randomise gradient colors"
-                  title="Randomise gradient colors"
+                  aria-label="Randomise gradient colours"
+                  title="Randomise gradient colours"
                 >
                   <RefreshCw className="h-6 w-6" />
                 </Button>
@@ -494,7 +494,7 @@ export function ColourControls({
                 ref={randomizeBlendButtonRef}
                 type="button"
                 size="icon"
-                variant="background"
+                variant="secondary"
                 onClick={() => {
                   if (randomizeBlendButtonRef.current) {
                     animatePulse(randomizeBlendButtonRef.current);

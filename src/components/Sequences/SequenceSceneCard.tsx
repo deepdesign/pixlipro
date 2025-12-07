@@ -174,7 +174,7 @@ export function SequenceSceneCard({
         {/* Actions */}
         <div className="flex flex-col gap-2">
           <Button
-            variant="naked"
+            variant="link"
             size="icon"
             onClick={() => onDuplicate(scene.id)}
             title="Duplicate scene"
@@ -182,7 +182,7 @@ export function SequenceSceneCard({
             <Copy className="h-4 w-4" />
           </Button>
           <Button
-            variant="naked"
+            variant="link"
             size="icon"
             onClick={() => onDelete(scene.id)}
             title="Remove scene"

@@ -133,7 +133,7 @@ export function CollectionSidebar({
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       type="button"
-                      variant="naked"
+                      variant="link"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -145,7 +145,7 @@ export function CollectionSidebar({
                     </Button>
                     <Button
                       type="button"
-                      variant="naked"
+                      variant="link"
                       size="icon"
                       onClick={(e) => {
                         e.stopPropagation();

@@ -8,7 +8,8 @@ import {
   Smartphone, 
   Plug, 
   Zap,
-  Paintbrush
+  Paintbrush,
+  Radio
 } from "lucide-react";
 import { 
   Sidebar, 
@@ -36,6 +37,7 @@ const contentManagementItems: NavItem[] = [
   { id: "palettes", label: "Palettes", icon: Palette },
   { id: "presets", label: "Scenes", icon: Bookmark },
   { id: "sequences", label: "Sequences", icon: List },
+  { id: "perform", label: "Perform", icon: Radio },
 ];
 
 const configurationItems: NavItem[] = [

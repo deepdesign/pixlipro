@@ -197,7 +197,7 @@ function SequenceListRow({ sequence, onSelect, onUpdate }: SequenceListRowProps)
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <Button
-            variant="naked"
+            variant="link"
             size="icon"
             onClick={() => onSelect(sequence)}
             title="Edit sequence"
@@ -205,7 +205,7 @@ function SequenceListRow({ sequence, onSelect, onUpdate }: SequenceListRowProps)
             <Edit2 className="h-4 w-4" />
           </Button>
           <Dropdown>
-            <DropdownButton as={Button} variant="naked" size="icon">
+            <DropdownButton as={Button} variant="link" size="icon">
               <MoreVertical className="h-4 w-4" />
             </DropdownButton>
             <DropdownMenu>

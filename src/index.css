@@ -3509,346 +3509,7 @@ button[aria-label*="refresh"] {
   min-width: 0 !important;
 }
 
-/* Icon button base styles - layout and behavior only */
-.icon-button {
-  @apply border-0 p-0 inline-flex items-center justify-center flex-shrink-0;
-  @apply transition-colors cursor-pointer select-none;
-  @apply focus-visible:outline-none;
-  box-shadow: none !important;
-  -webkit-tap-highlight-color: transparent !important;
-  touch-action: manipulation !important;
-}
-
-/* Default: all icon buttons use 800 (naked) on hover */
-.icon-button:hover:not(:disabled) {
-  background-color: var(--theme-primary-iconHover) !important; /* slate-800 - direct variable */
-  box-shadow: none !important;
-}
-
-/* Normal icon buttons (with background/bg-theme-icon) - use 700 on hover - override default */
-.icon-button.bg-theme-icon:hover:not(:disabled),
-button.icon-button[class*="bg-theme-icon"]:hover:not(:disabled),
-button.icon-button.bg-theme-icon:hover:not(:disabled) {
-  background-color: var(--theme-primary-iconHoverNormal) !important; /* slate-700 */
-  box-shadow: none !important;
-}
-
-/* Naked icon buttons (bg-transparent) - explicitly use 800 on hover - override any other rules including Tailwind */
-/* Must come after normal button rule to override it */
-/* Override Tailwind hover:bg-[var(--icon-hover)] class - use maximum specificity */
-button.bg-transparent.hover\:bg-\[var\(--icon-hover\)\]:hover:not(:disabled),
-button[class*="bg-transparent"][class*="hover:bg-"]:hover:not(:disabled),
-button.bg-transparent.icon-button:hover:not(:disabled),
-button.icon-button.bg-transparent:hover:not(:disabled),
-.icon-button.bg-transparent:hover:not(:disabled),
-button[class*="icon-button"][class*="bg-transparent"]:hover:not(:disabled),
-[class*="icon-button"][class*="bg-transparent"]:hover:not(:disabled) {
-  background-color: var(--theme-primary-iconHover) !important; /* slate-800 - ensure it's 800 */
-  box-shadow: none !important;
-}
-
-/* Selected icon buttons (default variant with accent-primary) - override hover to maintain accent color */
-button.icon-button[style*="--accent-primary"]:hover:not(:disabled),
-.icon-button[style*="background-color: var(--accent-primary)"]:hover:not(:disabled),
-/* Target buttons with bg-[var(--accent-primary)] class from Tailwind */
-button.bg-\[var\(--accent-primary\)\]:hover:not(:disabled),
-/* More specific: sprite icon buttons that are selected (have default variant) */
-.sprite-icon-buttons button.bg-\[var\(--accent-primary\)\]:hover:not(:disabled) {
-  background-color: var(--accent-primary) !important;
-  opacity: 0.9;
-}
-
-/* Icon button active state - uses theme accent color */
-.icon-button:active:not(:disabled) {
-  @apply bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)];
-  box-shadow: none !important;
-}
-
-/* Lock button - naked variant by default */
-.control-lock-button {
-  @apply flex-shrink-0 bg-transparent border-0;
-  color: var(--text-muted);
-  box-shadow: none !important;
-}
-
-
-.control-lock-button:hover:not(:disabled) {
-  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
-}
-
-/* Lock button hover state - maintain tint50 icon in dark mode */
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) {
-  color: var(--theme-primary-tint50, #f8fafc) !important;
-}
-
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg,
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg path,
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg circle,
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg line,
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg polyline,
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg polygon,
-[data-theme="dark"] .control-lock-button:hover:not(:disabled) svg ellipse {
-  stroke: var(--theme-primary-tint50, #f8fafc) !important;
-  fill: none !important;
-  color: var(--theme-primary-tint50, #f8fafc) !important;
-}
-
-/* Lock button active state when UNLOCKED - keeps hover background, not theme color */
-/* Must override .icon-button:active which applies theme accent color */
-.control-lock-button:active:not(:disabled):not([data-locked="true"]),
-.icon-button.control-lock-button:active:not(:disabled):not([data-locked="true"]),
-.control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) {
-  box-shadow: none !important;
-  /* Explicitly override .icon-button:active theme accent color - match hover state */
-  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
-  background: var(--icon-hover, var(--theme-primary-iconHover)) !important;
-  color: var(--text-muted) !important;
-}
-
-/* Dark mode active state - unlocked lock buttons use tint50 */
-[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]),
-[data-theme="dark"] .icon-button.control-lock-button:active:not(:disabled):not([data-locked="true"]),
-[data-theme="dark"] .control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) {
-  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
-  background: var(--icon-hover, var(--theme-primary-iconHover)) !important;
-  color: var(--theme-primary-tint50, #f8fafc) !important; /* Use tint50 in dark mode */
-}
-
-/* Dark mode active state SVG icons - unlocked lock buttons use tint50 */
-[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg,
-[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg path,
-[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg circle,
-[data-theme="dark"] .control-lock-button:active:not(:disabled):not([data-locked="true"]) svg line,
-[data-theme="dark"] .icon-button.control-lock-button:active:not(:disabled):not([data-locked="true"]) svg,
-[data-theme="dark"] .control-lock-button.icon-button:active:not(:disabled):not([data-locked="true"]) svg {
-  stroke: var(--theme-primary-tint50, #f8fafc) !important;
-  fill: none !important;
-  color: var(--theme-primary-tint50, #f8fafc) !important;
-}
-
-/* Lock button when locked - red background */
-.control-lock-button[data-locked="true"] {
-  @apply bg-red-600 text-white;
-  box-shadow: none !important;
-}
-
-/* Lock button hover when locked - must override general icon-button and control-lock-button hover rules */
-.control-lock-button[data-locked="true"]:hover:not(:disabled),
-.icon-button.control-lock-button[data-locked="true"]:hover:not(:disabled),
-.control-lock-button.icon-button[data-locked="true"]:hover:not(:disabled),
-button.control-lock-button[data-locked="true"]:hover:not(:disabled),
-button.icon-button.control-lock-button[data-locked="true"]:hover:not(:disabled) {
-  background-color: var(--status-error, #ef4444) !important; /* red-500 */
-  box-shadow: none !important;
-}
-
-/* Lock button active state when LOCKED - red, not theme color (must override .icon-button:active) */
-.control-lock-button[data-locked="true"]:active:not(:disabled),
-.icon-button.control-lock-button[data-locked="true"]:active:not(:disabled),
-.control-lock-button.icon-button[data-locked="true"]:active:not(:disabled) {
-  @apply text-white;
-  box-shadow: none !important;
-  /* Explicitly override hover background */
-  background-color: rgb(220 38 38) !important; /* red-600 */
-  background: rgb(220 38 38) !important; /* red-600 */
-  color: white !important;
-}
-
-/* Ensure SVG icons in active locked button use white */
-.control-lock-button[data-locked="true"]:active:not(:disabled) svg,
-.icon-button.control-lock-button[data-locked="true"]:active:not(:disabled) svg,
-.control-lock-button.icon-button[data-locked="true"]:active:not(:disabled) svg {
-  color: white !important;
-}
-
-.control-lock-button-locked {
-  /* Selected state styling handled by Button component */
-}
-
-/* Icon button style for NavbarItem components */
-.icon-button-nav button,
-.icon-button-nav a {
-  @apply border-0 p-2 bg-transparent rounded-md transition-colors;
-  color: var(--text-muted);
-}
-
-.icon-button-nav button:hover,
-.icon-button-nav a:hover,
-.icon-button-nav button[data-hover],
-.icon-button-nav a[data-hover] {
-  background-color: var(--icon-hover, var(--theme-primary-iconHover)) !important;
-}
-
-/* Ensure SVG icons inside icon buttons use currentColor and proper size */
-.icon-button svg,
-.header-icon-button svg,
-button.icon-button svg,
-button.header-icon-button svg,
-[class*="icon-button"] svg,
-.status-bar-icon {
-  color: currentColor !important;
-  width: 1rem !important; /* 16px */
-  height: 1rem !important; /* 16px */
-  min-width: 1rem !important;
-  min-height: 1rem !important;
-  max-width: 1rem !important;
-  max-height: 1rem !important;
-}
-
-/* Dark mode: all icon button icons should use theme color */
-/* Active/selected states will override this with their specific contrast colors */
-[data-theme="dark"] .icon-button svg,
-[data-theme="dark"] .header-icon-button svg,
-[data-theme="dark"] button.icon-button svg,
-[data-theme="dark"] button.header-icon-button svg,
-[data-theme="dark"] [class*="icon-button"] svg {
-  color: var(--text-primary) !important;
-}
-
-/* Dark mode: header tab icons should use theme muted color */
-[data-theme="dark"] .app-header nav button svg {
-  color: var(--text-muted) !important;
-}
-
-/* Right-align header navigation tabs and match status bar padding */
-/* Status bar has padding-left and padding-right of spacing.5 (20px) */
-.app-header nav {
-  padding-right: theme("spacing.5"); /* Match status bar right padding (20px) */
-}
-
-/* Icon button icon sizing */
-button.icon-button *[data-slot="icon"],
-button.header-icon-button *[data-slot="icon"],
-.icon-button *[data-slot="icon"],
-.header-icon-button *[data-slot="icon"] {
-  width: 1rem !important;
-  height: 1rem !important;
-  min-width: 1rem !important;
-  min-height: 1rem !important;
-  max-width: 1rem !important;
-  max-height: 1rem !important;
-}
-
-/* Override Tailwind size utilities for icon buttons */
-.icon-button svg.h-4,
-.icon-button svg.w-4,
-.icon-button svg.h-6,
-.icon-button svg.w-6,
-.header-icon-button svg.h-4,
-.header-icon-button svg.w-4,
-.header-icon-button svg.h-6,
-.header-icon-button svg.w-6 {
-  width: 1rem !important;
-  height: 1rem !important;
-}
-
-/* Override Tailwind size-4 and size-5 utilities for icon buttons */
-.icon-button svg[class*="size-4"],
-.icon-button svg[class*="size-5"],
-.header-icon-button svg[class*="size-4"],
-.header-icon-button svg[class*="size-5"] {
-  width: 1rem !important;
-  height: 1rem !important;
-}
-
-/* Force all SVG elements inside buttons with icon-button class to be 1rem */
-button[class*="icon-button"] > svg,
-button.icon-button > svg,
-button.header-icon-button > svg {
-  width: 1rem !important;
-  height: 1rem !important;
-  min-width: 1rem !important;
-  min-height: 1rem !important;
-  max-width: 1rem !important;
-  max-height: 1rem !important;
-}
-
-/* Sprite icon buttons use 16px icons - but exclude lock button */
-.sprite-icon-buttons button:not(.control-lock-button) > svg,
-.sprite-icon-buttons button:not([aria-label*="lock" i]) > svg,
-.sprite-icon-buttons button:not([aria-label*="Lock" i]) > svg,
-.sprite-icon-buttons .icon-button:not(.control-lock-button) > svg,
-.sprite-icon-buttons svg[data-slot="icon"]:not(.control-lock-button svg) {
-  width: 1rem !important; /* 16px */
-  height: 1rem !important; /* 16px */
-  min-width: 1rem !important;
-  min-height: 1rem !important;
-  max-width: 1rem !important;
-  max-height: 1rem !important;
-}
-
-/* Default all icon-button SVGs to stroke-based (outline) rendering */
-/* This ensures Lucide React icons and other outline icons render correctly */
-.icon-button svg path,
-.icon-button svg circle,
-.icon-button svg line,
-.icon-button svg polyline,
-.icon-button svg polygon,
-.icon-button svg ellipse {
-  fill: none !important;
-  stroke: currentColor !important;
-  stroke-width: inherit;
-}
-
-/* Rectangles should only use stroke if they don't have fill */
-.icon-button svg rect:not([fill]) {
-  fill: none !important;
-  stroke: currentColor !important;
-  stroke-width: inherit;
-}
-
-/* For SVG elements that explicitly have stroke attribute, ensure stroke is used */
-.icon-button svg[stroke] *,
-.icon-button svg[stroke-width] * {
-  stroke: currentColor !important;
-  fill: none !important;
-}
-
-/* Only apply fill for elements that explicitly have fill and no stroke */
-/* This is for solid icons that are intentionally fill-based */
-.icon-button svg path[fill]:not([stroke]):not([stroke-width]),
-.icon-button svg circle[fill]:not([stroke]):not([stroke-width]),
-.icon-button svg polygon[fill]:not([stroke]):not([stroke-width]),
-.icon-button svg rect[fill]:not([stroke]):not([stroke-width]),
-.icon-button svg rect[fill="currentColor"],
-.icon-button svg rect[stroke="none"] {
-  fill: currentColor !important;
-  stroke: none !important;
-  stroke-width: 0 !important;
-}
-
-/* Lock button icons - use tint50 in dark mode (adapts to theme color) */
-/* Must come AFTER .icon-button svg rules to override stroke: currentColor */
-[data-theme="dark"] .control-lock-button {
-  color: var(--theme-primary-tint50, #f8fafc) !important; /* Fallback to slate-50 if variable not available */
-}
-
-/* Lock button SVG icons - ensure stroke uses tint50 in dark mode */
-/* Override .icon-button svg rules that set stroke: currentColor */
-[data-theme="dark"] .control-lock-button.icon-button svg,
-[data-theme="dark"] .control-lock-button svg,
-[data-theme="dark"] .icon-button.control-lock-button svg {
-  color: var(--theme-primary-tint50, #f8fafc) !important;
-}
-
-[data-theme="dark"] .control-lock-button.icon-button svg path,
-[data-theme="dark"] .control-lock-button svg path,
-[data-theme="dark"] .control-lock-button.icon-button svg circle,
-[data-theme="dark"] .control-lock-button svg circle,
-[data-theme="dark"] .control-lock-button.icon-button svg rect,
-[data-theme="dark"] .control-lock-button svg rect,
-[data-theme="dark"] .control-lock-button.icon-button svg line,
-[data-theme="dark"] .control-lock-button svg line,
-[data-theme="dark"] .control-lock-button.icon-button svg polyline,
-[data-theme="dark"] .control-lock-button svg polyline,
-[data-theme="dark"] .control-lock-button.icon-button svg polygon,
-[data-theme="dark"] .control-lock-button svg polygon,
-[data-theme="dark"] .control-lock-button.icon-button svg ellipse,
-[data-theme="dark"] .control-lock-button svg ellipse {
-  stroke: var(--theme-primary-tint50, #f8fafc) !important; /* Override stroke: currentColor */
-  fill: none !important;
-  color: var(--theme-primary-tint50, #f8fafc) !important;
-}
+/* Button styles moved to src/components/Button.css - all button CSS is now centralized there */
 
 /* Selected sprite button icons - use tint700 in dark mode (adapts to theme color) */
 /* Must come AFTER .icon-button svg rules to override stroke: currentColor */
@@ -5303,9 +4964,11 @@ aside[class*="sidebar"],
 .status-bar-fullscreen-button,
 .status-bar-export-button,
 .status-bar-presets-button,
-.status-bar-share-button {
+.status-bar-share-button,
+.status-bar-save-scene-button {
   flex-shrink: 0;
 }
+
 
 /* Sprite card dropdown menu - ensure it's not cut off */
 .sprite-card-container {
@@ -7382,18 +7045,23 @@ button[data-selected="true"][class*="bg-transparent"] {
   stroke: var(--theme-primary-tint700, #334155) !important;
 }
 
-/* CRITICAL: Lock button icons - use tint50 in dark mode */
-/* Must be at end of file to override all other rules */
-[data-theme="dark"] .control-lock-button:not([data-locked="true"]) {
-  color: var(--theme-primary-tint50, #f8fafc) !important;
+/* Ensure all SVG elements in selected nav buttons use correct color - handle filled elements */
+/* This ensures any SVG elements (including those with fill) inherit the correct color */
+[data-theme="dark"] button.icon-button.bg-\[var\(--accent-primary\)\] svg *,
+[data-theme="dark"] button[class*="bg-[var(--accent-primary)"] svg * {
+  color: var(--theme-primary-tint700, #334155) !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
 }
 
-[data-theme="dark"] .control-lock-button:not([data-locked="true"]) svg,
-[data-theme="dark"] .control-lock-button:not([data-locked="true"]) svg * {
-  stroke: var(--theme-primary-tint50, #f8fafc) !important;
-  fill: none !important;
-  color: var(--theme-primary-tint50, #f8fafc) !important;
+[data-theme="light"] button.icon-button.bg-\[var\(--accent-primary\)\] svg *,
+[data-theme="light"] button[class*="bg-[var(--accent-primary)"] svg * {
+  color: var(--theme-primary-tint700, #334155) !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
 }
+
+/* Button styles moved to src/components/Button.css - all button CSS is now centralized there */
 
 /* Color input webkit (Chrome/Safari) specific styling */
 input[type="color"]::-webkit-color-swatch-wrapper {
@@ -7416,6 +7084,13 @@ input[type="color"]::-moz-color-swatch {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Remove bottom border from dual monitor card content section */
+.bg-theme-panel > div.p-6:last-child {
+  border-bottom: none !important;
+}
+
+
 
 /* Remove bottom border from dual monitor card content section */
 .bg-theme-panel > div.p-6:last-child {

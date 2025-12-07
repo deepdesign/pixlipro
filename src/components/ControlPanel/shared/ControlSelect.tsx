@@ -265,18 +265,18 @@ export function ControlSelect({
           <Button
             type="button"
             size="icon"
-            variant="lock"
+            variant="link"
             data-locked={locked}
             onClick={onLockToggle}
             disabled={disabled}
-            className="control-lock-button"
+            className="btn-error"
             aria-label={locked ? "Unlock" : "Lock"}
             title={locked ? "Unlock this value" : "Lock this value"}
           >
             {locked ? (
-            <Lock className="h-6 w-6" data-slot="icon" />
+            <Lock className="h-4 w-4" data-slot="icon" />
             ) : (
-            <Unlock className="h-6 w-6" data-slot="icon" />
+            <Unlock className="h-4 w-4" data-slot="icon" />
             )}
           </Button>
         )}

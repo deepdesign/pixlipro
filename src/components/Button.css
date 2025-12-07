@@ -1,0 +1,1390 @@
+/* ============================================================================
+ * BUTTON COMPONENT - Custom CSS (Migrated from Tailwind)
+ * ============================================================================ */
+
+/* Base styles for all buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem; /* rounded-md */
+  font-weight: 500; /* font-medium */
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease;
+  outline: none;
+  cursor: pointer;
+  border: 0;
+}
+
+.btn:focus-visible {
+  outline: none;
+}
+
+.btn:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* ============================================================================
+ * SIZES
+ * ============================================================================ */
+
+.btn-sm {
+  height: 2rem; /* h-8 */
+  padding: 0 0.75rem; /* px-3 */
+  font-size: 0.75rem; /* text-xs */
+}
+
+.btn-md {
+  height: 2.25rem; /* h-9 */
+  padding: 0 1rem; /* px-4 */
+  font-size: 0.875rem; /* text-sm */
+}
+
+.btn-lg {
+  height: 2.75rem; /* h-11 */
+  padding: 0 2rem; /* px-8 */
+  font-size: 1rem; /* text-base */
+}
+
+.btn-icon {
+  height: 2.25rem; /* h-9 */
+  width: 2.25rem; /* w-9 */
+  padding: 0;
+}
+
+/* ============================================================================
+ * VARIANTS - DEFAULT (PRIMARY)
+ * ============================================================================ */
+
+.btn-default {
+  background-color: var(--accent-primary);
+  color: var(--accent-primary-contrast);
+}
+
+/* Matches .btn-hover.btn-default static state */
+.btn-default:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important;
+}
+
+/* Matches .btn-hover.btn-default.btn-icon static state */
+.btn-default.btn-icon:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important;
+  opacity: 0.9 !important;
+  transition: background-color 100ms ease, opacity 100ms ease;
+}
+
+/* Selected state for default buttons */
+.btn-default.btn-selected,
+.btn-default.btn-icon.btn-selected {
+  background-color: var(--accent-primary);
+  color: var(--accent-primary-contrast);
+}
+
+/* Selected icon buttons with accent-primary maintain accent color on hover */
+.btn-default.btn-icon.btn-selected:hover:not(:disabled),
+.btn-default.btn-icon[class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
+button.btn-default.btn-icon[style*="--accent-primary"]:hover:not(:disabled) {
+  background-color: var(--accent-primary) !important;
+  opacity: 0.9;
+  transition: background-color 100ms ease, opacity 100ms ease;
+}
+
+/* Icon button active state - uses theme accent color */
+/* Matches .btn-active.btn-icon static state - but excludes error buttons which have their own rules */
+.btn-icon:active:not(:disabled):not(.btn-link.btn-error):not(.btn-secondary.btn-error):not(.btn-outline.btn-error) {
+  background-color: var(--accent-primary) !important;
+  color: var(--accent-primary-contrast) !important;
+  box-shadow: none !important;
+}
+
+/* ============================================================================
+ * VARIANTS - SECONDARY
+ * ============================================================================ */
+
+.btn-secondary {
+  background-color: var(--icon-bg);
+  color: var(--theme-primary);
+}
+
+/* Secondary icon buttons - default state is slate-800 (same as regular secondary) */
+.btn-secondary.btn-icon {
+  background-color: var(--icon-bg) !important; /* Uses theme variable for dark/light mode support */
+}
+
+/* Matches .btn-hover.btn-secondary static state */
+/* BUT: Don't apply to icon buttons - they have their own rule */
+.btn-secondary:hover:not(:disabled):not(.btn-icon) {
+  background-color: var(--icon-hover) !important;
+}
+
+/* Selected state for secondary buttons */
+.btn-secondary.btn-selected {
+  background-color: var(--accent-primary);
+  color: var(--accent-primary-contrast);
+}
+
+/* ============================================================================
+ * VARIANTS - OUTLINE
+ * ============================================================================ */
+
+.btn-outline {
+  border: 1px solid var(--select-border);
+  background-color: transparent;
+  color: var(--theme-primary);
+}
+
+/* Matches .btn-hover.btn-outline static state */
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--select-hover) !important;
+  border-color: var(--select-hover) !important;
+}
+
+/* Selected state for outline buttons */
+.btn-outline.btn-selected {
+  background-color: var(--accent-primary);
+  color: var(--accent-primary-contrast);
+  border-color: var(--accent-primary);
+}
+
+/* Outline icon buttons - ensure border is always visible */
+.btn-outline.btn-icon {
+  border: 1px solid var(--select-border);
+}
+
+/* ============================================================================
+ * VARIANTS - LINK
+ * ============================================================================ */
+
+.btn-link {
+  background-color: transparent;
+  color: var(--theme-muted);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+
+/* Matches .btn-hover.btn-link static state */
+.btn-link:hover:not(:disabled):not(.btn-error) {
+  background-color: var(--icon-hover) !important;
+}
+
+/* Matches .btn-hover.btn-link.btn-icon static state */
+.btn-link.btn-icon:hover:not(:disabled):not(.btn-error),
+button.btn-link.btn-icon[class*="bg-transparent"]:hover:not(:disabled):not(.btn-error) {
+  background-color: var(--theme-primary-iconHover) !important; /* slate-800 */
+  box-shadow: none !important;
+}
+
+/* ============================================================================
+ * VARIANTS - CIRCLE
+ * ============================================================================ */
+
+.btn-circle {
+  background-color: var(--icon-bg);
+  color: var(--theme-muted);
+  border-radius: 9999px; /* rounded-full */
+  height: 1.5rem; /* h-6 */
+  width: 1.5rem; /* w-6 */
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+/* Matches .btn-hover.btn-circle static state */
+.btn-circle:hover:not(:disabled) {
+  background-color: var(--icon-hover) !important;
+}
+
+/* Matches .btn-hover.btn-circle.btn-icon static state */
+.btn-circle.btn-icon:hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHover) !important; /* slate-800 */
+  box-shadow: none !important;
+}
+
+/* ============================================================================
+ * ICON BUTTON GENERAL RULES
+ * ============================================================================ */
+
+/* Default: all icon buttons use 800 (naked) on hover */
+.btn-icon:hover:not(:disabled):not([class*="border-"]):not([class*="bg-[var(--accent-primary)"]):not([class*="bg-\\[var\\(--accent-primary\\)\\]"]) {
+  background-color: var(--theme-primary-iconHover) !important; /* slate-800 */
+  box-shadow: none;
+}
+
+/* ============================================================================
+ * ERROR/DESTRUCTIVE BUTTONS
+ * ============================================================================ */
+
+/* Error buttons have custom className overrides */
+.btn-error {
+  /* Styles applied via className in component */
+}
+
+.btn-outline.btn-error {
+  border: 1px solid var(--status-error);
+  border-color: var(--status-error);
+  color: var(--status-error);
+}
+
+/* Matches .btn-hover.btn-error.btn-outline static state */
+.btn-outline.btn-error:hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  border-color: var(--status-error) !important;
+  color: #FFF !important;
+}
+
+/* Outline icon destructive buttons - same border as outline-icon, icon uses tint50 */
+.btn-outline.btn-error.btn-icon {
+  border: 1px solid var(--select-border);
+  color: var(--status-error);
+}
+
+.btn-outline.btn-error.btn-icon svg {
+  color: var(--theme-primary-tint50);
+  fill: none;
+  stroke: var(--theme-primary-tint50);
+  stroke-width: 2;
+}
+
+
+/* Outline icon destructive - selected state (red bg) */
+.btn-outline.btn-error.btn-icon.btn-selected {
+  background-color: var(--status-error);
+  border-color: var(--status-error);
+  color: #FFF;
+}
+
+.btn-outline.btn-error.btn-icon.btn-selected svg {
+  color: #FFF;
+  fill: none;
+  stroke: #FFF;
+  stroke-width: 2;
+}
+
+.btn-secondary.btn-error:not(.btn-icon) {
+  color: var(--status-error);
+}
+
+/* Matches .btn-hover.btn-error.btn-secondary static state (non-icon) */
+.btn-secondary.btn-error:hover:not(:disabled):not(.btn-icon) {
+  background-color: var(--status-error) !important;
+  color: #FFF !important;
+}
+
+/* Secondary icon destructive buttons */
+.btn-secondary.btn-error.btn-icon {
+  background-color: var(--icon-bg) !important;
+  color: #FFF !important;
+}
+
+.btn-secondary.btn-error.btn-icon svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* Matches .btn-hover.btn-error.btn-secondary.btn-icon static state */
+/* Use maximum specificity to override general icon-button hover rules */
+button.btn.btn-secondary.btn-error.btn-icon:hover:not(:disabled),
+button.icon-button.btn-secondary.btn-error.btn-icon:hover:not(:disabled),
+.btn.btn-secondary.btn-error.btn-icon:hover:not(:disabled),
+.icon-button.btn-secondary.btn-error.btn-icon:hover:not(:disabled),
+.btn-secondary.btn-error.btn-icon:hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  color: #FFF !important;
+}
+
+button.btn.btn-secondary.btn-error.btn-icon:hover:not(:disabled) svg,
+button.icon-button.btn-secondary.btn-error.btn-icon:hover:not(:disabled) svg,
+.btn.btn-secondary.btn-error.btn-icon:hover:not(:disabled) svg,
+.icon-button.btn-secondary.btn-error.btn-icon:hover:not(:disabled) svg,
+.btn-secondary.btn-error.btn-icon:hover:not(:disabled) svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* Secondary icon destructive - active state (tint darker red) */
+/* Secondary icon destructive - active state (must match .btn-active.btn-error.btn-secondary.btn-icon static state) */
+/* Use maximum specificity to override general icon-button active rules */
+button.btn.btn-secondary.btn-error.btn-icon:active:not(:disabled),
+button.icon-button.btn-secondary.btn-error.btn-icon:active:not(:disabled),
+.btn.btn-secondary.btn-error.btn-icon:active:not(:disabled),
+.icon-button.btn-secondary.btn-error.btn-icon:active:not(:disabled),
+.btn-secondary.btn-error.btn-icon:active:not(:disabled) {
+  background-color: rgb(220 38 38) !important; /* red-600 - tint darker than red-500 */
+  color: #FFF !important;
+  box-shadow: none !important;
+}
+
+button.btn.btn-secondary.btn-error.btn-icon:active:not(:disabled) svg,
+button.icon-button.btn-secondary.btn-error.btn-icon:active:not(:disabled) svg,
+.btn.btn-secondary.btn-error.btn-icon:active:not(:disabled) svg,
+.icon-button.btn-secondary.btn-error.btn-icon:active:not(:disabled) svg,
+.btn-secondary.btn-error.btn-icon:active:not(:disabled) svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* Secondary icon destructive - selected state (red bg) */
+.btn-secondary.btn-error.btn-icon.btn-selected,
+.btn-secondary.btn-error.btn-icon[class*="bg-[var(--status-error)"] {
+  background-color: var(--status-error);
+  color: #FFF;
+}
+
+.btn-secondary.btn-error.btn-icon.btn-selected svg,
+.btn-secondary.btn-error.btn-icon[class*="bg-[var(--status-error)"] svg {
+  color: #FFF;
+  fill: none;
+  stroke: #FFF;
+  stroke-width: 2;
+}
+
+/* Secondary icon destructive - disabled state (same as secondary-icon) */
+.btn-secondary.btn-error.btn-icon:disabled {
+  background-color: var(--icon-bg);
+  color: var(--theme-primary);
+}
+
+.btn-secondary.btn-error.btn-icon:disabled svg {
+  color: var(--theme-primary);
+  fill: none;
+  stroke: var(--theme-primary);
+  stroke-width: 2;
+}
+
+.btn-link.btn-error:not(.btn-icon) {
+  color: var(--status-error);
+  background-color: transparent;
+  border: 0;
+  text-decoration: none;
+}
+
+/* Matches .btn-hover.btn-error.btn-link static state (non-icon) */
+.btn-link.btn-error:not(.btn-icon):hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  color: #FFF !important;
+  text-decoration: none !important;
+}
+
+/* Link icon destructive buttons - must override index.css icon-button rules and base btn-link rules */
+button.btn-link.btn-error.btn-icon,
+button.icon-button.btn-link.btn-error.btn-icon,
+.btn-link.btn-error.btn-icon,
+.icon-button.btn-link.btn-error.btn-icon {
+  background-color: transparent !important;
+  border: 0 !important;
+  text-decoration: none !important;
+  color: transparent !important; /* Hide text color, icon uses SVG color */
+}
+
+/* Override base .btn-link color for icon destructive buttons */
+button.btn-link.btn-error.btn-icon,
+button.icon-button.btn-link.btn-error.btn-icon,
+.btn-link.btn-error.btn-icon,
+.icon-button.btn-link.btn-error.btn-icon {
+  color: transparent !important;
+}
+
+button.btn-link.btn-error.btn-icon svg,
+button.icon-button.btn-link.btn-error.btn-icon svg,
+.btn-link.btn-error.btn-icon svg,
+.icon-button.btn-link.btn-error.btn-icon svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+/* Override general icon-button SVG path rules for link-icon-destructive */
+button.btn-link.btn-error.btn-icon svg path,
+button.icon-button.btn-link.btn-error.btn-icon svg path,
+.btn-link.btn-error.btn-icon svg path,
+.icon-button.btn-link.btn-error.btn-icon svg path,
+button.btn-link.btn-error.btn-icon svg circle,
+button.icon-button.btn-link.btn-error.btn-icon svg circle,
+.btn-link.btn-error.btn-icon svg circle,
+.icon-button.btn-link.btn-error.btn-icon svg circle,
+button.btn-link.btn-error.btn-icon svg line,
+button.icon-button.btn-link.btn-error.btn-icon svg line,
+.btn-link.btn-error.btn-icon svg line,
+.icon-button.btn-link.btn-error.btn-icon svg line,
+button.btn-link.btn-error.btn-icon svg polyline,
+button.icon-button.btn-link.btn-error.btn-icon svg polyline,
+.btn-link.btn-error.btn-icon svg polyline,
+.icon-button.btn-link.btn-error.btn-icon svg polyline,
+button.btn-link.btn-error.btn-icon svg polygon,
+button.icon-button.btn-link.btn-error.btn-icon svg polygon,
+.btn-link.btn-error.btn-icon svg polygon,
+.icon-button.btn-link.btn-error.btn-icon svg polygon,
+button.btn-link.btn-error.btn-icon svg ellipse,
+button.icon-button.btn-link.btn-error.btn-icon svg ellipse,
+.btn-link.btn-error.btn-icon svg ellipse,
+.icon-button.btn-link.btn-error.btn-icon svg ellipse {
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+  color: var(--theme-primary-tint50) !important;
+}
+
+
+button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+button.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+/* Override SVG path rules on hover */
+button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg path,
+button.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg path,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg path,
+.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg path,
+button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg circle,
+button.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg circle,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg circle,
+.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg circle,
+button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg line,
+button.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg line,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg line,
+.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg line,
+button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polyline,
+button.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polyline,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polyline,
+.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polyline,
+button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polygon,
+button.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polygon,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polygon,
+.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg polygon,
+button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg ellipse,
+button.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg ellipse,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg ellipse,
+.icon-button.btn-link.btn-error.btn-icon:hover:not(:disabled) svg ellipse {
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+  color: var(--theme-primary-tint50) !important;
+}
+
+/* Link icon destructive - active state moved to end of file for maximum specificity */
+
+/* Link icon destructive - selected state (red bg) */
+.btn-link.btn-error.btn-icon.btn-selected,
+.btn-link.btn-error.btn-icon[class*="bg-[var(--status-error)"],
+.btn-link.btn-error.btn-icon[data-locked="true"] {
+  background-color: var(--status-error) !important;
+  text-decoration: none !important;
+}
+
+.btn-link.btn-error.btn-icon.btn-selected svg,
+.btn-link.btn-error.btn-icon[class*="bg-[var(--status-error)"] svg,
+.btn-link.btn-error.btn-icon[data-locked="true"] svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+/* Link icon destructive - disabled state (transparent bg, white icon with 50% opacity) */
+.btn-link.btn-error.btn-icon:disabled {
+  background-color: transparent !important;
+  text-decoration: none !important;
+}
+
+.btn-link.btn-error.btn-icon:disabled svg {
+  color: rgba(255, 255, 255, 0.5) !important; /* white with 50% opacity */
+  fill: none !important;
+  stroke: rgba(255, 255, 255, 0.5) !important;
+  stroke-width: 2 !important;
+}
+
+/* Error button icons - outlined (stroke only) for icon buttons */
+/* Outline icon destructive hover - must match .btn-hover.btn-error.btn-outline.btn-icon static state */
+/* Use maximum specificity to override general icon-button hover rules */
+button.btn.btn-outline.btn-error.btn-icon:hover:not(:disabled),
+button.icon-button.btn-outline.btn-error.btn-icon:hover:not(:disabled),
+.btn.btn-outline.btn-error.btn-icon:hover:not(:disabled),
+.icon-button.btn-outline.btn-error.btn-icon:hover:not(:disabled),
+.btn-outline.btn-error.btn-icon:hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  border-color: var(--status-error) !important;
+  color: #FFF !important;
+}
+
+/* Outline icon destructive - uses tint50 in default state, white on hover */
+button.btn.btn-outline.btn-error.btn-icon:hover:not(:disabled) svg,
+button.icon-button.btn-outline.btn-error.btn-icon:hover:not(:disabled) svg,
+.btn.btn-outline.btn-error.btn-icon:hover:not(:disabled) svg,
+.icon-button.btn-outline.btn-error.btn-icon:hover:not(:disabled) svg,
+.btn-outline.btn-error.btn-icon:hover:not(:disabled) svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+.btn-secondary.btn-error.btn-icon:hover:not(:disabled) svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* ============================================================================
+ * NON-ICON BUTTON ACTIVE STATE
+ * ============================================================================ */
+
+/* Non-icon buttons use scale/opacity on active */
+/* Matches .btn-active:not(.btn-icon) static state */
+.btn:not(.btn-icon):active:not(:disabled) {
+  transform: scale(0.95) !important;
+  opacity: 0.9 !important;
+}
+
+/* ============================================================================
+ * ICON BUTTON BASE STYLES (from index.css - consolidated here)
+ * ============================================================================ */
+
+/* Icon button base styles - layout and behavior only */
+.icon-button {
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease;
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation !important;
+}
+
+.icon-button:focus-visible {
+  outline: none;
+}
+
+/* Default: all icon buttons use 800 (naked) on hover */
+/* But don't override outline variant buttons, selected buttons with accent color, error buttons, or secondary buttons - they have their own hover state */
+.icon-button:hover:not(:disabled):not([class*="border-"]):not([class*="bg-[var(--accent-primary)"]):not([class*="bg-\\[var\\(--accent-primary\\)\\]"]):not(.btn-error):not(.btn-secondary) {
+  background-color: var(--theme-primary-iconHover) !important; /* slate-800 - direct variable */
+  box-shadow: none !important;
+}
+
+/* Normal icon buttons (with background/bg-theme-icon) - use 700 on hover - override default */
+/* But don't override secondary buttons - they have their own hover state */
+.icon-button.bg-theme-icon:hover:not(:disabled):not(.btn-secondary),
+button.icon-button[class*="bg-theme-icon"]:hover:not(:disabled):not(.btn-secondary),
+button.icon-button.bg-theme-icon:hover:not(:disabled):not(.btn-secondary) {
+  background-color: var(--theme-primary-iconHoverNormal) !important; /* slate-700 */
+  box-shadow: none !important;
+}
+
+/* Naked icon buttons (bg-transparent) - explicitly use 800 on hover */
+button.bg-transparent.icon-button:hover:not(:disabled),
+button.icon-button.bg-transparent:hover:not(:disabled),
+.icon-button.bg-transparent:hover:not(:disabled),
+button[class*="icon-button"][class*="bg-transparent"]:hover:not(:disabled),
+[class*="icon-button"][class*="bg-transparent"]:hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHover) !important; /* slate-800 - ensure it's 800 */
+  box-shadow: none !important;
+}
+
+/* Selected icon buttons (default variant with accent-primary) - override hover to maintain accent color */
+button.icon-button[style*="--accent-primary"]:hover:not(:disabled),
+.icon-button[style*="background-color: var(--accent-primary)"]:hover:not(:disabled),
+button[class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
+button.icon-button[class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
+.sprite-icon-buttons button[class*="bg-[var(--accent-primary)"]:hover:not(:disabled) {
+  background-color: var(--accent-primary) !important;
+  opacity: 0.9;
+  transition: background-color 100ms ease, opacity 100ms ease !important;
+}
+
+/* Icon button active state - uses theme accent color (but can be overridden by specific variants) */
+/* Matches .btn-active.btn-icon static state */
+.icon-button:active:not(:disabled):not(.btn-link.btn-error):not(.btn-secondary.btn-error):not(.btn-outline.btn-error) {
+  background-color: var(--accent-primary) !important;
+  color: var(--accent-primary-contrast) !important;
+  box-shadow: none !important;
+}
+
+/* Ensure SVG icons inside icon buttons use currentColor and proper size */
+.icon-button svg,
+button.icon-button svg,
+[class*="icon-button"] svg {
+  color: currentColor !important;
+  width: 1rem !important; /* 16px */
+  height: 1rem !important; /* 16px */
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+}
+
+/* Dark mode: all icon button icons should use theme color */
+/* But exclude error buttons - they have their own color rules */
+[data-theme="dark"] .icon-button:not(.btn-error) svg,
+[data-theme="dark"] button.icon-button:not(.btn-error) svg,
+[data-theme="dark"] [class*="icon-button"]:not(.btn-error) svg {
+  color: var(--text-primary) !important;
+}
+
+/* Default all icon-button SVGs to stroke-based (outline) rendering */
+/* But exclude error buttons - they have their own SVG styling */
+.icon-button:not(.btn-error) svg path,
+.icon-button:not(.btn-error) svg circle,
+.icon-button:not(.btn-error) svg line,
+.icon-button:not(.btn-error) svg polyline,
+.icon-button:not(.btn-error) svg polygon,
+.icon-button:not(.btn-error) svg ellipse {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: inherit;
+}
+
+/* Rectangles should only use stroke if they don't have fill */
+/* But exclude error buttons */
+.icon-button:not(.btn-error) svg rect:not([fill]) {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: inherit;
+}
+
+/* For SVG elements that explicitly have stroke attribute, ensure stroke is used */
+/* But exclude error buttons */
+.icon-button:not(.btn-error) svg[stroke] *,
+.icon-button:not(.btn-error) svg[stroke-width] * {
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Only apply fill for elements that explicitly have fill and no stroke */
+/* But exclude error buttons */
+.icon-button:not(.btn-error) svg path[fill]:not([stroke]):not([stroke-width]),
+.icon-button:not(.btn-error) svg circle[fill]:not([stroke]):not([stroke-width]),
+.icon-button:not(.btn-error) svg polygon[fill]:not([stroke]):not([stroke-width]),
+.icon-button:not(.btn-error) svg rect[fill]:not([stroke]):not([stroke-width]),
+.icon-button:not(.btn-error) svg rect[fill="currentColor"],
+.icon-button:not(.btn-error) svg rect[stroke="none"] {
+  fill: currentColor !important;
+  stroke: none !important;
+  stroke-width: 0 !important;
+}
+
+/* Header and status bar icon buttons */
+button.header-icon-button > svg,
+.status-bar-icon {
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+}
+
+/* Sprite icon buttons use 16px icons */
+.sprite-icon-buttons button > svg,
+.sprite-icon-buttons .icon-button > svg,
+.sprite-icon-buttons svg[data-slot="icon"] {
+  width: 1rem !important; /* 16px */
+  height: 1rem !important; /* 16px */
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+}
+
+/* Icon button icon sizing for data-slot="icon" */
+button.icon-button *[data-slot="icon"],
+.icon-button *[data-slot="icon"] {
+  width: 1rem !important;
+  height: 1rem !important;
+  min-width: 1rem !important;
+  min-height: 1rem !important;
+  max-width: 1rem !important;
+  max-height: 1rem !important;
+}
+
+/* ============================================================================
+ * TEST PAGE UTILITY CLASSES
+ * ============================================================================ */
+
+/* Static state buttons - prevent interaction */
+.btn-static {
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Force active state for static representations in test page */
+/* These rules MUST have higher specificity than base button rules to override them */
+.btn-active {
+  /* Active styles are applied via :active pseudo-class, this forces the state */
+}
+
+button.btn.btn-active:not(.btn-icon),
+.btn.btn-active:not(.btn-icon) {
+  transform: scale(0.95) !important;
+  opacity: 0.9 !important;
+}
+
+button.btn.btn-active.btn-icon,
+.btn.btn-active.btn-icon,
+button.icon-button.btn-active.btn-icon,
+.icon-button.btn-active.btn-icon {
+  background-color: var(--accent-primary) !important;
+  color: var(--accent-primary-contrast) !important;
+  box-shadow: none !important;
+}
+
+/* Force hover state for static representations in test page */
+/* These rules MUST have higher specificity than base button rules to override them */
+.btn-hover {
+  /* Force hover styles for static buttons */
+}
+
+/* Force hover for specific variants - use high specificity to override base styles */
+button.btn.btn-hover.btn-secondary,
+.btn.btn-hover.btn-secondary,
+.btn-static.btn-secondary:hover:not(:disabled),
+button.btn-static.btn-secondary:hover:not(:disabled) {
+  background-color: var(--icon-hover) !important;
+}
+
+button.btn.btn-hover.btn-secondary.btn-icon,
+.btn.btn-hover.btn-secondary.btn-icon,
+button.icon-button.btn-hover.btn-secondary.btn-icon,
+.icon-button.btn-hover.btn-secondary.btn-icon,
+.btn-static.btn-secondary.btn-icon:hover:not(:disabled),
+button.btn-static.btn-secondary.btn-icon:hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHoverNormal) !important;
+  box-shadow: none !important;
+}
+
+button.btn.btn-hover.btn-outline,
+.btn.btn-hover.btn-outline,
+.btn-static.btn-outline:hover:not(:disabled),
+button.btn-static.btn-outline:hover:not(:disabled) {
+  background-color: var(--select-hover) !important;
+  border-color: var(--select-hover) !important;
+}
+
+/* Outline icon buttons use same hover as outline (no specific rule needed, but ensure static state works) */
+button.btn.btn-hover.btn-outline.btn-icon,
+.btn.btn-hover.btn-outline.btn-icon,
+button.icon-button.btn-hover.btn-outline.btn-icon,
+.icon-button.btn-hover.btn-outline.btn-icon,
+.btn-static.btn-outline.btn-icon:hover:not(:disabled),
+button.btn-static.btn-outline.btn-icon:hover:not(:disabled) {
+  background-color: var(--select-hover) !important;
+  border-color: var(--select-hover) !important;
+}
+
+button.btn.btn-hover.btn-link,
+.btn.btn-hover.btn-link,
+.btn-static.btn-link:hover:not(:disabled),
+button.btn-static.btn-link:hover:not(:disabled) {
+  background-color: var(--icon-hover) !important;
+}
+
+button.btn.btn-hover.btn-link.btn-icon,
+.btn.btn-hover.btn-link.btn-icon,
+button.icon-button.btn-hover.btn-link.btn-icon,
+.icon-button.btn-hover.btn-link.btn-icon,
+.btn-static.btn-link.btn-icon:hover:not(:disabled),
+button.btn-static.btn-link.btn-icon:hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHover) !important;
+  box-shadow: none !important;
+}
+
+/* Circle buttons hover */
+button.btn.btn-hover.btn-circle,
+.btn.btn-hover.btn-circle,
+.btn-static.btn-circle:hover:not(:disabled),
+button.btn-static.btn-circle:hover:not(:disabled) {
+  background-color: var(--icon-hover) !important;
+}
+
+/* Circle icon buttons hover */
+button.btn.btn-hover.btn-circle.btn-icon,
+.btn.btn-hover.btn-circle.btn-icon,
+button.icon-button.btn-hover.btn-circle.btn-icon,
+.icon-button.btn-hover.btn-circle.btn-icon,
+.btn-static.btn-circle.btn-icon:hover:not(:disabled),
+button.btn-static.btn-circle.btn-icon:hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHover) !important;
+  box-shadow: none !important;
+}
+
+button.btn.btn-hover.btn-default,
+.btn.btn-hover.btn-default,
+.btn-static.btn-default:hover:not(:disabled),
+button.btn-static.btn-default:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important;
+}
+
+button.btn.btn-hover.btn-default.btn-icon,
+.btn.btn-hover.btn-default.btn-icon,
+button.icon-button.btn-hover.btn-default.btn-icon,
+.icon-button.btn-hover.btn-default.btn-icon,
+.btn-static.btn-default.btn-icon:hover:not(:disabled),
+button.btn-static.btn-default.btn-icon:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important;
+  opacity: 0.9 !important;
+}
+
+/* Force hover for error buttons */
+button.btn.btn-hover.btn-error.btn-outline,
+.btn.btn-hover.btn-error.btn-outline,
+.btn-static.btn-error.btn-outline:hover:not(:disabled),
+button.btn-static.btn-error.btn-outline:hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  border-color: var(--status-error) !important;
+  color: #FFF !important;
+}
+
+/* Outline icon destructive hover - static state (must match actual :hover rule) */
+button.btn.btn-hover.btn-error.btn-outline.btn-icon,
+.btn.btn-hover.btn-error.btn-outline.btn-icon,
+button.icon-button.btn-hover.btn-error.btn-outline.btn-icon,
+.icon-button.btn-hover.btn-error.btn-outline.btn-icon,
+.btn-static.btn-error.btn-outline.btn-icon:hover:not(:disabled),
+button.btn-static.btn-error.btn-outline.btn-icon:hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  border-color: var(--status-error) !important;
+  color: #FFF !important;
+}
+
+button.btn.btn-hover.btn-error.btn-secondary.btn-icon,
+.btn.btn-hover.btn-error.btn-secondary.btn-icon,
+button.icon-button.btn-hover.btn-error.btn-secondary.btn-icon,
+.icon-button.btn-hover.btn-error.btn-secondary.btn-icon,
+.btn-static.btn-error.btn-secondary.btn-icon:hover:not(:disabled),
+button.btn-static.btn-error.btn-secondary.btn-icon:hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  color: #FFF !important;
+}
+
+button.btn.btn-hover.btn-error.btn-secondary.btn-icon svg,
+.btn.btn-hover.btn-error.btn-secondary.btn-icon svg,
+button.icon-button.btn-hover.btn-error.btn-secondary.btn-icon svg,
+.icon-button.btn-hover.btn-error.btn-secondary.btn-icon svg,
+.btn-static.btn-error.btn-secondary.btn-icon:hover:not(:disabled) svg,
+button.btn-static.btn-error.btn-secondary.btn-icon:hover:not(:disabled) svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* Link icon destructive hover - static state (must match actual :hover rule) */
+.btn-hover.btn-error.btn-link.btn-icon,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled),
+button.btn.btn-link.btn-error.btn-icon.btn-hover,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover,
+.btn.btn-link.btn-error.btn-icon.btn-hover,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover {
+  background-color: var(--status-error) !important;
+  background: var(--status-error) !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.btn-hover.btn-error.btn-link.btn-icon svg,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled) svg,
+button.btn.btn-link.btn-error.btn-icon.btn-hover svg,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg,
+.btn.btn-link.btn-error.btn-icon.btn-hover svg,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+/* Override SVG path rules on hover static state */
+.btn-hover.btn-error.btn-link.btn-icon svg path,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled) svg path,
+button.btn.btn-link.btn-error.btn-icon.btn-hover svg path,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg path,
+.btn.btn-link.btn-error.btn-icon.btn-hover svg path,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg path,
+.btn-hover.btn-error.btn-link.btn-icon svg circle,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled) svg circle,
+button.btn.btn-link.btn-error.btn-icon.btn-hover svg circle,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg circle,
+.btn.btn-link.btn-error.btn-icon.btn-hover svg circle,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg circle,
+.btn-hover.btn-error.btn-link.btn-icon svg line,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled) svg line,
+button.btn.btn-link.btn-error.btn-icon.btn-hover svg line,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg line,
+.btn.btn-link.btn-error.btn-icon.btn-hover svg line,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg line,
+.btn-hover.btn-error.btn-link.btn-icon svg polyline,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled) svg polyline,
+button.btn.btn-link.btn-error.btn-icon.btn-hover svg polyline,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg polyline,
+.btn.btn-link.btn-error.btn-icon.btn-hover svg polyline,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg polyline,
+.btn-hover.btn-error.btn-link.btn-icon svg polygon,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled) svg polygon,
+button.btn.btn-link.btn-error.btn-icon.btn-hover svg polygon,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg polygon,
+.btn.btn-link.btn-error.btn-icon.btn-hover svg polygon,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg polygon,
+.btn-hover.btn-error.btn-link.btn-icon svg ellipse,
+.btn-static.btn-error.btn-link.btn-icon:hover:not(:disabled) svg ellipse,
+button.btn.btn-link.btn-error.btn-icon.btn-hover svg ellipse,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg ellipse,
+.btn.btn-link.btn-error.btn-icon.btn-hover svg ellipse,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-hover svg ellipse {
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+  color: var(--theme-primary-tint50) !important;
+}
+
+/* Secondary icon destructive - active state for static buttons (must match actual :active rule) */
+button.btn.btn-active.btn-error.btn-secondary.btn-icon,
+.btn.btn-active.btn-error.btn-secondary.btn-icon,
+button.icon-button.btn-active.btn-error.btn-secondary.btn-icon,
+.icon-button.btn-active.btn-error.btn-secondary.btn-icon,
+button.btn.btn-secondary.btn-error.btn-icon.btn-active,
+button.icon-button.btn.btn-secondary.btn-error.btn-icon.btn-active,
+.btn.btn-secondary.btn-error.btn-icon.btn-active,
+.icon-button.btn.btn-secondary.btn-error.btn-icon.btn-active {
+  background-color: rgb(220 38 38) !important; /* red-600 - tint darker than red-500 */
+  color: #FFF !important;
+  box-shadow: none !important;
+}
+
+button.btn.btn-active.btn-error.btn-secondary.btn-icon svg,
+.btn.btn-active.btn-error.btn-secondary.btn-icon svg,
+button.icon-button.btn-active.btn-error.btn-secondary.btn-icon svg,
+.icon-button.btn-active.btn-error.btn-secondary.btn-icon svg,
+button.btn.btn-secondary.btn-error.btn-icon.btn-active svg,
+button.icon-button.btn.btn-secondary.btn-error.btn-icon.btn-active svg,
+.btn.btn-secondary.btn-error.btn-icon.btn-active svg,
+.icon-button.btn.btn-secondary.btn-error.btn-icon.btn-active svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* Outline icon destructive - active state for static buttons (uses same as default icon active) */
+button.btn.btn-active.btn-error.btn-outline.btn-icon,
+.btn.btn-active.btn-error.btn-outline.btn-icon,
+button.icon-button.btn-active.btn-error.btn-outline.btn-icon,
+.icon-button.btn-active.btn-error.btn-outline.btn-icon,
+button.btn.btn-outline.btn-error.btn-icon.btn-active,
+button.icon-button.btn.btn-outline.btn-error.btn-icon.btn-active,
+.btn.btn-outline.btn-error.btn-icon.btn-active,
+.icon-button.btn.btn-outline.btn-error.btn-icon.btn-active {
+  background-color: rgb(220 38 38) !important; /* red-600 - tint darker than red-500 - matches secondary-icon-destructive */
+  color: #FFF !important;
+  box-shadow: none !important;
+  border-color: rgb(220 38 38) !important;
+}
+
+button.btn.btn-active.btn-error.btn-outline.btn-icon svg,
+.btn.btn-active.btn-error.btn-outline.btn-icon svg,
+button.icon-button.btn-active.btn-error.btn-outline.btn-icon svg,
+.icon-button.btn-active.btn-error.btn-outline.btn-icon svg,
+button.btn.btn-outline.btn-error.btn-icon.btn-active svg,
+button.icon-button.btn.btn-outline.btn-error.btn-icon.btn-active svg,
+.btn.btn-outline.btn-error.btn-icon.btn-active svg,
+.icon-button.btn.btn-outline.btn-error.btn-icon.btn-active svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* Link icon destructive - active state for static buttons (must match actual :active rule) */
+button.btn.btn-active.btn-error.btn-link.btn-icon,
+.btn.btn-active.btn-error.btn-link.btn-icon,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon,
+.icon-button.btn-active.btn-error.btn-link.btn-icon,
+button.btn.btn-link.btn-error.btn-icon.btn-active,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active,
+.btn.btn-link.btn-error.btn-icon.btn-active,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active {
+  background-color: rgb(220 38 38) !important; /* red-600 - darker red */
+  background: rgb(220 38 38) !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+button.btn.btn-active.btn-error.btn-link.btn-icon svg,
+.btn.btn-active.btn-error.btn-link.btn-icon svg,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon svg,
+.icon-button.btn-active.btn-error.btn-link.btn-icon svg,
+button.btn.btn-link.btn-error.btn-icon.btn-active svg,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg,
+.btn.btn-link.btn-error.btn-icon.btn-active svg,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+/* Override SVG path rules on active static state */
+button.btn.btn-active.btn-error.btn-link.btn-icon svg path,
+.btn.btn-active.btn-error.btn-link.btn-icon svg path,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon svg path,
+.icon-button.btn-active.btn-error.btn-link.btn-icon svg path,
+button.btn.btn-link.btn-error.btn-icon.btn-active svg path,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg path,
+.btn.btn-link.btn-error.btn-icon.btn-active svg path,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg path,
+button.btn.btn-active.btn-error.btn-link.btn-icon svg circle,
+.btn.btn-active.btn-error.btn-link.btn-icon svg circle,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon svg circle,
+.icon-button.btn-active.btn-error.btn-link.btn-icon svg circle,
+button.btn.btn-link.btn-error.btn-icon.btn-active svg circle,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg circle,
+.btn.btn-link.btn-error.btn-icon.btn-active svg circle,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg circle,
+button.btn.btn-active.btn-error.btn-link.btn-icon svg line,
+.btn.btn-active.btn-error.btn-link.btn-icon svg line,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon svg line,
+.icon-button.btn-active.btn-error.btn-link.btn-icon svg line,
+button.btn.btn-link.btn-error.btn-icon.btn-active svg line,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg line,
+.btn.btn-link.btn-error.btn-icon.btn-active svg line,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg line,
+button.btn.btn-active.btn-error.btn-link.btn-icon svg polyline,
+.btn.btn-active.btn-error.btn-link.btn-icon svg polyline,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon svg polyline,
+.icon-button.btn-active.btn-error.btn-link.btn-icon svg polyline,
+button.btn.btn-link.btn-error.btn-icon.btn-active svg polyline,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg polyline,
+.btn.btn-link.btn-error.btn-icon.btn-active svg polyline,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg polyline,
+button.btn.btn-active.btn-error.btn-link.btn-icon svg polygon,
+.btn.btn-active.btn-error.btn-link.btn-icon svg polygon,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon svg polygon,
+.icon-button.btn-active.btn-error.btn-link.btn-icon svg polygon,
+button.btn.btn-link.btn-error.btn-icon.btn-active svg polygon,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg polygon,
+.btn.btn-link.btn-error.btn-icon.btn-active svg polygon,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg polygon,
+button.btn.btn-active.btn-error.btn-link.btn-icon svg ellipse,
+.btn.btn-active.btn-error.btn-link.btn-icon svg ellipse,
+button.icon-button.btn-active.btn-error.btn-link.btn-icon svg ellipse,
+.icon-button.btn-active.btn-error.btn-link.btn-icon svg ellipse,
+button.btn.btn-link.btn-error.btn-icon.btn-active svg ellipse,
+button.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg ellipse,
+.btn.btn-link.btn-error.btn-icon.btn-active svg ellipse,
+.icon-button.btn.btn-link.btn-error.btn-icon.btn-active svg ellipse {
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+  color: var(--theme-primary-tint50) !important;
+}
+
+/* Link icon destructive - selected state for static buttons */
+.btn-selected.btn-error.btn-link.btn-icon {
+  background-color: var(--status-error) !important;
+  text-decoration: none !important;
+}
+
+.btn-selected.btn-error.btn-link.btn-icon svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+.btn-hover.btn-error.btn-outline.btn-icon svg,
+.btn-static.btn-error.btn-outline.btn-icon:hover:not(:disabled) svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* ============================================================================
+ * LINK ICON DESTRUCTIVE HOVER - MUST BE BEFORE ACTIVE TO ALLOW ACTIVE TO OVERRIDE
+ * ============================================================================ */
+
+/* CRITICAL: This rule MUST be at the very end of the file with maximum specificity */
+/* Link icon destructive hover - red background, tint50 icon */
+button.btn.btn-link.btn-error.btn-icon:hover:not(:disabled),
+button.icon-button.btn.btn-link.btn-error.btn-icon:hover:not(:disabled),
+.btn.btn-link.btn-error.btn-icon:hover:not(:disabled),
+.icon-button.btn.btn-link.btn-error.btn-icon:hover:not(:disabled),
+.btn-link.btn-error.btn-icon:hover:not(:disabled),
+[class*="btn-link"][class*="btn-error"][class*="btn-icon"]:hover:not(:disabled) {
+  background-color: var(--status-error) !important;
+  background: var(--status-error) !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+button.btn.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+button.icon-button.btn.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+.btn.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+.icon-button.btn.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+.btn-link.btn-error.btn-icon:hover:not(:disabled) svg,
+[class*="btn-link"][class*="btn-error"][class*="btn-icon"]:hover:not(:disabled) svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+/* ============================================================================
+ * LINK ICON DESTRUCTIVE ACTIVE - MUST BE LAST TO OVERRIDE HOVER WHEN MOUSEDOWN
+ * ============================================================================ */
+
+/* CRITICAL: This rule MUST be at the very end of the file with maximum specificity */
+/* When both :hover and :active are active (mousedown), :active should win */
+/* Link icon destructive active - darker red background, tint50 icon */
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled),
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled),
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled),
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled),
+.btn-link.btn-error.btn-icon:active:not(:disabled),
+[class*="btn-link"][class*="btn-error"][class*="btn-icon"]:active:not(:disabled) {
+  background-color: rgb(220 38 38) !important; /* red-600 - darker red */
+  background: rgb(220 38 38) !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg,
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg,
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg,
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg,
+.btn-link.btn-error.btn-icon:active:not(:disabled) svg,
+[class*="btn-link"][class*="btn-error"][class*="btn-icon"]:active:not(:disabled) svg {
+  color: var(--theme-primary-tint50) !important;
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+}
+
+/* Override SVG path rules on active */
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg path,
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg path,
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg path,
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg path,
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg circle,
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg circle,
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg circle,
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg circle,
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg line,
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg line,
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg line,
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg line,
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polyline,
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polyline,
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polyline,
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polyline,
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polygon,
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polygon,
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polygon,
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg polygon,
+button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg ellipse,
+button.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg ellipse,
+.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg ellipse,
+.icon-button.btn.btn-link.btn-error.btn-icon:active:not(:disabled) svg ellipse {
+  fill: none !important;
+  stroke: var(--theme-primary-tint50) !important;
+  stroke-width: 2 !important;
+  color: var(--theme-primary-tint50) !important;
+}
+
+/* ============================================================================
+ * OUTLINE ICON DESTRUCTIVE ACTIVE - MUST BE AT END TO OVERRIDE ALL OTHER RULES
+ * ============================================================================ */
+
+/* Outline icon destructive - active state (must match .btn-active.btn-error.btn-outline.btn-icon static state) */
+/* Use maximum specificity and place at end of file to ensure it overrides all other rules */
+button.btn.btn-outline.btn-error.btn-icon:active:not(:disabled),
+button.icon-button.btn-outline.btn-error.btn-icon:active:not(:disabled),
+.btn.btn-outline.btn-error.btn-icon:active:not(:disabled),
+.icon-button.btn-outline.btn-error.btn-icon:active:not(:disabled),
+.btn-outline.btn-error.btn-icon:active:not(:disabled) {
+  background-color: rgb(220 38 38) !important; /* red-600 - tint darker than red-500 - matches secondary-icon-destructive */
+  border-color: rgb(220 38 38) !important;
+  color: #FFF !important;
+  box-shadow: none !important;
+}
+
+button.btn.btn-outline.btn-error.btn-icon:active:not(:disabled) svg,
+button.icon-button.btn-outline.btn-error.btn-icon:active:not(:disabled) svg,
+.btn.btn-outline.btn-error.btn-icon:active:not(:disabled) svg,
+.icon-button.btn-outline.btn-error.btn-icon:active:not(:disabled) svg,
+.btn-outline.btn-error.btn-icon:active:not(:disabled) svg {
+  color: #FFF !important;
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* ============================================================================
+ * SECONDARY ICON HOVER - MUST BE AT END TO OVERRIDE ALL OTHER RULES
+ * ============================================================================ */
+
+/* ============================================================================
+ * SECONDARY ICON HOVER - ABSOLUTE LAST RULE - MAXIMUM SPECIFICITY
+ * ============================================================================ */
+/* Secondary icon hover - must match .btn-hover.btn-secondary.btn-icon static state */
+/* This MUST be the absolute last rule in the entire file */
+/* Use maximum specificity to override EVERYTHING */
+button.btn.btn-secondary.btn-icon:hover:not(:disabled),
+button.btn-secondary.btn-icon:hover:not(:disabled),
+.btn.btn-secondary.btn-icon:hover:not(:disabled),
+.btn-secondary.btn-icon:hover:not(:disabled),
+button[class*="btn"][class*="secondary"][class*="btn-icon"]:hover:not(:disabled),
+[class*="btn-secondary"][class*="btn-icon"]:hover:not(:disabled),
+button.btn-secondary.btn-icon:hover:not(:disabled):not(.btn-error),
+.btn-secondary.btn-icon:hover:not(:disabled):not(.btn-error),
+button.btn.btn-secondary.btn-icon:not(.btn-error):hover:not(:disabled),
+button.btn-secondary.btn-icon:not(.btn-error):hover:not(:disabled) {
+  background-color: var(--theme-primary-iconHoverNormal) !important; /* slate-700 - one shade lighter than default, uses theme variable */
+  background: var(--theme-primary-iconHoverNormal) !important; /* Also set background shorthand */
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* ============================================================================
+ * SECONDARY ICON DESTRUCTIVE SELECTED - MUST MATCH HOVER STATE
+ * ============================================================================ */
+/* Secondary icon destructive selected state - must match .btn-hover.btn-error.btn-secondary.btn-icon hover state */
+/* Use maximum specificity and place at end of file to ensure it overrides all other rules */
+button.btn.btn-secondary.btn-error.btn-icon.btn-selected,
+button.btn-secondary.btn-error.btn-icon.btn-selected,
+.btn.btn-secondary.btn-error.btn-icon.btn-selected,
+.btn-secondary.btn-error.btn-icon.btn-selected,
+button[class*="btn"][class*="secondary"][class*="btn-error"][class*="btn-icon"].btn-selected,
+[class*="btn-secondary"][class*="btn-error"][class*="btn-icon"].btn-selected {
+  background-color: var(--status-error) !important; /* Same as hover state */
+  background: var(--status-error) !important; /* Also set background shorthand */
+  color: #FFF !important; /* Same as hover state */
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+button.btn.btn-secondary.btn-error.btn-icon.btn-selected svg,
+button.btn-secondary.btn-error.btn-icon.btn-selected svg,
+.btn.btn-secondary.btn-error.btn-icon.btn-selected svg,
+.btn-secondary.btn-error.btn-icon.btn-selected svg,
+button[class*="btn"][class*="secondary"][class*="btn-error"][class*="btn-icon"].btn-selected svg,
+[class*="btn-secondary"][class*="btn-error"][class*="btn-icon"].btn-selected svg {
+  color: #FFF !important; /* Same as hover state */
+  fill: none !important;
+  stroke: #FFF !important;
+  stroke-width: 2 !important;
+}
+
+/* ============================================================================
+ * OUTLINE ICON HOVER - MUST MATCH STATIC STATE
+ * ============================================================================ */
+/* Outline icon hover - must match .btn-hover.btn-outline.btn-icon static state */
+/* Use maximum specificity and place at end of file to ensure it overrides all other rules */
+/* CRITICAL: Must override .btn-outline:hover:not(:disabled) which applies to all outline buttons */
+button.btn.btn-outline.btn-icon:hover:not(:disabled),
+button.btn-outline.btn-icon:hover:not(:disabled),
+.btn.btn-outline.btn-icon:hover:not(:disabled),
+.btn-outline.btn-icon:hover:not(:disabled),
+button[class*="btn"][class*="outline"][class*="btn-icon"]:hover:not(:disabled),
+[class*="btn-outline"][class*="btn-icon"]:hover:not(:disabled),
+button.btn.btn-outline.btn-icon:not(.btn-error):hover:not(:disabled),
+button.btn-outline.btn-icon:not(.btn-error):hover:not(:disabled) {
+  background-color: var(--select-hover) !important; /* Same as static hover state */
+  background: var(--select-hover) !important; /* Also set background shorthand */
+  border-color: var(--select-hover) !important; /* Same as static hover state */
+  box-shadow: none !important;
+}
+
+/* ============================================================================
+ * SECONDARY ICON SELECTED - MUST MATCH ACTIVE STATE
+ * ============================================================================ */
+/* Secondary icon selected state - must match .btn-active.btn-secondary.btn-icon active state */
+/* Use maximum specificity and place at end of file to ensure it overrides all other rules */
+button.btn.btn-secondary.btn-icon.btn-selected,
+button.btn-secondary.btn-icon.btn-selected,
+.btn.btn-secondary.btn-icon.btn-selected,
+.btn-secondary.btn-icon.btn-selected,
+button[class*="btn"][class*="secondary"][class*="btn-icon"].btn-selected,
+[class*="btn-secondary"][class*="btn-icon"].btn-selected {
+  background-color: var(--accent-primary) !important; /* Same as active state */
+  background: var(--accent-primary) !important; /* Also set background shorthand */
+  color: var(--accent-primary-contrast) !important; /* Same as active state */
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+button.btn.btn-secondary.btn-icon.btn-selected svg,
+button.btn-secondary.btn-icon.btn-selected svg,
+.btn.btn-secondary.btn-icon.btn-selected svg,
+.btn-secondary.btn-icon.btn-selected svg,
+button[class*="btn"][class*="secondary"][class*="btn-icon"].btn-selected svg,
+[class*="btn-secondary"][class*="btn-icon"].btn-selected svg {
+  color: var(--accent-primary-contrast) !important; /* Same as active state */
+}
+
+/* ============================================================================
+ * PRIMARY ICON HOVER - MUST MATCH STATIC STATE
+ * ============================================================================ */
+/* Primary icon (default) hover - must match .btn-hover.btn-default.btn-icon static state */
+/* Use maximum specificity and place at end of file to ensure it overrides all other rules */
+button.btn.btn-default.btn-icon:hover:not(:disabled),
+button.btn-default.btn-icon:hover:not(:disabled),
+.btn.btn-default.btn-icon:hover:not(:disabled),
+.btn-default.btn-icon:hover:not(:disabled),
+button[class*="btn"][class*="default"][class*="btn-icon"]:hover:not(:disabled),
+[class*="btn-default"][class*="btn-icon"]:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important; /* Same as static hover state */
+  background: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important; /* Also set background shorthand */
+  opacity: 0.9 !important; /* Same as static hover state */
+  transition: background-color 100ms ease, opacity 100ms ease !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* ============================================================================
+ * LINK ICON SELECTED - MUST MATCH ACTIVE STATE
+ * ============================================================================ */
+/* Link icon selected state - must match .btn-active.btn-link.btn-icon active state */
+/* Use maximum specificity and place at end of file to ensure it overrides all other rules */
+button.btn.btn-link.btn-icon.btn-selected,
+button.btn-link.btn-icon.btn-selected,
+.btn.btn-link.btn-icon.btn-selected,
+.btn-link.btn-icon.btn-selected,
+button[class*="btn"][class*="link"][class*="btn-icon"].btn-selected,
+[class*="btn-link"][class*="btn-icon"].btn-selected {
+  background-color: var(--accent-primary) !important; /* Same as active state */
+  background: var(--accent-primary) !important; /* Also set background shorthand */
+  color: var(--accent-primary-contrast) !important; /* Same as active state */
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+button.btn.btn-link.btn-icon.btn-selected svg,
+button.btn-link.btn-icon.btn-selected svg,
+.btn.btn-link.btn-icon.btn-selected svg,
+.btn-link.btn-icon.btn-selected svg,
+button[class*="btn"][class*="link"][class*="btn-icon"].btn-selected svg,
+[class*="btn-link"][class*="btn-icon"].btn-selected svg {
+  color: var(--accent-primary-contrast) !important; /* Same as active state */
+}
+

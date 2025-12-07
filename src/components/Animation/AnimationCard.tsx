@@ -118,7 +118,7 @@ export function AnimationCard({
             {onDuplicate && (
               <Button
                 type="button"
-                variant="background"
+                variant="secondary"
                 size="icon"
                 onClick={handleDuplicate}
                 className="bg-theme-panel/90 backdrop-blur-sm hover:bg-theme-panel shadow-md"
@@ -131,7 +131,7 @@ export function AnimationCard({
             {onEdit && isCustom && (
               <Button
                 type="button"
-                variant="background"
+                variant="secondary"
                 size="icon"
                 onClick={handleEdit}
                 className="bg-theme-panel/90 backdrop-blur-sm hover:bg-theme-panel shadow-md"
@@ -144,7 +144,7 @@ export function AnimationCard({
             {onDelete && isCustom && (
               <Button
                 type="button"
-                variant="background"
+                variant="secondary"
                 size="icon"
                 onClick={handleDelete}
                 className="bg-theme-panel/90 backdrop-blur-sm hover:bg-status-error shadow-md text-status-error"

@@ -38,7 +38,7 @@ import {
 } from "@/lib/storage/sequenceStorage";
 import { getAllScenes, type Scene, loadSceneState } from "@/lib/storage/sceneStorage";
 import { RowPlayer } from "@/components/SequenceManager/RowPlayer";
-import { GripVertical, Trash2, Plus, Copy, Download, Upload, Search } from "lucide-react";
+import { GripVertical, Trash2, Plus, Copy, Download, Upload, Search, Edit } from "lucide-react";
 import { SPRITE_MODES } from "@/constants/sprites";
 import { formatMovementMode } from "@/constants/movement";
 import { findSpriteByIdentifier } from "@/constants/spriteCollections";
@@ -50,6 +50,8 @@ interface SequenceManagerProps {
   onLoadPreset?: (state: GeneratorState) => void; // Backward compatibility
   currentState?: GeneratorState | null;
   onClose?: () => void;
+  onNavigateToPerform?: (sequenceId: string) => void;
+  onNavigateToCanvas?: () => void;
 }
 
 interface SortableItemProps {
@@ -58,9 +60,10 @@ interface SortableItemProps {
   scenes: Scene[];
   onUpdate: (item: SequenceItem) => void;
   onDelete: (itemId: string) => void;
+  onEditScene?: (scene: Scene) => void;
 }
 
-function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableItemProps) {
+function SortableTableRow({ item, scene, scenes, onUpdate, onDelete, onEditScene }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -69,6 +72,36 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
     transition,
     isDragging,
   } = useSortable({ id: item.id });
+  
+  // Track current values to prevent unnecessary updates
+  const currentSceneIdRef = useRef(item.sceneId);
+  const currentFadeDurationRef = useRef(item.fadeDuration ?? 0);
+  const onUpdateRef = useRef(onUpdate);
+  
+  // Update refs when props change
+  useEffect(() => {
+    currentFadeDurationRef.current = item.fadeDuration ?? 0;
+    currentSceneIdRef.current = item.sceneId;
+  }, [item.fadeDuration, item.sceneId]);
+  
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+
+  // Stable callback for scene change
+  const handleSceneChange = useCallback((newValue: string) => {
+    // Only update if value actually changed
+    if (newValue === currentSceneIdRef.current) {
+      return;
+    }
+    
+    // Update ref immediately to prevent duplicate calls
+    currentSceneIdRef.current = newValue;
+    
+    // Call onUpdate with the new scene ID
+    onUpdateRef.current({ ...item, sceneId: newValue });
+  }, [item]); // Include item in deps to get latest item data
+
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -79,44 +112,6 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
   // Get scene state for thumbnail
   const sceneState = scene ? loadSceneState(scene) : null;
   
-  // Get sprite labels - list all selected sprites
-  const getSpriteLabels = (): string => {
-    if (!scene || !sceneState) return "—";
-    
-    // Use selectedSprites if available, otherwise fallback to spriteMode
-    const spriteIdentifiers = sceneState.selectedSprites && sceneState.selectedSprites.length > 0
-      ? sceneState.selectedSprites
-      : sceneState.spriteMode
-      ? [sceneState.spriteMode]
-      : [];
-    
-    if (spriteIdentifiers.length === 0) return "—";
-    
-    const spriteNames = spriteIdentifiers
-      .map((identifier) => {
-        // Try to find sprite by identifier
-        const spriteInfo = findSpriteByIdentifier(identifier);
-        if (spriteInfo) {
-          return spriteInfo.sprite.name;
-        }
-        // Fallback to SPRITE_MODES for shape-based sprites
-        const spriteMode = SPRITE_MODES.find((m) => m.value === identifier);
-        if (spriteMode) {
-          return spriteMode.label;
-        }
-        // Last resort: use identifier itself (cleaned up)
-        return identifier.split('/').pop()?.replace('.svg', '') || identifier;
-      })
-      .filter(Boolean);
-    
-    return spriteNames.length > 0 ? spriteNames.join(", ") : "—";
-  };
-  
-  const spriteLabel = getSpriteLabels();
-
-  // Get motion label
-  const motionLabel = scene ? formatMovementMode(scene.state.movementMode) : "—";
-
   return (
     <tr
       ref={setNodeRef}
@@ -130,10 +125,10 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
         <button
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-theme-subtle hover:text-theme-muted transition-colors"
+          className="cursor-grab active:cursor-grabbing text-theme-subtle hover:text-theme-muted transition-colors p-1 -m-1"
           aria-label="Drag to reorder"
         >
-          <GripVertical className="h-4 w-4" />
+          <GripVertical className="h-6 w-6" />
         </button>
       </td>
 
@@ -150,13 +145,10 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
 
       {/* Scene Name */}
       <td className="px-4 py-3">
-        <Select
-          value={item.sceneId}
-          onValueChange={(value) => {
-            if (value !== item.sceneId) {
-              onUpdate({ ...item, sceneId: value });
-            }
-          }}
+          <Select
+            key={`scene-${item.id}-${item.sceneId}`}
+            value={item.sceneId || ""}
+            onValueChange={handleSceneChange}
         >
           <SelectTrigger className="w-full max-w-xs">
             <SelectValue />
@@ -176,105 +168,147 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete }: SortableI
         )}
       </td>
 
-      {/* Sprite */}
-      <td className="px-4 py-3">
-        <span className="field-label leading-none">{spriteLabel}</span>
-      </td>
-
-      {/* Motion */}
-      <td className="px-4 py-3 min-w-[120px]">
-        <span className="field-label leading-none">{motionLabel}</span>
-      </td>
 
       {/* Duration */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <Input
-            type="number"
-            value={item.duration}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              const newDuration = parseInt(e.target.value) || 0;
-              if (newDuration !== item.duration) {
-                onUpdate({ ...item, duration: newDuration });
-              }
-            }}
-            min={0}
-            max={300}
-            className="w-20"
-          />
-          <span className="text-xs text-theme-muted whitespace-nowrap">
-            {item.duration === 0 ? "Manual" : `${item.duration}s`}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="number"
+              value={Math.floor(item.duration / 60)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const minutes = parseInt(e.target.value) || 0;
+                const seconds = item.duration % 60;
+                const newDuration = minutes * 60 + seconds;
+                if (newDuration !== item.duration) {
+                  onUpdate({ ...item, duration: newDuration });
+                }
+              }}
+              min={0}
+              className="w-12"
+              placeholder="0"
+            />
+            <span className="text-xs text-theme-muted">m</span>
+            <Input
+              type="number"
+              value={item.duration % 60}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const seconds = parseInt(e.target.value) || 0;
+                const minutes = Math.floor(item.duration / 60);
+                const newDuration = minutes * 60 + Math.max(0, Math.min(59, seconds));
+                if (newDuration !== item.duration) {
+                  onUpdate({ ...item, duration: newDuration });
+                }
+              }}
+              min={0}
+              max={59}
+              className="w-12"
+              placeholder="0"
+            />
+            <span className="text-xs text-theme-muted">s</span>
+          </div>
+          {item.duration === 0 && (
+            <span className="text-xs text-theme-muted whitespace-nowrap">(Manual)</span>
+          )}
         </div>
       </td>
 
       {/* Transition */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <Select
-            value={item.transition}
-            onValueChange={(value) => {
-              const newTransition = value as SequenceItem["transition"];
-              // Set default fade duration if switching to fade and no duration exists
-              const fadeDuration = newTransition === "fade" && !item.fadeDuration 
-                ? 1.5 
-                : item.fadeDuration;
-              onUpdate({ ...item, transition: newTransition, fadeDuration });
+          <Input
+            type="number"
+            value={item.fadeDuration !== undefined && item.fadeDuration !== null ? item.fadeDuration : 5}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              const newDuration = parseFloat(e.target.value) || 0;
+              const fadeDuration = Math.max(0, Math.min(10, newDuration));
+              // If duration is 0, it's instant; otherwise it's a fade
+              const transition = fadeDuration === 0 ? "instant" : "fade";
+              onUpdate({ ...item, fadeDuration, transition });
             }}
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="instant">Instant</SelectItem>
-              <SelectItem value="fade">Fade</SelectItem>
-            </SelectContent>
-          </Select>
-          {item.transition === "fade" && (
-            <>
-              <Input
-                type="number"
-                value={item.fadeDuration ?? 1.5}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const newDuration = parseFloat(e.target.value) || 0.5;
-                  onUpdate({ ...item, fadeDuration: Math.max(0.1, Math.min(10, newDuration)) });
-                }}
-                min={0.1}
-                max={10}
-                step={0.1}
-                className="w-20"
-              />
-              <span className="text-xs text-theme-muted whitespace-nowrap">s</span>
-            </>
-          )}
+            min={0}
+            max={10}
+            step={0.1}
+            className="w-20"
+            placeholder="5"
+          />
+          <span className="text-xs text-theme-muted whitespace-nowrap">
+            {item.fadeDuration === 0 ? "s (instant)" : "s"}
+          </span>
         </div>
       </td>
 
       {/* Actions */}
       <td className="px-4 py-3">
-        <Button
-          type="button"
-          variant="naked"
-          size="icon"
-          onClick={() => onDelete(item.id)}
-          title="Delete item"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {scene && onEditScene && (
+            <Button
+              type="button"
+              variant="link"
+              size="icon"
+              onClick={() => onEditScene(scene)}
+              title="Edit scene"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="link"
+            size="icon"
+            onClick={() => onDelete(item.id)}
+            title="Delete item"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </td>
     </tr>
   );
 }
 
-export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }: SequenceManagerProps) {
+export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose, onNavigateToPerform, onNavigateToCanvas }: SequenceManagerProps) {
   const handleLoadScene = onLoadScene || onLoadPreset; // Use onLoadScene if provided, fallback to onLoadPreset for backward compatibility
+  
+  // Handler to edit a scene - loads scene and navigates to canvas
+  const handleEditScene = useCallback((scene: Scene) => {
+    const sceneState = loadSceneState(scene);
+    if (sceneState && handleLoadScene) {
+      handleLoadScene(sceneState);
+      // Navigate to canvas if navigation function is provided
+      if (onNavigateToCanvas) {
+        onNavigateToCanvas();
+      }
+    }
+  }, [handleLoadScene, onNavigateToCanvas]);
   const [sequences, setSequences] = useState<Sequence[]>([]);
+  // Check for sequence ID in sessionStorage for pre-selection
+  const getInitialSequenceId = () => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("editSequenceId");
+    }
+    return null;
+  };
+
   const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
   const selectedSequenceRef = useRef<Sequence | null>(null);
+
+  // Pre-select sequence from sessionStorage
+  useEffect(() => {
+    const initialSequenceId = getInitialSequenceId();
+    if (initialSequenceId && sequences.length > 0 && !selectedSequence) {
+      const sequence = sequences.find((s) => s.id === initialSequenceId);
+      if (sequence) {
+        setSelectedSequence(sequence);
+        // Clear sessionStorage after loading
+        sessionStorage.removeItem("editSequenceId");
+      }
+    }
+  }, [sequences, selectedSequence]);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [newSequenceName, setNewSequenceName] = useState("");
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [, setPlayingSequences] = useState<Map<string, { state: "stopped" | "playing" | "paused"; currentIndex: number }>>(new Map());
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -315,6 +349,40 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
   };
 
   const handleUpdateSequence = useCallback((updatedSequence: Sequence) => {
+    // Only update if sequence actually changed
+    const currentSequence = selectedSequenceRef.current;
+    if (!currentSequence || currentSequence.id !== updatedSequence.id) {
+      // Different sequence or no current sequence, proceed with update
+      saveSequence(updatedSequence);
+      setSelectedSequence(updatedSequence);
+      setSequences((prev) =>
+        prev.map((s) => (s.id === updatedSequence.id ? updatedSequence : s))
+      );
+      return;
+    }
+    
+    // Compare scenes/items to see if anything actually changed
+    const currentScenes = (currentSequence as any).scenes || [];
+    const currentItems = (currentSequence as any).items || [];
+    const updatedScenes = (updatedSequence as any).scenes || [];
+    const updatedItems = (updatedSequence as any).items || [];
+    
+    // Deep comparison to prevent unnecessary updates
+    const scenesChanged = JSON.stringify(currentScenes) !== JSON.stringify(updatedScenes);
+    const itemsChanged = JSON.stringify(currentItems) !== JSON.stringify(updatedItems);
+    const otherPropsChanged = 
+      currentSequence.name !== updatedSequence.name ||
+      currentSequence.backgroundColour !== updatedSequence.backgroundColour ||
+      currentSequence.defaultFadeType !== updatedSequence.defaultFadeType;
+    
+    if (!scenesChanged && !itemsChanged && !otherPropsChanged) {
+      // No changes, skip update to prevent infinite loop
+      return;
+    }
+    
+    // Update the ref immediately to prevent duplicate calls
+    selectedSequenceRef.current = updatedSequence;
+    
     saveSequence(updatedSequence);
     setSelectedSequence(updatedSequence);
     // Update sequences list without full reload to prevent re-render loops
@@ -362,7 +430,8 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
         id: generateSequenceItemId(),
         sceneId: scenes[0].id,
         duration: 0,
-        transition: "instant",
+        transition: "fade",
+        fadeDuration: 5, // Default fade duration
         order: items.length,
       };
       const updated = {
@@ -398,43 +467,76 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
           const sceneIdChanged = existingScene.sceneId !== (updatedItem.sceneId || updatedItem.presetId);
           const durationChanged = existingScene.durationSeconds !== updatedItem.duration;
           const fadeTypeChanged = existingScene.fadeTypeOverride !== fadeTypeOverride;
+          const fadeDurationChanged = existingScene.fadeDurationSeconds !== updatedItem.fadeDuration;
           
-          if (!sceneIdChanged && !durationChanged && !fadeTypeChanged) {
-            // No changes, skip update
+          if (!sceneIdChanged && !durationChanged && !fadeTypeChanged && !fadeDurationChanged) {
+            // No changes, skip update completely - DO NOT call handleUpdateSequence
             return;
           }
         }
         
+        // Only create updated sequence if something actually changed
+        const updatedScenes = sequenceScenes.map((scene: any) =>
+          scene.id === updatedItem.id 
+            ? { 
+                ...scene, 
+                sceneId: updatedItem.sceneId || updatedItem.presetId, 
+                presetId: updatedItem.presetId, 
+                durationSeconds: updatedItem.duration, 
+                durationMode: updatedItem.duration === 0 ? "manual" : "seconds",
+                fadeTypeOverride: fadeTypeOverride,
+                fadeDurationSeconds: updatedItem.fadeDuration
+              }
+            : scene
+        );
+        
+        // Triple-check: compare the updated scenes with current scenes using deep equality
+        const scenesEqual = JSON.stringify(sequenceScenes) === JSON.stringify(updatedScenes);
+        if (scenesEqual) {
+          // No actual changes after mapping, skip update - DO NOT call handleUpdateSequence
+          return;
+        }
+        
+        // Update the ref BEFORE calling handleUpdateSequence to prevent loops
         const updated = {
           ...currentSequence,
-          scenes: sequenceScenes.map((scene: any) =>
-            scene.id === updatedItem.id 
-              ? { 
-                  ...scene, 
-                  sceneId: updatedItem.sceneId || updatedItem.presetId, 
-                  presetId: updatedItem.presetId, 
-                  durationSeconds: updatedItem.duration, 
-                  durationMode: updatedItem.duration === 0 ? "manual" : "seconds",
-                  fadeTypeOverride: fadeTypeOverride
-                }
-              : scene
-          ),
+          scenes: updatedScenes,
         };
+        selectedSequenceRef.current = updated;
         handleUpdateSequence(updated);
       } else {
         // Check if anything actually changed to prevent unnecessary updates
         const existingItem = items.find((item: SequenceItem) => item.id === updatedItem.id);
-        if (existingItem && JSON.stringify(existingItem) === JSON.stringify(updatedItem)) {
-          // No changes, skip update
+        if (existingItem) {
+          const sceneIdChanged = existingItem.sceneId !== updatedItem.sceneId;
+          const durationChanged = existingItem.duration !== updatedItem.duration;
+          const transitionChanged = existingItem.transition !== updatedItem.transition;
+          const fadeDurationChanged = existingItem.fadeDuration !== updatedItem.fadeDuration;
+          
+          if (!sceneIdChanged && !durationChanged && !transitionChanged && !fadeDurationChanged) {
+            // No changes, skip update completely - DO NOT call handleUpdateSequence
+            return;
+          }
+        }
+        
+        // Only create updated sequence if something actually changed
+        const updatedItems = items.map((item: SequenceItem) =>
+          item.id === updatedItem.id ? updatedItem : item
+        );
+        
+        // Triple-check: compare the updated items with current items using deep equality
+        const itemsEqual = JSON.stringify(items) === JSON.stringify(updatedItems);
+        if (itemsEqual) {
+          // No actual changes after mapping, skip update - DO NOT call handleUpdateSequence
           return;
         }
         
+        // Update the ref BEFORE calling handleUpdateSequence to prevent loops
         const updated = {
           ...currentSequence,
-          items: items.map((item: SequenceItem) =>
-            item.id === updatedItem.id ? updatedItem : item
-          ),
+          items: updatedItems,
         };
+        selectedSequenceRef.current = updated;
         handleUpdateSequence(updated);
       }
     },
@@ -607,6 +709,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
             <Button
               onClick={handleCreateSequence}
               disabled={!newSequenceName.trim()}
+              variant="secondary"
             >
               Create sequence
             </Button>
@@ -674,28 +777,18 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
                     <div className="flex items-center gap-2">
                       <RowPlayer
                         sequence={sequence}
-                        onLoadScene={(state) => {
-                          if (handleLoadScene) {
-                            handleLoadScene(state);
-                          }
-                        }}
-                        onStateChange={(sequenceId, state, currentIndex) => {
-                          setPlayingSequences((prev) => {
-                            const next = new Map(prev);
-                            next.set(sequenceId, { state, currentIndex });
-                            return next;
-                          });
-                        }}
+                        onNavigateToPerform={onNavigateToPerform}
                       />
                       <Button
                         variant={isSelected ? "default" : "outline"}
-                        size="sm"
+                        size="icon"
                         onClick={() => handleSelectSequence(sequence)}
+                        title={isSelected ? "Editing" : "Edit sequence"}
                       >
-                        {isSelected ? "Editing" : "Edit"}
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="naked"
+                        variant="outline"
                         size="icon"
                         onClick={() => handleDuplicateSequence(sequence)}
                         title="Duplicate sequence"
@@ -703,7 +796,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
                         <Copy className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="naked"
+                        variant="outline"
                         size="icon"
                         onClick={() => handleExportSequence(sequence)}
                         title="Export sequence"
@@ -711,7 +804,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
                         <Download className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="naked"
+                        variant="outline"
                         size="icon"
                         onClick={() => handleDeleteSequence(sequence.id)}
                         title="Delete sequence"
@@ -811,12 +904,6 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
                               Scene
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
-                              Sprite(s)
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider min-w-[120px]">
-                              Motion
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
                               Duration
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-theme-muted uppercase tracking-wider">
@@ -849,6 +936,7 @@ export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose }
                                 scenes={scenes}
                                 onUpdate={handleUpdateItem}
                                 onDelete={handleDeleteItem}
+                                onEditScene={handleEditScene}
                               />
                             );
                           })}

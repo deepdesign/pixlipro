@@ -7,9 +7,10 @@ interface SequencesPageProps {
   currentState?: GeneratorState | null;
   onLoadPreset?: (state: GeneratorState) => void;
   onNavigateToCanvas?: () => void;
+  onNavigateToPerform?: (sequenceId: string) => void;
 }
 
-export function SequencesPage({ currentState, onLoadPreset, onNavigateToCanvas }: SequencesPageProps) {
+export function SequencesPage({ currentState, onLoadPreset, onNavigateToCanvas, onNavigateToPerform }: SequencesPageProps) {
   return (
     <div className="h-full w-full flex flex-col bg-theme-bg-base">
       {/* Header */}
@@ -36,6 +37,7 @@ export function SequencesPage({ currentState, onLoadPreset, onNavigateToCanvas }
         <SequenceManager 
           onLoadPreset={onLoadPreset}
           currentState={currentState}
+          onNavigateToPerform={onNavigateToPerform}
         />
       </div>
     </div>

@@ -313,7 +313,16 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.6 Beta (Latest)
+### v0.3.7 Beta (Latest)
+
+**Improvements:**
+- Fixed lock icon buttons in control panel to use link-icon-destructive variant with correct styling
+- Reduced lock icon size from 24px to 16px to match standard icon button sizes
+- Fixed palette icon color in selected state in main vertical navigation (all SVG elements now use correct color)
+- Updated circle buttons to only contain icons, defaulting to X icon
+- Improved SVG color inheritance for all icon buttons in selected state
+
+### v0.3.6 Beta
 
 **Improvements:**
 - Removed accessibility focus highlighting (focus rings/halos) from all UI components

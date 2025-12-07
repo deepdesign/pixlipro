@@ -6,7 +6,7 @@ interface SettingsPageLayoutProps {
 
 export function SettingsPageLayout({ title, children, headerActions }: SettingsPageLayoutProps) {
   return (
-    <div className="h-full w-full flex flex-col bg-theme-bg-base">
+    <div className="h-full w-full flex flex-col bg-theme-bg-base min-h-0">
       {/* Header */}
       <div className="px-6 py-3 mb-3 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -22,7 +22,7 @@ export function SettingsPageLayout({ title, children, headerActions }: SettingsP
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto pb-6 bg-theme-bg-base">
+      <div className="flex-1 pb-6 bg-theme-bg-base min-h-0">
         <div className="w-full px-6">
           {children}
         </div>

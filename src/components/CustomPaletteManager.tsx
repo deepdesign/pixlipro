@@ -518,7 +518,7 @@ export const CustomPaletteManager = ({
                             variant="outline"
                             onClick={() => handleReExtract(palette)}
                             disabled={isExtracting}
-                            title="Re-extract colors from image"
+                            title="Re-extract colours from image"
                           >
                             Re-extract
                           </Button>

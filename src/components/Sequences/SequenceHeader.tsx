@@ -65,7 +65,7 @@ export function SequenceHeader({
   return (
     <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 gap-4">
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        <Button variant="naked" size="icon" onClick={onBack} title="Back to sequences">
+        <Button variant="link" size="icon" onClick={onBack} title="Back to sequences">
           <ArrowLeft className="h-4 w-4" />
         </Button>
 

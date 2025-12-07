@@ -429,7 +429,7 @@ export const SceneManager = ({
                       onClick={() => handleDelete(scene.id)}
                       title="Delete scene"
                       aria-label="Delete scene"
-                      className="text-status-error border-status-error hover:bg-status-error"
+                      className="btn-error"
                     >
                       <Trash2 className="h-6 w-6" />
                     </Button>

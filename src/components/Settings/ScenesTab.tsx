@@ -349,7 +349,7 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
                       </Button>
                     )}
                     <Button
-                      variant="naked"
+                      variant="link"
                       size="icon"
                       onClick={() => handleExportScene(scene)}
                       title="Export scene"
@@ -357,7 +357,7 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
                       <Download className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="naked"
+                      variant="link"
                       size="icon"
                       onClick={() => handleDelete(scene.id)}
                       title="Delete scene"

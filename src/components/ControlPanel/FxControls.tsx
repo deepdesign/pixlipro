@@ -278,7 +278,7 @@ export function FxControls({
                         ref={randomizeGridColorButtonRef}
                         type="button"
                         size="icon"
-                        variant="background"
+                        variant="secondary"
                         onClick={() => {
                           if (randomizeGridColorButtonRef.current) {
                             animatePulse(randomizeGridColorButtonRef.current);

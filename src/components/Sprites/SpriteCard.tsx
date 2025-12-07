@@ -184,7 +184,7 @@ export function SpriteCard({
         <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             type="button"
-            variant="background"
+            variant="secondary"
             size="icon"
             onClick={handleEdit}
             className="bg-theme-panel/90 backdrop-blur-sm hover:bg-theme-panel shadow-md"
@@ -195,7 +195,7 @@ export function SpriteCard({
           </Button>
           <Button
             type="button"
-            variant="background"
+            variant="secondary"
             size="icon"
             onClick={handleDelete}
             className="bg-theme-panel/90 backdrop-blur-sm hover:bg-status-error shadow-md text-status-error"

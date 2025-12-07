@@ -42,10 +42,10 @@ export function Header({
             <Button
               type="button"
               size="icon"
-              variant="naked"
+              variant="link"
               onClick={handleSidebarToggle}
-              aria-label="Toggle Sidebar"
-              title="Toggle Sidebar"
+              aria-label="Toggle sidebar"
+              title="Toggle sidebar"
             >
               <Menu className="h-5 w-5" data-slot="icon" aria-hidden="true" />
             </Button>
@@ -54,9 +54,9 @@ export function Header({
             <Button
               type="button"
               size="icon"
-              variant="naked"
+              variant="link"
               onClick={handleSidebarToggle}
-              aria-label="Toggle Sidebar"
+              aria-label="Toggle sidebar"
               className="lg:hidden"
             >
               {sidebarContext.isMobileOpen ? (

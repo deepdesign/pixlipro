@@ -24,6 +24,7 @@ import { ScenesPage } from "./pages/ScenesPage";
 import { PalettesPage } from "./pages/PalettesPage";
 import { SpritesPage } from "./pages/SpritesPage";
 import { AnimationPage } from "./pages/AnimationPage";
+import { ButtonTestPage } from "./pages/ButtonTestPage";
 import { useDualMonitor } from "./hooks/useDualMonitor";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useOSC } from "./hooks/useOSC";
@@ -40,6 +41,8 @@ const ExportModal = lazy(() => import("./components/ExportModal").then(module =>
 import { Header } from "./components/Header";
 import { StatusBar } from "./components/StatusBar";
 import { getPalette } from "./data/palettes";
+import { Maximize2 } from "lucide-react";
+import { Button } from "./components/Button";
 import { useIsMobile } from "./hooks/useIsMobile";
 import { useTheme } from "./hooks/useTheme";
 import { useFullscreen } from "./hooks/useFullscreen";
@@ -83,6 +86,76 @@ const useMediaQuery = (query: string) => {
   return matches;
 };
 
+// Canvas hover wrapper component
+const CanvasHoverWrapper = ({
+  frameRate,
+  isFullscreen,
+  ready,
+  onFullscreenToggle,
+  children,
+}: {
+  frameRate: number;
+  isFullscreen: boolean;
+  ready: boolean;
+  onFullscreenToggle: () => void;
+  children: React.ReactNode;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  if (isFullscreen) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div 
+      className="relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={(e) => {
+        // Only hide if we're not moving to the overlay
+        if (overlayRef.current) {
+          // If relatedTarget is null or not a Node, hide the overlay
+          if (!e.relatedTarget || !(e.relatedTarget instanceof Node)) {
+            setIsHovered(false);
+          } else if (!overlayRef.current.contains(e.relatedTarget)) {
+            // If relatedTarget is a Node but not contained in overlay, hide
+            setIsHovered(false);
+          }
+        }
+      }}
+    >
+      <div
+        style={{ position: 'relative', width: '100%', height: '100%' }}
+      >
+        {children}
+      </div>
+      {/* Fullscreen overlay - top right */}
+      <div 
+        ref={overlayRef}
+        className={`absolute transition-opacity duration-200 ${
+          isHovered ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{ top: '12px', right: '12px', zIndex: 30 }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <Button
+          type="button"
+          size="icon"
+          variant="secondary"
+          onClick={onFullscreenToggle}
+          disabled={!ready}
+          className="bg-theme-panel/90 backdrop-blur-sm border border-theme-card"
+          aria-label="Enter fullscreen"
+          title="Enter fullscreen"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // Shared control components are now imported from ControlPanel/shared
 
 
@@ -94,6 +167,7 @@ const App = () => {
   // Check if we're in projector or mobile remote mode
   const isProjectorMode = window.location.pathname === "/projector";
   const isMobileRemote = window.location.pathname === "/remote";
+  const isButtonTestPage = window.location.pathname === "/buttons";
   
   // Navigation state
   const [currentPage, setCurrentPage] = useState<"create" | "sprites" | "palettes" | "scenes" | "sequences" | "settings" | "animation" | null>(null);
@@ -958,13 +1032,23 @@ const App = () => {
           ref={canvasCardShellRef}
         >
           {/* MINIMAL: Simple container - let CSS handle aspect ratio via padding-top trick */}
-          <div className="w-full relative" style={{ paddingTop: '56.25%' }}>
-            <div
-              className="sketch-container absolute inset-0"
-              ref={sketchContainerRef}
-              aria-live="polite"
-            />
-          </div>
+          <CanvasHoverWrapper
+            frameRate={frameRate}
+            isFullscreen={isFullscreen}
+            ready={ready}
+            onFullscreenToggle={handleFullscreenToggle}
+          >
+            <div 
+              className="w-full relative" 
+              style={{ paddingTop: '56.25%' }}
+            >
+              <div
+                className="sketch-container absolute inset-0"
+                ref={sketchContainerRef}
+                aria-live="polite"
+              />
+            </div>
+          </CanvasHoverWrapper>
           {/* StatusBar below canvas */}
           {!isFullscreen && (
             <StatusBar
@@ -976,19 +1060,12 @@ const App = () => {
               onMouseEnter={handleHUDMouseEnter}
               onMouseLeave={handleHUDMouseLeave}
               onRandomiseAll={handleRandomiseAll}
-              onShowScenes={() => setShowSceneManager(true)}
-              onShowPresets={() => setShowSceneManager(true)} // Backward compatibility
+              onSaveScene={() => setShowSceneManager(true)}
               onShowExport={() => setShowExportModal(true)}
-              onFullscreenToggle={handleFullscreenToggle}
-              onFullscreenClose={handleFullscreenClose}
               onOpenProjector={() => {
                 dualMonitor.openProjectorWindow();
               }}
               isProjectorMode={isProjectorMode}
-              formatBlendMode={formatBlendMode}
-              formatMovementMode={formatMovementMode}
-              currentModeLabel={currentModeLabel}
-              currentPaletteName={currentPalette.name}
               statusBarRef={statusBarRef}
             />
           )}
@@ -1015,6 +1092,13 @@ const App = () => {
           onNavigateToCanvas={() => {
             setCurrentPage("create");
             handleNavigate("create");
+          }}
+          onNavigateToPerform={(sequenceId) => {
+            setShowSettingsPage(true);
+            setCurrentPage("settings");
+            handleNavigate("settings", "perform");
+            // Store sequence ID in sessionStorage for PerformPage to pick up
+            sessionStorage.setItem("performSequenceId", sequenceId);
           }}
           currentState={spriteState}
           onLoadPreset={handleLoadPreset}
@@ -1195,6 +1279,8 @@ const App = () => {
       setCurrentPage("sequences");
     } else if (path === "/animation") {
       setCurrentPage("animation");
+    } else if (path === "/buttons") {
+      // Button test page - standalone, no navigation needed
     } else if (path === "/" || path === "") {
       setCurrentPage("create");
     }
@@ -1208,6 +1294,15 @@ const App = () => {
 
   // Show header only when not on canvas screen
   const showHeader = currentPage !== "create" && currentPage !== "settings" && currentPage !== null;
+
+  // Render standalone button test page (no app UI)
+  if (isButtonTestPage) {
+    return (
+      <ErrorBoundary>
+        <ButtonTestPage />
+      </ErrorBoundary>
+    );
+  }
 
   return (
     <>

@@ -107,7 +107,7 @@ export function SceneLibraryPanel({
                   </div>
                 </div>
                 <Button
-                  variant="naked"
+                  variant="link"
                   size="icon"
                   onClick={() => onAddScene(scene)}
                   title="Add to sequence"

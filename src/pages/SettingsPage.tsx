@@ -12,6 +12,7 @@ import { SpritesPage } from "@/pages/SpritesPage";
 import { PalettesPage } from "@/pages/PalettesPage";
 import { ScenesPage } from "@/pages/ScenesPage";
 import { SequencesPage } from "@/pages/SequencesPage";
+import { PerformPage } from "@/pages/PerformPage";
 import { SettingsFooter } from "@/components/Footer/SettingsFooter";
 import type { AppSettings } from "@/lib/storage/settingsStorage";
 import type { GeneratorState } from "@/types/generator";
@@ -85,6 +86,14 @@ export const SettingsPage = ({
         return <ScenesPage currentState={currentState} onLoadScene={onLoadPreset} />;
       case "sequences":
         return <SequencesPage currentState={currentState} onLoadPreset={onLoadPreset} />;
+      case "perform":
+        return (
+          <PerformPage
+            currentState={currentState}
+            onLoadScene={onLoadPreset}
+            initialSequenceId={typeof window !== "undefined" ? sessionStorage.getItem("performSequenceId") || undefined : undefined}
+          />
+        );
       case "display":
         return (
           <SettingsSectionWrapper title="Display">
@@ -129,11 +138,11 @@ export const SettingsPage = ({
     }
   };
 
-  const fullPageSections = ["animation", "sprites", "palettes", "presets", "scenes", "sequences"];
+  const fullPageSections = ["animation", "sprites", "palettes", "presets", "scenes", "sequences", "perform"];
   const isFullPage = fullPageSections.includes(activeSection);
 
   return (
-    <div className="relative isolate flex min-h-svh w-full flex-col bg-theme-bg-base">
+    <div className="relative isolate flex h-svh w-full flex-col bg-theme-bg-base">
       {/* Main content area with sidebar */}
       <div className="flex flex-1 flex-col lg:flex-row min-h-0">
         {/* Settings Sidebar */}
@@ -142,24 +151,16 @@ export const SettingsPage = ({
         </div>
 
         {/* Content area */}
-        <main className="flex-1 min-w-0 flex flex-col bg-theme-bg-base" style={{ transition: 'none' }}>
-          <div className="w-full flex-1 flex flex-col" style={{ transition: 'none' }}>
+        <main className="flex-1 min-w-0 flex flex-col bg-theme-bg-base overflow-hidden" style={{ transition: 'none' }}>
+          <div className="w-full flex-1 flex flex-col min-h-0" style={{ transition: 'none' }}>
             {/* Breadcrumb - at top of main container */}
             <div className="w-full py-4 px-6 border-b border-theme-structural bg-theme-bg-base flex-shrink-0">
               <SettingsBreadcrumb onNavigateHome={onClose} />
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto">
-            {isFullPage ? (
-              <div className="h-full w-full" style={{ minHeight: 'calc(100vh - 12rem)' }}>
-                {renderContent()}
-              </div>
-            ) : (
-              <div className="w-full">
-                {renderContent()}
-              </div>
-            )}
+            <div className="flex-1 overflow-y-scroll min-h-0">
+              {renderContent()}
             </div>
             
             {/* Footer - sticks to bottom */}
