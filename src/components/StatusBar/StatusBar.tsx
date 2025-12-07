@@ -22,7 +22,6 @@ interface StatusBarProps {
 }
 
 export function StatusBar({
-  spriteState,
   frameRate,
   ready,
   isFullscreen,

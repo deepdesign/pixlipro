@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/Button";
 import "@/components/Button.css";
-import { Save, Download, Trash2, Edit, Plus, X, Check, Play, Pause, Square, SkipBack, SkipForward, Upload, Copy } from "lucide-react";
+import { Save, Trash2, Edit, X } from "lucide-react";
 
 interface ButtonExample {
   id: string;

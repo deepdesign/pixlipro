@@ -39,9 +39,6 @@ import {
 import { getAllScenes, type Scene, loadSceneState } from "@/lib/storage/sceneStorage";
 import { RowPlayer } from "@/components/SequenceManager/RowPlayer";
 import { GripVertical, Trash2, Plus, Copy, Download, Upload, Search, Edit } from "lucide-react";
-import { SPRITE_MODES } from "@/constants/sprites";
-import { formatMovementMode } from "@/constants/movement";
-import { findSpriteByIdentifier } from "@/constants/spriteCollections";
 import type { GeneratorState } from "@/types/generator";
 import { SceneThumbnail } from "./SequenceManager/SceneThumbnail";
 

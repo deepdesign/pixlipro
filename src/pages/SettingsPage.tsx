@@ -139,7 +139,6 @@ export const SettingsPage = ({
   };
 
   const fullPageSections = ["animation", "sprites", "palettes", "presets", "scenes", "sequences", "perform"];
-  const isFullPage = fullPageSections.includes(activeSection);
 
   return (
     <div className="relative isolate flex h-svh w-full flex-col bg-theme-bg-base">

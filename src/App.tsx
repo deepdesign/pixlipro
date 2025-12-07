@@ -47,11 +47,9 @@ import { useIsMobile } from "./hooks/useIsMobile";
 import { useTheme } from "./hooks/useTheme";
 import { useFullscreen } from "./hooks/useFullscreen";
 import { useSpriteController } from "./hooks/useSpriteController";
-import { formatMovementMode } from "./constants/movement";
 import { SPRITE_MODES } from "./constants/sprites";
 import { getCollection, getSpriteInCollection } from "./constants/spriteCollections";
 import {
-  formatBlendMode,
   generatePaletteOptions,
 } from "./lib/utils";
 import { hasCanvas } from "./types/p5-extensions";
@@ -88,13 +86,11 @@ const useMediaQuery = (query: string) => {
 
 // Canvas hover wrapper component
 const CanvasHoverWrapper = ({
-  frameRate,
   isFullscreen,
   ready,
   onFullscreenToggle,
   children,
 }: {
-  frameRate: number;
   isFullscreen: boolean;
   ready: boolean;
   onFullscreenToggle: () => void;
@@ -184,7 +180,6 @@ const App = () => {
     isFullscreen,
     hudVisible,
     handleFullscreenToggle,
-    handleFullscreenClose,
     handleHUDMouseEnter,
     handleHUDMouseLeave,
   } = useFullscreen(canvasWrapperRef);
@@ -1033,7 +1028,6 @@ const App = () => {
         >
           {/* MINIMAL: Simple container - let CSS handle aspect ratio via padding-top trick */}
           <CanvasHoverWrapper
-            frameRate={frameRate}
             isFullscreen={isFullscreen}
             ready={ready}
             onFullscreenToggle={handleFullscreenToggle}
