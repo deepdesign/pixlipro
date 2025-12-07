@@ -138,8 +138,6 @@ export const SettingsPage = ({
     }
   };
 
-  const fullPageSections = ["animation", "sprites", "palettes", "presets", "scenes", "sequences", "perform"];
-
   return (
     <div className="relative isolate flex h-svh w-full flex-col bg-theme-bg-base">
       {/* Main content area with sidebar */}
