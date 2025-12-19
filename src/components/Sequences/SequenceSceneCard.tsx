@@ -5,7 +5,15 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/Button";
 import { DurationControl } from "./DurationControl";
 import { FadeControl } from "./FadeControl";
-import type { Sequence, SequenceScene } from "@/lib/storage/sequenceStorage";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { Label } from "@/components/ui/Fieldset";
+import type { Sequence, SequenceScene, TransitionType } from "@/lib/storage/sequenceStorage";
 import type { Scene } from "@/lib/storage/sceneStorage";
 import { GripVertical, Trash2, Copy } from "lucide-react";
 
@@ -164,20 +172,111 @@ export function SequenceSceneCard({
           </div>
 
           {/* Background Indicator */}
-          <div>
-            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-theme-icon text-theme-muted">
-              BG: inherited from sequence
-            </span>
+          {/* Controls - All in one line */}
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs font-medium text-theme-muted whitespace-nowrap">
+                Duration:
+              </Label>
+              {scene.durationMode === "seconds" ? (
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={Math.floor((scene.durationSeconds || 0) / 60)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const minutes = parseInt(e.target.value) || 0;
+                      const seconds = (scene.durationSeconds || 0) % 60;
+                      handleDurationChange("seconds", minutes * 60 + seconds);
+                    }}
+                    className="w-6 text-center text-sm"
+                    placeholder="0"
+                    maxLength={3}
+                  />
+                  <span className="text-sm text-theme-muted">:</span>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={String((scene.durationSeconds || 0) % 60).padStart(2, '0')}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const seconds = parseInt(e.target.value) || 0;
+                      const minutes = Math.floor((scene.durationSeconds || 0) / 60);
+                      handleDurationChange("seconds", minutes * 60 + seconds);
+                    }}
+                    className="w-5 text-center text-sm"
+                    placeholder="00"
+                    maxLength={2}
+                  />
+                </div>
+              ) : (
+                <span className="text-xs text-theme-muted">Manual</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs font-medium text-theme-muted whitespace-nowrap">
+                Fade:
+              </Label>
+              <Select
+                value={scene.fadeTypeOverride || "default"}
+                onValueChange={(value) => {
+                  handleFadeChange(value === "default" ? undefined : value as any);
+                }}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue>
+                    {scene.fadeTypeOverride
+                      ? scene.fadeTypeOverride === "cut"
+                        ? "Hard cut"
+                        : scene.fadeTypeOverride === "crossfade"
+                        ? "Crossfade"
+                        : scene.fadeTypeOverride === "fadeToBlack"
+                        ? "Fade to black"
+                        : "Custom"
+                      : `Default (${sequence.defaultFadeType === "cut" ? "Hard cut" : sequence.defaultFadeType === "crossfade" ? "Crossfade" : sequence.defaultFadeType === "fadeToBlack" ? "Fade to black" : "Custom"})`}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">
+                    Use sequence default ({sequence.defaultFadeType === "cut" ? "Hard cut" : sequence.defaultFadeType === "crossfade" ? "Crossfade" : sequence.defaultFadeType === "fadeToBlack" ? "Fade to black" : "Custom"})
+                  </SelectItem>
+                  <SelectItem value="cut">Hard cut</SelectItem>
+                  <SelectItem value="crossfade">Crossfade</SelectItem>
+                  <SelectItem value="fadeToBlack">Fade to black</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs font-medium text-theme-muted whitespace-nowrap">
+                Transition:
+              </Label>
+              <Select
+                value={scene.transitionType || "fade"}
+                onValueChange={(value) => handleTransitionTypeChange(value as TransitionType)}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue>
+                    {scene.transitionType === "pixellate" ? "Pixelate" : "Fade"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fade">Fade</SelectItem>
+                  <SelectItem value="pixellate">Pixelate</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min="0"
+                step="0.1"
+                value={scene.transitionTimeSeconds || 1.5}
+                onChange={handleTransitionTimeChange}
+                className="w-16"
+                placeholder="1.5"
+              />
+              <span className="text-xs text-theme-muted whitespace-nowrap">s</span>
+            </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex flex-col gap-2">
-          <Button
-            variant="link"
-            size="icon"
-            onClick={() => onDuplicate(scene.id)}
-            title="Duplicate scene"
           >
             <Copy className="h-4 w-4" />
           </Button>

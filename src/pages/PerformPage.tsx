@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { SettingsPageLayout } from "@/components/Settings/SettingsPageLayout";
 import { LivePreviewCanvas } from "@/components/Perform/LivePreviewCanvas";
 import { PlaybackControls } from "@/components/Perform/PlaybackControls";
@@ -23,6 +23,18 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
   const [currentIndex, setCurrentIndex] = useState(0);
   const [editQueue, setEditQueue] = useState<Partial<GeneratorState>[]>([]);
   const [sequences, setSequences] = useState<Sequence[]>([]);
+  const [previewState, setPreviewState] = useState<GeneratorState | null>(null);
+  const [previewTransition, setPreviewTransition] = useState<"instant" | "fade" | "smooth" | "pixellate" | undefined>(undefined);
+  const [previewTransitionDuration, setPreviewTransitionDuration] = useState<number | undefined>(undefined);
+
+  // Clear preview state when sequence is deselected or stopped
+  useEffect(() => {
+    if (!selectedSequence || playbackState === "stopped") {
+      setPreviewState(null);
+      setPreviewTransition(undefined);
+      setPreviewTransitionDuration(undefined);
+    }
+  }, [selectedSequence, playbackState]);
 
   // Load sequences
   useEffect(() => {
@@ -41,6 +53,51 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
       }
     }
   }, [initialSequenceId, sequences]);
+
+  // Stable callback for loading scenes
+  const handleLoadScene = useCallback((state: GeneratorState) => {
+    // Update main canvas
+    if (onLoadScene) {
+      onLoadScene(state);
+    }
+    // Get transition info from PREVIOUS scene (transitions are applied BETWEEN scenes, not at start)
+    // The transition on scene N is used when transitioning FROM scene N TO scene N+1
+    // For the first scene (index 0), there's no previous scene, so no transition
+    if (selectedSequence && currentIndex > 0) {
+      const sequenceScenes = (selectedSequence as any).scenes || [];
+      const sequenceItems = (selectedSequence as any).items || [];
+      const isNewFormat = sequenceScenes.length > 0 || (sequenceItems.length === 0 && !(selectedSequence as any).items);
+      
+      if (isNewFormat && sequenceScenes[currentIndex - 1]) {
+        // Get transition from previous scene (the one we're transitioning FROM)
+        const previousScene = sequenceScenes[currentIndex - 1];
+        const transitionType = previousScene.transitionType || "fade";
+        const transitionTimeMs = previousScene.transitionTimeSeconds 
+          ? previousScene.transitionTimeSeconds * 1000 
+          : undefined;
+        
+        setPreviewTransition(transitionType as any);
+        setPreviewTransitionDuration(transitionTimeMs);
+      } else if (!isNewFormat && sequenceItems[currentIndex - 1]) {
+        // Old format - get transition from previous item
+        const previousItem = sequenceItems[currentIndex - 1];
+        const transition = previousItem.transition || "fade";
+        setPreviewTransition(transition === "instant" ? "instant" : transition === "fade" ? "fade" : "fade");
+        // Old format doesn't have transitionTimeSeconds, use default
+        setPreviewTransitionDuration(undefined);
+      } else {
+        // No previous scene/item - no transition
+        setPreviewTransition(undefined);
+        setPreviewTransitionDuration(undefined);
+      }
+    } else {
+      // First scene (index 0) - no transition
+      setPreviewTransition(undefined);
+      setPreviewTransitionDuration(undefined);
+    }
+    // Update preview canvas state
+    setPreviewState(state);
+  }, [onLoadScene, selectedSequence, currentIndex]);
 
   return (
     <SettingsPageLayout title="Perform">
@@ -111,7 +168,7 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
                 currentIndex={currentIndex}
                 onPlaybackStateChange={setPlaybackState}
                 onCurrentIndexChange={setCurrentIndex}
-                onLoadScene={onLoadScene}
+                onLoadScene={handleLoadScene}
               />
             </div>
 
@@ -136,8 +193,10 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
               {/* Live Preview Canvas */}
               <div className="flex-1 min-h-0">
                 <LivePreviewCanvas
-                  currentState={currentState}
+                  currentState={previewState}
                   isPlaying={playbackState === "playing"}
+                  transition={previewTransition}
+                  transitionDurationMs={previewTransitionDuration}
                 />
               </div>
               

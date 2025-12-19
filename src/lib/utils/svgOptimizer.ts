@@ -136,6 +136,63 @@ export function validateSvg(svgContent: string): boolean {
 }
 
 /**
+ * Remove frame/background rectangles from SVG
+ * Removes full-size rectangles that match viewBox dimensions (common in Icons8 SVGs)
+ * Also removes stroke attributes that might create visible outlines/frames
+ * 
+ * @param svgContent - SVG string to process
+ * @returns SVG with frames removed
+ */
+export function removeSvgFrames(svgContent: string): string {
+  let processedSvg = svgContent;
+  
+  // Extract viewBox from SVG for frame detection
+  const viewBoxMatch = processedSvg.match(/viewBox=["']?([0-9.\s-]+)["']?/i);
+  const viewBoxWidth = viewBoxMatch ? (parseFloat(viewBoxMatch[1].trim().split(/[\s,]+/)[2]) || 30) : 30;
+  const viewBoxHeight = viewBoxMatch ? (parseFloat(viewBoxMatch[1].trim().split(/[\s,]+/)[3]) || 30) : 30;
+  
+  // Remove any remaining background/frame rectangles that SVGO might have missed
+  // These are typically full-size rectangles positioned at (0,0) matching viewBox size
+  processedSvg = processedSvg.replace(/<rect[^>]*\/?\s*>/gi, (match) => {
+    const widthMatch = match.match(/width=["']?([0-9.]+)["']?/i);
+    const heightMatch = match.match(/height=["']?([0-9.]+)["']?/i);
+    const xMatch = match.match(/x=["']?([0-9.-]+)["']?/i);
+    const yMatch = match.match(/y=["']?([0-9.-]+)["']?/i);
+    
+    if (widthMatch && heightMatch) {
+      const width = parseFloat(widthMatch[1]);
+      const height = parseFloat(heightMatch[1]);
+      const x = xMatch ? parseFloat(xMatch[1]) : 0;
+      const y = yMatch ? parseFloat(yMatch[1]) : 0;
+      
+      // Check if this is a full-size background rectangle at origin
+      const isFullWidth = Math.abs(width - viewBoxWidth) < 0.5;
+      const isFullHeight = Math.abs(height - viewBoxHeight) < 0.5;
+      const isAtOrigin = Math.abs(x) < 0.5 && Math.abs(y) < 0.5;
+      
+      // If it's a full-size rect at origin, remove it (it's likely a frame/background)
+      if (isFullWidth && isFullHeight && isAtOrigin) {
+        return '';
+      }
+    }
+    
+    return match;
+  });
+  
+  // Clean up any orphaned closing tags
+  processedSvg = processedSvg.replace(/<\/rect>/gi, '');
+  
+  // Remove any stroke attributes that might create visible outlines/frames
+  // These can create frame-like artifacts even if there's no actual rectangle
+  processedSvg = processedSvg.replace(/stroke-width=["'][^"']+["']/gi, '');
+  processedSvg = processedSvg.replace(/stroke-width:[^;"]+/gi, '');
+  processedSvg = processedSvg.replace(/stroke=["'][^"']+["']/gi, 'stroke="none"');
+  processedSvg = processedSvg.replace(/stroke:[^;"]+/gi, 'stroke:none');
+  
+  return processedSvg;
+}
+
+/**
  * Extract potential sprite name from SVG
  * Tries to find name from <title> tag or comments
  * 

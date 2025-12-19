@@ -39,6 +39,7 @@ const movementModes = [
   "linear",
   "isometric",
   "triangular",
+  "parallax",
 ] as const;
 
 export type MovementMode = (typeof movementModes)[number];
@@ -58,6 +59,7 @@ const MOVEMENT_SPEED_MULTIPLIERS: Record<MovementMode, number> = {
   linear: 8.0,      // ~8x slower - increased to further reduce max motion speed
   isometric: 8.0,   // ~8x slower - significantly increased to reduce max motion speed
   triangular: 8.0,  // ~8x slower - triangular edge movement
+  parallax: 1.0,    // Parallax uses depth-based speed internally, so base multiplier is 1.0
 };
 
 // Scale multipliers to improve canvas coverage for modes with large movement radii
@@ -75,6 +77,7 @@ const MOVEMENT_SCALE_MULTIPLIERS: Record<MovementMode, number> = {
   zigzag: 1.0,      // No adjustment
   linear: 1.0,      // No adjustment
   isometric: 1.0,   // No adjustment
+  parallax: 1.0,    // Parallax uses depth-based sizing, no global multiplier needed
 };
 
 // Tile count multipliers for modes that spread sprites widely
@@ -91,6 +94,7 @@ const MOVEMENT_TILE_COUNT_MULTIPLIERS: Record<MovementMode, number> = {
   zigzag: 1.0,      // No adjustment
   linear: 1.0,      // No adjustment
   isometric: 1.0,   // No adjustment
+  parallax: 1.2,    // 20% more tiles for parallax to ensure continuous flow
 };
 
 type PaletteId = (typeof palettes)[number]["id"];
@@ -137,6 +141,11 @@ interface SvgTile {
   rotationSpeedMultiplier: number; // Random multiplier for rotationSpeed (0.6 to 1.2)
   animationTimeMultiplier: number; // Random multiplier for animation time (0.85 to 1.15, +/- 15%)
   isOutlined: boolean; // Whether this sprite should be rendered as an outline (used when outlineMixed is true)
+  // Parallax-specific properties
+  parallaxDepth?: number; // Depth value (0-1) for parallax effect, 0 = farthest, 1 = closest
+  parallaxDelay?: number; // Delay before re-entering after exiting (for sprite recycling)
+  parallaxInitialU?: number; // Initial U position for parallax (stored for recycling)
+  parallaxStartPhase?: number; // Initial phase offset to stagger sprite start times
 }
 
 type PreparedTile = SvgTile;
@@ -618,6 +627,9 @@ const blendModePool: BlendModeKey[] = [
  * @param motionScale - Motion intensity multiplier (0-1.5)
  * @returns Object containing offsetX, offsetY, and scaleMultiplier
  */
+// Helper function for clamping scale values - used in both computeMovementOffsets and draw
+const clampScale = (value: number) => Math.max(0.35, value);
+
 const computeMovementOffsets = (
   mode: MovementMode,
   data: {
@@ -643,7 +655,7 @@ const computeMovementOffsets = (
   const velocity = Math.max(speedFactor, 0);
   const baseTime = velocity === 0 ? 0 : time * velocity;
   const phased = baseTime + phase;
-  const clampScale = (value: number) => Math.max(0.35, value);
+  // clampScale is now defined at module level to be accessible everywhere
 
   switch (mode) {
     case "pulse": {
@@ -911,6 +923,43 @@ const computeMovementOffsets = (
       const offsetY = Math.sin(angle) * travel;
       return { offsetX, offsetY, scaleMultiplier: 1 };
     }
+    case "parallax": {
+      // Parallax animation: left-to-right movement with depth-based speed
+      // Depth is passed via data.parallaxDepth (0-1, where 0 = farthest, 1 = closest)
+      // Closer sprites (higher depth) move faster, farther sprites (lower depth) move slower
+      
+      // Get depth from data parameter (0-1 range)
+      // If not provided, fall back to phase-based calculation for backward compatibility
+      const depth = (data as any).parallaxDepth ?? ((phase % 1));
+      
+      // Depth-based speed multiplier: closer (higher depth) = faster
+      // Speed range: 1.0 (farthest, depth=0) to 2.5 (closest, depth=1)
+      const depthSpeedMultiplier = 1.0 + depth * 1.5;
+      
+      // Base speed for parallax movement (left to right)
+      // Use a moderate base speed that works well with the depth multiplier
+      const baseParallaxSpeed = 0.12; // Pixels per frame at base speed
+      
+      // Calculate horizontal movement based on depth and time
+      // Closer sprites move faster across the canvas
+      const horizontalSpeed = baseParallaxSpeed * depthSpeedMultiplier * motionScale;
+      
+      // Calculate X offset (left to right movement)
+      // This will be modified in the draw loop to handle recycling
+      const offsetX = phased * horizontalSpeed * layerTileSize * 0.15;
+      
+      // No vertical movement in base parallax (Y is handled by recycling)
+      const offsetY = 0;
+      
+      // Scale breathing effect: scale changes slightly during movement
+      // Simulates objects getting slightly larger as they "approach" (even though moving horizontally)
+      // Breathing range: 0.95 to 1.05 (5% variation)
+      const breathingPhase = phased * 0.08; // Slower breathing cycle for smooth effect
+      const breathingAmount = Math.sin(breathingPhase) * 0.05; // ±5% scale variation
+      const scaleMultiplier = clampScale(1.0 + breathingAmount);
+      
+      return { offsetX, offsetY, scaleMultiplier };
+    }
     default: {
       // Default to drift behavior for any unrecognized modes
       const driftX = Math.sin(phased * 0.028 + phase * 0.15) * baseUnit * motionScale * 0.45;
@@ -1154,6 +1203,48 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   const opacityBase = clamp(state.layerOpacity / 100, 0.12, 1);
   const layerCount = 3;
   const layerThresholds = [0, 0.38, 0.7];
+  
+  // Check if line sprites are selected to determine if we need special distribution
+  const hasLineSprite = selectedSpriteIds.some(id => isLineSprite(id));
+  
+  // Pre-calculate total tiles across all layers for uniform distribution of line sprites
+  // This ensures we can create a truly uniform distribution across all tiles
+  // CRITICAL: Calculate this BEFORE the main loop to ensure accurate total count
+  let totalTilesAcrossLayers = 0;
+  const layerTileCounts: number[] = [];
+  for (let layerIndex = 0; layerIndex < layerCount; layerIndex += 1) {
+    const threshold = layerThresholds[layerIndex] ?? 0.85;
+    if (layerIndex > 0 && densityRatio < threshold) {
+      layerTileCounts.push(0);
+      continue;
+    }
+    const normalizedDensity =
+      layerIndex === 0
+        ? densityRatio
+        : clamp((densityRatio - threshold) / (1 - threshold), 0, 1);
+    const modeTileCountMultiplier = MOVEMENT_TILE_COUNT_MULTIPLIERS[state.movementMode] ?? 1.0;
+    const dofTileCountMultiplier = state.depthOfFieldEnabled ? 0.75 : 1.0;
+    const aspectRatioTileMultiplier = Math.sqrt(16 / 9);
+    const maxTiles = Math.round(50 * modeTileCountMultiplier * dofTileCountMultiplier * aspectRatioTileMultiplier);
+    const minTiles = layerIndex === 0 ? 1 : 0;
+    const desiredTiles = 1 + normalizedDensity * (maxTiles - 1);
+    const tileTotal = Math.max(minTiles, Math.round(desiredTiles));
+    layerTileCounts.push(tileTotal);
+    totalTilesAcrossLayers += tileTotal;
+  }
+  
+  // For line sprite distribution, we need to know how many line sprites there will be
+  // Since sprite selection is random, we do a two-pass approach:
+  // 1. First pass: Create all tiles and count line sprites
+  // 2. Second pass: Assign v values to line sprites based on actual count
+  
+  // Track line sprite count and indices during first pass
+  let lineSpriteCount = 0;
+  const lineSpriteIndices: number[] = []; // Store which tiles are line sprites
+  
+  // Track global tile index for uniform distribution of line sprites
+  // CRITICAL: Only increment for line sprites to ensure correct distribution
+  let globalTileIndex = 0;
 
   for (let layerIndex = 0; layerIndex < layerCount; layerIndex += 1) {
     const threshold = layerThresholds[layerIndex] ?? 0.85;
@@ -1187,7 +1278,15 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     const tileTotal = Math.max(minTiles, Math.round(desiredTiles));
 
     if (tileTotal === 0) {
+      // Skip this layer but don't increment globalTileIndex since no tiles were created
       continue;
+    }
+    
+    // CRITICAL: Verify tileTotal matches pre-calculated value for consistency
+    // This ensures the global index distribution is accurate
+    const expectedTileTotal = layerTileCounts[layerIndex] ?? tileTotal;
+    if (expectedTileTotal !== tileTotal && process.env.NODE_ENV === 'development') {
+      console.warn(`Tile count mismatch for layer ${layerIndex}: expected ${expectedTileTotal}, got ${tileTotal}`);
     }
 
     // Use separate RNG for layer blend mode if blendModeSeedSuffix is set
@@ -1231,15 +1330,62 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       const jitterX = (positionRng() - 0.5) * jitterStrengthX;
       const jitterY = (positionRng() - 0.5) * jitterStrengthY;
 
+      // hasLineSprite is already calculated above (optimization)
+      
+      // CRITICAL: Select sprite FIRST so we can check if it's a line sprite
+      // If no sprites are selected, skip creating this tile (empty canvas)
+      if (selectedSpriteIds.length === 0) {
+        continue;
+      }
+      
+      // Select sprite with weighted probability for lines (if linesRatio > 0)
+      const selectedSpriteId = selectWeightedSprite();
+      const spriteInfo = getSpriteInfo(selectedSpriteId);
+      
       let u = clamp((col + 0.5 + jitterX) / gridCols, minBound, maxBound);
-      let v = clamp((row + 0.5 + jitterY) / gridRows, minBound, maxBound);
+      let v: number;
+      
+      // For line sprites, calculate v based on line sprite index (not all tiles)
+      // CRITICAL: Only count line sprites for uniform distribution, not all tiles
+      // This ensures line sprites are evenly distributed even when mixed with other sprite types
+      if (hasLineSprite && spriteInfo && isLineSprite(spriteInfo.svgSprite.id)) {
+        // Use current globalTileIndex value, then increment for next tile
+        const currentIndex = globalTileIndex;
+        lineSpriteCount++; // Count this line sprite
+        if (process.env.NODE_ENV === 'development' && currentIndex < 5) {
+          console.log(`[computeSprite] Line sprite: currentIndex=${currentIndex}, globalTileIndex=${globalTileIndex}, lineSpriteCount=${lineSpriteCount}`);
+        }
+        globalTileIndex++; // Increment immediately so next tile gets next index
+        // Store index for later normalization (we'll normalize after we know total count)
+        lineSpriteIndices.push({ layerIndex, tileIndex: tiles.length, index: currentIndex });
+        // Temporarily set v to 0, will normalize after all tiles are created
+        v = 0; // Will be normalized in post-processing
+      } else {
+        // For regular sprites, use scale-based bounds but ensure uniform distribution
+        // Map row position uniformly to the bounded range [minBound, maxBound]
+        // This ensures even distribution within the allowed bounds without clustering
+        const vMinBound = minBound;
+        const vMaxBound = maxBound;
+        // Calculate normalized row position (0 to 1) - map row [0, gridRows-1] to [0, 1]
+        // This ensures uniform distribution regardless of gridRows calculation
+        const normalizedRow = gridRows > 1 ? row / (gridRows - 1) : 0.5;
+        // Map normalized position to bounded range [minBound, maxBound]
+        const boundedV = vMinBound + normalizedRow * (vMaxBound - vMinBound);
+        // Add jitter scaled to the bounded range (not gridRows-based)
+        const jitterScale = (vMaxBound - vMinBound) * 0.15; // 15% of bounded range for natural variation
+        v = clamp(boundedV + jitterY * jitterScale, vMinBound, vMaxBound);
+      }
 
       if (isSpiralMode) {
         const focusStrength = scaleRatio * 0.12;
         const centreBiasX = (0.5 - u) * focusStrength;
         const centreBiasY = (0.5 - v) * focusStrength;
         u = clamp(u + centreBiasX, minBound, maxBound);
-        v = clamp(v + centreBiasY, minBound, maxBound);
+        if (hasLineSprite) {
+          v = clamp(v + centreBiasY, 0, 1);
+        } else {
+          v = clamp(v + centreBiasY, minBound, maxBound);
+        }
       }
 
       const scaleRange = Math.max(0, maxScaleFactor - minScaleFactor);
@@ -1273,6 +1419,33 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       // Gradient assignment is now done during rendering, not during computation
       // This allows toggling gradients without regenerating sprite positions/scales
       
+      // Assign parallax depth (0-1) for parallax mode
+      // Depth is independent of sprite size - used for speed calculation
+      // 0 = farthest (slowest), 1 = closest (fastest)
+      const parallaxDepth = state.movementMode === "parallax" 
+        ? positionRng() // Random depth between 0-1, deterministic based on seed
+        : undefined;
+      
+      // Assign parallax delay for sprite recycling (random delay before re-entering)
+      // Delay range: 0 to 2 seconds (in animation time units)
+      const parallaxDelay = state.movementMode === "parallax"
+        ? positionRng() * 2.0 // Random delay 0-2 seconds
+        : undefined;
+      
+      // Store initial U position for parallax recycling
+      const parallaxInitialU = state.movementMode === "parallax"
+        ? u
+        : undefined;
+      
+      // Assign initial phase offset to stagger sprites (so they don't all start together)
+      // This ensures continuous flow with sprites at different stages of their cycle
+      // Use a separate RNG seed to ensure good distribution of start phases
+      // Negative values allow sprites to "start in the past" so they're already moving when animation begins
+      const phaseRng = createMulberry32(hashSeed(`${state.seed}-parallax-phase-${layerIndex}-${index}`));
+      const parallaxStartPhase = state.movementMode === "parallax"
+        ? (phaseRng() - 0.5) * 20.0 // Random phase offset -10 to +10 seconds to stagger sprites
+        : undefined;
+      
       // Determine if this tile should be outlined (when mixed mode is enabled)
       // Determine if this tile should be outlined (when mixed mode is enabled)
       // Use outlineBalance to control the ratio (0-100, where 0=all filled, 50=50/50, 100=all outlined)
@@ -1280,15 +1453,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       const outlineThreshold = (state.outlineBalance ?? 50) / 100;
       const isOutlined = state.outlineMixed ? positionRng() < outlineThreshold : false;
       
-      // If no sprites are selected, skip creating this tile (empty canvas)
-      if (selectedSpriteIds.length === 0) {
-        continue;
-      }
-      
-      // Select sprite with weighted probability for lines (if linesRatio > 0)
-      const selectedSpriteId = selectWeightedSprite();
-      const spriteInfo = getSpriteInfo(selectedSpriteId);
-      
+      // spriteInfo was already selected above, before v calculation
       if (!spriteInfo) {
         // Log warning for debugging
         if (process.env.NODE_ENV === 'development') {
@@ -1339,15 +1504,20 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           rotationSpeedMultiplier,
           animationTimeMultiplier,
             isOutlined,
+          parallaxDepth,
+          parallaxDelay,
+          parallaxInitialU,
+          parallaxStartPhase,
         });
         }
+        // Note: globalTileIndex already incremented for line sprites before tile creation
         continue; // Skip to next iteration after creating fallback tile
       }
       
       // All sprites are now SVG-based
       if (spriteInfo.svgSprite) {
-          tiles.push({
-            kind: "svg",
+          const newTile = {
+            kind: "svg" as const,
           svgPath: spriteInfo.svgSprite.svgPath,
           spriteId: spriteInfo.svgSprite.id,
             tint,
@@ -1363,8 +1533,20 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
             rotationSpeedMultiplier,
             animationTimeMultiplier,
           isOutlined,
-          });
+          parallaxDepth,
+          parallaxDelay,
+          parallaxInitialU,
+          parallaxStartPhase,
+          };
+          
+          // DEBUG: Verify v value is set correctly for line sprites
+          if (process.env.NODE_ENV === 'development' && spriteInfo.svgSprite.id === "line" && tiles.length < 5) {
+            console.log(`[computeSprite] Created line sprite tile: v=${newTile.v.toFixed(3)}, spriteId=${newTile.spriteId}`);
+          }
+          
+          tiles.push(newTile);
       }
+      // Note: globalTileIndex already incremented for line sprites before tile creation
     }
 
     layers.push({
@@ -1374,6 +1556,25 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       opacity,
       mode: "svg",
       baseSizeRatio,
+    });
+  }
+
+  // Post-process line sprite v values: normalize based on actual line sprite count
+  // This ensures uniform distribution even when line sprites are mixed with other sprite types
+  if (hasLineSprite && lineSpriteCount > 0) {
+    lineSpriteIndices.forEach(({ layerIndex, tileIndex, index }) => {
+      const layer = layers[layerIndex];
+      if (layer && layer.tiles[tileIndex]) {
+        const tile = layer.tiles[tileIndex];
+        if (lineSpriteCount > 1) {
+          tile.v = index / (lineSpriteCount - 1); // Map [0, lineSpriteCount-1] to [0, 1]
+        } else {
+          tile.v = 0.5; // Center if only one line sprite
+        }
+        if (process.env.NODE_ENV === 'development' && index < 5) {
+          console.log(`[computeSprite] Normalized line sprite v=${tile.v.toFixed(3)} for index ${index} (total line sprites: ${lineSpriteCount})`);
+        }
+      }
     });
   }
 
@@ -1486,11 +1687,11 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   return { layers, background };
 };
 
-export type TransitionType = "instant" | "fade" | "smooth";
+export type TransitionType = "instant" | "fade" | "smooth" | "pixellate";
 
 export interface SpriteController {
   getState: () => GeneratorState;
-  applyState: (state: GeneratorState, transition?: TransitionType) => void;
+  applyState: (state: GeneratorState, transition?: TransitionType, durationMs?: number) => void;
   randomizeAll: () => void;
   randomizeColors: () => void;
   refreshPaletteApplication: () => void;
@@ -1719,6 +1920,9 @@ export const createSpriteController = (
     startTime: number;
     duration: number;
     type: TransitionType;
+    // For pixellate transitions, store the target pixelation value and scene load flag
+    targetPixelationSize?: number;
+    sceneLoadedAtMax?: boolean; // Flag to track if scene was loaded at max pixelation
   } = {
     isTransitioning: false,
     fromState: null,
@@ -1726,6 +1930,8 @@ export const createSpriteController = (
     startTime: 0,
     duration: 0,
     type: "instant",
+    targetPixelationSize: undefined,
+    sceneLoadedAtMax: false,
   };
   // Loop capture override: when enabled, draw uses time modulo a fixed period
   const loopOverrideRef = {
@@ -1817,78 +2023,136 @@ export const createSpriteController = (
     let targetHeight: number;
     
     if (isFullscreen) {
-      // In fullscreen, use viewport dimensions
-      targetWidth = window.innerWidth;
-      targetHeight = window.innerHeight;
+      // In fullscreen, fit to viewport while maintaining aspect ratio
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const viewportRatio = viewportWidth / viewportHeight;
+      
+      // Calculate dimensions based on aspect ratio, but fit to viewport
+      switch (state.aspectRatio) {
+        case "16:9": {
+          const aspectRatio = 16 / 9;
+          if (viewportRatio > aspectRatio) {
+            // Viewport is wider than 16:9, height is limiting
+            return {
+              width: Math.round(viewportHeight * aspectRatio),
+              height: viewportHeight,
+            };
+          } else {
+            // Viewport is taller than 16:9, width is limiting
+            return {
+              width: viewportWidth,
+              height: Math.round(viewportWidth / aspectRatio),
+            };
+          }
+        }
+        case "21:9": {
+          const aspectRatio = 21 / 9;
+          if (viewportRatio > aspectRatio) {
+            return {
+              width: Math.round(viewportHeight * aspectRatio),
+              height: viewportHeight,
+            };
+          } else {
+            return {
+              width: viewportWidth,
+              height: Math.round(viewportWidth / aspectRatio),
+            };
+          }
+        }
+        case "16:10": {
+          const aspectRatio = 16 / 10;
+          if (viewportRatio > aspectRatio) {
+            return {
+              width: Math.round(viewportHeight * aspectRatio),
+              height: viewportHeight,
+            };
+          } else {
+            return {
+              width: viewportWidth,
+              height: Math.round(viewportWidth / aspectRatio),
+            };
+          }
+        }
+        case "custom": {
+          const custom = state.customAspectRatio;
+          const customRatio = custom.width / custom.height;
+          if (viewportRatio > customRatio) {
+            return {
+              width: Math.round(viewportHeight * customRatio),
+              height: viewportHeight,
+            };
+          } else {
+            return {
+              width: viewportWidth,
+              height: Math.round(viewportWidth / customRatio),
+            };
+          }
+        }
+        default: {
+          // Fallback to 16:9
+          const aspectRatio = 16 / 9;
+          if (viewportRatio > aspectRatio) {
+            return {
+              width: Math.round(viewportHeight * aspectRatio),
+              height: viewportHeight,
+            };
+          } else {
+            return {
+              width: viewportWidth,
+              height: Math.round(viewportWidth / aspectRatio),
+            };
+          }
+        }
+      }
     } else {
       // In normal mode, use container dimensions
       targetWidth = Math.max(minCanvasWidth, containerWidth);
       targetHeight = containerHeight;
-    }
-    
-    // Calculate dimensions based on aspect ratio
-    switch (state.aspectRatio) {
-      case "16:9":
-        // 16:9 (Widescreen)
-        const width169 = Math.max(minCanvasWidth, targetWidth);
-        return {
-          width: width169,
-          height: Math.max(minCanvasHeight, Math.round(width169 * (9 / 16))),
-        };
       
-      case "21:9":
-        // 21:9 (Ultra-Wide)
-        const width219 = Math.max(minCanvasWidth, targetWidth);
-        return {
-          width: width219,
-          height: Math.max(minCanvasHeight, Math.round(width219 * (9 / 21))),
-        };
+      // Calculate dimensions based on aspect ratio
+      switch (state.aspectRatio) {
+        case "16:9":
+          // 16:9 (Widescreen)
+          const width169 = Math.max(minCanvasWidth, targetWidth);
+          return {
+            width: width169,
+            height: Math.max(minCanvasHeight, Math.round(width169 * (9 / 16))),
+          };
       
-      case "16:10":
-        // 16:10 (WUXGA)
-        const width1610 = Math.max(minCanvasWidth, targetWidth);
-        return {
-          width: width1610,
-          height: Math.max(minCanvasHeight, Math.round(width1610 * (10 / 16))),
-        };
-      
-      case "custom":
-        // Custom dimensions
-        const custom = state.customAspectRatio;
-        if (isFullscreen) {
-          // In fullscreen, scale custom ratio to fit viewport
-          const viewportRatio = targetWidth / targetHeight;
-          const customRatio = custom.width / custom.height;
-          
-          if (viewportRatio > customRatio) {
-            // Viewport is wider, height is limiting
-            return {
-              width: Math.round(targetHeight * customRatio),
-              height: targetHeight,
-            };
-          } else {
-            // Viewport is taller, width is limiting
-            return {
-              width: targetWidth,
-              height: Math.round(targetWidth / customRatio),
-            };
-          }
-        } else {
-          // In normal mode, scale custom ratio to fit container width
+        case "21:9":
+          // 21:9 (Ultra-Wide)
+          const width219 = Math.max(minCanvasWidth, targetWidth);
+          return {
+            width: width219,
+            height: Math.max(minCanvasHeight, Math.round(width219 * (9 / 21))),
+          };
+        
+        case "16:10":
+          // 16:10 (WUXGA)
+          const width1610 = Math.max(minCanvasWidth, targetWidth);
+          return {
+            width: width1610,
+            height: Math.max(minCanvasHeight, Math.round(width1610 * (10 / 16))),
+          };
+        
+        case "custom":
+          // Custom dimensions - scale to fit container width
+          const custom = state.customAspectRatio;
           const scale = targetWidth / custom.width;
           return {
             width: Math.max(minCanvasWidth, Math.round(custom.width * scale)),
             height: Math.max(minCanvasHeight, Math.round(custom.height * scale)),
           };
-        }
-      
-      default:
-        // Fallback to 16:9
-        const widthDefault = Math.max(minCanvasWidth, targetWidth);
-        return {
-          width: widthDefault,
-          height: Math.max(minCanvasHeight, Math.round(widthDefault * (9 / 16))),
-        };
+        
+        default:
+          // Fallback to 16:9
+          const widthDefault = Math.max(minCanvasWidth, targetWidth);
+          return {
+            width: widthDefault,
+            height: Math.max(minCanvasHeight, Math.round(widthDefault * (9 / 16))),
+          };
+      }
     }
   };
 
@@ -1964,15 +2228,19 @@ export const createSpriteController = (
         
         // CRITICAL: Parent canvas to container immediately
         // If container isn't ready, the canvas will be in the wrong place
-        if (container && container.parentNode) {
-          canvas.parent(container);
+        // Also check for actual container in DOM (React might have recreated it)
+        const actualContainer = (document.querySelector('.sketch-container') as HTMLElement) || container;
+        const containerToUse = (actualContainer && actualContainer.isConnected) ? actualContainer : container;
+        
+        if (containerToUse && containerToUse.parentNode) {
+          canvas.parent(containerToUse);
           
           // CRITICAL: Ensure canvas element's actual dimensions match container for proper rendering
           // Canvas elements need their width/height attributes to match display size for proper scaling
           if (canvas.elt) {
-            const containerRect = container.getBoundingClientRect();
-            const containerWidth = containerRect.width || container.clientWidth || 0;
-            const containerHeight = containerRect.height || container.clientHeight || 0;
+            const containerRect = containerToUse.getBoundingClientRect();
+            const containerWidth = containerRect.width || containerToUse.clientWidth || 0;
+            const containerHeight = containerRect.height || containerToUse.clientHeight || 0;
             
             if (containerWidth > 0 && containerHeight > 0) {
               // Set canvas element's actual pixel dimensions to match container
@@ -1983,9 +2251,9 @@ export const createSpriteController = (
           }
           
           // Verify it worked
-          if (canvas.elt && canvas.elt.parentElement !== container) {
+          if (canvas.elt && canvas.elt.parentElement !== containerToUse) {
             // Force it into the right place
-            container.appendChild(canvas.elt);
+            containerToUse.appendChild(canvas.elt);
           }
         } else {
           // Container not ready - try to parent it anyway
@@ -2106,20 +2374,12 @@ export const createSpriteController = (
           // CSS handles style overrides, so we only need to check parent positioning
           const observer = { disconnect: () => {} } as MutationObserver;
           
-          const styleInterval = setInterval(() => {
-            if (canvas.elt && container && container.parentNode) {
-              // Check if canvas is still in the right parent
-              if (canvas.elt.parentElement !== container) {
-                // Force it back
-                container.appendChild(canvas.elt);
-              }
-            }
-          }, 100);
+          // Don't use setInterval - it causes flicker. p5.js should maintain the parent.
+          // If canvas gets detached, it will be handled by performResize if needed.
           
           // Clean up on destroy
           (p as any)._pixliStyleCleanup = () => {
             observer.disconnect();
-            clearInterval(styleInterval);
             if ((p as any)._pixliStyleIntercept) {
               (p as any)._pixliStyleIntercept();
             }
@@ -2176,22 +2436,42 @@ export const createSpriteController = (
         (document as any).msFullscreenElement
       );
       
+      // CRITICAL: Get the actual container from DOM (container ref might point to detached element)
+      // The container variable in closure might be stale if React recreated the element
+      const actualContainer = (document.querySelector('.sketch-container') as HTMLElement) || container;
+      const containerToUse = actualContainer.isConnected ? actualContainer : container;
+      
       // Calculate canvas dimensions based on aspect ratio setting
       // The sketch-container is absolutely positioned, so get dimensions from parent (canvas-wrapper)
-      const parentContainer = container.parentElement;
+      const parentContainer = containerToUse.parentElement;
       let containerWidth = 0;
       let containerHeight = 0;
       
-      if (parentContainer) {
+      // In fullscreen, always use viewport dimensions
+      // The container may have 0x0 dimensions in fullscreen, so we must use viewport
+      if (isFullscreen) {
+        // Always use viewport dimensions in fullscreen - container may not be sized yet
+        containerWidth = window.innerWidth || 1920;
+        containerHeight = window.innerHeight || 1080;
+        
+        // Also ensure the container itself has proper dimensions for CSS
+        if (containerToUse) {
+          const containerRect = containerToUse.getBoundingClientRect();
+          // If container has 0 dimensions, we need to wait a bit for CSS to apply
+          if (containerRect.width === 0 || containerRect.height === 0) {
+            // Use viewport dimensions - CSS should make container fill viewport
+            containerWidth = window.innerWidth || 1920;
+            containerHeight = window.innerHeight || 1080;
+          } else {
+            // Container has dimensions, use them
+            containerWidth = containerRect.width;
+            containerHeight = containerRect.height;
+          }
+        }
+      } else if (parentContainer) {
         const rect = parentContainer.getBoundingClientRect();
         containerWidth = rect.width || parentContainer.clientWidth || 0;
         containerHeight = rect.height || parentContainer.clientHeight || 0;
-        
-        // In fullscreen, use viewport dimensions if container dimensions are invalid
-        if (isFullscreen && (containerWidth === 0 || containerHeight === 0)) {
-          containerWidth = window.innerWidth || 1920;
-          containerHeight = window.innerHeight || 1080;
-        }
         
         // If height is 0 or invalid, calculate from width and aspect ratio
         if (containerHeight <= 0 && containerWidth > 0) {
@@ -2199,9 +2479,9 @@ export const createSpriteController = (
         }
       } else {
         // Fallback to container itself
-        const rect = container.getBoundingClientRect();
-        containerWidth = rect.width || container.clientWidth || 0;
-        containerHeight = rect.height || container.clientHeight || 0;
+        const rect = containerToUse.getBoundingClientRect();
+        containerWidth = rect.width || containerToUse.clientWidth || 0;
+        containerHeight = rect.height || containerToUse.clientHeight || 0;
         
         // In fullscreen, use viewport dimensions if container dimensions are invalid
         if (isFullscreen && (containerWidth === 0 || containerHeight === 0)) {
@@ -2236,19 +2516,16 @@ export const createSpriteController = (
         p.resizeCanvas(canvasWidth, canvasHeight);
       }
       
-      // After resize, remove ALL inline styles so CSS can control display size
-      // p5.js sets width/height ATTRIBUTES (not styles) which are needed for rendering
-      // CSS will control the display size via width: 100%, height: 100%
-      if (canvas && canvas.elt) {
-        // Remove ALL inline styles - CSS will handle everything
-        canvas.elt.style.position = '';
-        canvas.elt.style.top = '';
-        canvas.elt.style.left = '';
-        canvas.elt.style.right = '';
-        canvas.elt.style.bottom = '';
-        canvas.elt.style.width = '';
-        canvas.elt.style.height = '';
-      }
+      // After resizeCanvas, ensure canvas is in container (p5.js might recreate it)
+      // Do this ONCE after a small delay, not in a loop
+      requestAnimationFrame(() => {
+        if (canvas && canvas.elt && containerToUse && containerToUse.isConnected) {
+          // Only re-parent if canvas is actually detached
+          if (!canvas.elt.isConnected || canvas.elt.parentElement !== containerToUse) {
+            containerToUse.appendChild(canvas.elt);
+          }
+        }
+      });
       
       // Reset flag after resize completes
       requestAnimationFrame(() => {
@@ -2256,40 +2533,35 @@ export const createSpriteController = (
       });
     };
 
-    // Default UIEvent for when p5.js doesn't provide one
+    // Handle windowResized with a function that satisfies Zod validation
+    // p5.js uses Zod to validate the function signature: (event: UIEvent) => UIEvent
+    // The challenge is that p5.js may call it with undefined or invalid types
+    // We create a function that always accepts and returns a UIEvent
     const defaultResizeEvent = new UIEvent('resize', { bubbles: false, cancelable: false });
     
-    // Wrapper for p5.js windowResized that satisfies Zod validation
-    // p5.js validates the function signature at runtime using Zod
-    // The function MUST accept UIEvent (required, not optional) to pass Zod validation
-    // However, p5.js may call it without an event or with undefined/null/non-UIEvent
-    // We use arguments object to handle any number/type of arguments and normalize them
-    function windowResizedHandler(...args: any[]): UIEvent {
-      // Get first argument (if any) and convert to valid UIEvent
-      // This handles cases where p5.js calls with no args, undefined, null, or invalid values
-      const event = args[0];
-      const uiEvent: UIEvent = (event instanceof UIEvent) 
-        ? event 
-        : defaultResizeEvent;
+    // Use Object.defineProperty to create a function that always validates
+    // This ensures Zod sees the correct signature while we handle invalid calls
+    const handler = function(event: UIEvent): UIEvent {
+      // If event is not a UIEvent (undefined, null, or wrong type), use default
+      const uiEvent = (event instanceof UIEvent) ? event : defaultResizeEvent;
       
       // Don't resize if canvas isn't ready yet
       if (!canvasReady || !canvas || !canvas.elt) {
         return uiEvent;
       }
       
-      // If we're already resizing (from performResize), don't call performResize again
-      // This prevents infinite loops when p5.js calls windowResized from resizeCanvas
+      // If we're already resizing, don't call performResize again
       if (!isResizing) {
         performResize();
       }
       
-      // Return the UIEvent to satisfy Zod (even though p5.js doesn't use the return value)
       return uiEvent;
-    }
+    };
     
-    // Type cast to satisfy p5.js's Zod validation which checks the function signature
-    // The function uses rest parameters internally but is typed as (event: UIEvent) => UIEvent for Zod
-    p.windowResized = windowResizedHandler as unknown as (event: UIEvent) => UIEvent;
+    // Assign the handler - Zod will validate the signature matches (event: UIEvent) => UIEvent
+    // When p5.js calls it with undefined, JavaScript passes undefined as the argument
+    // Our function handles it by using defaultResizeEvent
+    p.windowResized = handler;
     
     // Watch container for size changes (triggers when layout changes cause container to resize)
     // This ensures canvas resizes even when window doesn't resize but container does
@@ -2314,8 +2586,11 @@ export const createSpriteController = (
       });
       // Delay observing to prevent immediate triggers
       setTimeout(() => {
-        if (container && container.parentNode) {
-          containerResizeObserver.observe(container);
+        // Always observe the actual container in DOM (React might have recreated it)
+        const actualContainer = document.querySelector('.sketch-container') as HTMLElement;
+        const containerToObserve = (actualContainer && actualContainer.isConnected) ? actualContainer : container;
+        if (containerToObserve && containerToObserve.parentNode) {
+          containerResizeObserver.observe(containerToObserve);
         }
       }, 1200); // Start observing after setup completes
       
@@ -2328,14 +2603,13 @@ export const createSpriteController = (
       }
     }
     
-    // Also resize on fullscreen changes
+    // Also resize on fullscreen changes - SIMPLE: just resize once
     const handleFullscreenChange = () => {
-      // Use a longer delay to ensure browser has updated dimensions
       setTimeout(() => {
         if (canvasReady && canvas && canvas.elt) {
           performResize();
         }
-      }, 200);
+      }, 100);
     };
     
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -2343,7 +2617,7 @@ export const createSpriteController = (
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
     document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
-    p.draw = () => {
+    p.draw = function() {
       // CRITICAL: If canvas doesn't exist, something is very wrong
       if (!canvas || !canvas.elt) {
         console.error("p5.js draw() called but canvas doesn't exist!");
@@ -2370,13 +2644,106 @@ export const createSpriteController = (
         if (progress >= 1) {
           // Transition complete
           transitionState.isTransitioning = false;
-          currentState = transitionState.toState;
-          stateRef.current = { ...transitionState.toState };
+          // For pixellate, ensure final state has correct pixelation setting
+          if (transitionState.type === "pixellate") {
+            // Restore the target scene's pixelation setting
+            currentState = {
+              ...transitionState.toState,
+              pixelationEnabled: transitionState.toState.pixelationEnabled,
+              pixelationSize: transitionState.targetPixelationSize ?? 
+                (transitionState.toState.pixelationEnabled ? transitionState.toState.pixelationSize : 1),
+            };
+          } else {
+            currentState = transitionState.toState;
+          }
+          stateRef.current = { ...currentState };
           state = stateRef.current;
           // Recompute sprite with final state
           prepared = computeSprite(currentState);
+        } else if (transitionState.type === "pixellate") {
+          // Handle pixellate transition separately
+          // Phase 1 (0-0.5): Current scene pixelates up to max (50)
+          // Phase 2 (0.5-1.0): Next scene pixelates down from max to its saved setting
+          const MAX_PIXELATION = 50;
+          const targetPixelation = transitionState.targetPixelationSize ?? 
+            (transitionState.toState.pixelationEnabled ? transitionState.toState.pixelationSize : 1);
+          
+          let pixelationSize: number;
+          if (progress < 0.5) {
+            // Phase 1: Current scene increases pixelation to max
+            const phaseProgress = progress / 0.5; // 0 -> 1
+            const fromPixelation = transitionState.fromState.pixelationEnabled 
+              ? transitionState.fromState.pixelationSize 
+              : 1;
+            // Stepped: round to nearest integer
+            pixelationSize = Math.round(lerp(fromPixelation, MAX_PIXELATION, phaseProgress));
+            
+            // Clamp to valid range
+            pixelationSize = Math.max(1, Math.min(50, pixelationSize));
+            
+            // Keep using the FROM state (current scene) but with increased pixelation
+            currentState = {
+              ...transitionState.fromState,
+              pixelationEnabled: true, // Always enable during transition
+              pixelationSize: pixelationSize,
+            };
+            stateRef.current = { ...currentState };
+            state = stateRef.current;
+            prepared = computeSprite(currentState);
+          } else {
+            // Phase 2: Next scene decreases pixelation from max to target
+            const phaseProgress = (progress - 0.5) / 0.5; // 0 -> 1
+            // Stepped: round to nearest integer
+            pixelationSize = Math.round(lerp(MAX_PIXELATION, targetPixelation, phaseProgress));
+            
+            // Clamp to valid range
+            pixelationSize = Math.max(1, Math.min(50, pixelationSize));
+            
+            // Load new scene at max pixelation (progress = 0.5)
+            // Use a small window to catch the transition point
+            if (progress >= 0.5 && !transitionState.sceneLoadedAtMax) {
+              // Switch to new scene state at midpoint (mark as loaded)
+              transitionState.sceneLoadedAtMax = true;
+              // Start with the new scene at max pixelation
+              currentState = {
+                ...transitionState.toState,
+                pixelationEnabled: true,
+                pixelationSize: MAX_PIXELATION,
+              };
+              stateRef.current = { ...currentState };
+              state = stateRef.current;
+              prepared = computeSprite(currentState);
+            } else {
+              // Update current state with pixelation (next scene with decreasing pixelation)
+              // If target is 0 or pixelation is disabled in the scene, we need to handle that
+              const shouldEnablePixelation = targetPixelation > 1 || transitionState.toState.pixelationEnabled;
+              currentState = {
+                ...transitionState.toState,
+                // Enable pixelation during transition, but respect the target scene's setting
+                pixelationEnabled: shouldEnablePixelation,
+                pixelationSize: pixelationSize,
+              };
+              stateRef.current = { ...currentState };
+              state = stateRef.current;
+              prepared = computeSprite(currentState);
+            }
+          }
+        } else if (transitionState.type === "fade") {
+          // For fade transitions, keep both states separate and render them with opacity
+          // Don't interpolate state values - render both scenes simultaneously
+          // fromState will be rendered first with opacity (1 - progress)
+          // toState will be rendered second with opacity (progress)
+          // Compute sprites for both states independently
+          const preparedFrom = computeSprite(transitionState.fromState);
+          const preparedTo = computeSprite(transitionState.toState);
+          // Store both prepared sprite sets in transitionState for use in rendering
+          (transitionState as any).preparedFrom = preparedFrom;
+          (transitionState as any).preparedTo = preparedTo;
+          // Set currentState to fromState for now (we'll render both in the rendering section)
+          currentState = transitionState.fromState;
+          prepared = preparedFrom; // Use fromState prepared for now, but we'll render both
         } else {
-          // Interpolate state during transition
+          // Interpolate state during transition (for smooth transitions)
           currentState = interpolateGeneratorState(
             transitionState.fromState,
             transitionState.toState,
@@ -2388,14 +2755,11 @@ export const createSpriteController = (
             }
           );
           
-          // Recompute sprite with interpolated state if needed
-          // For smooth transitions, recompute every frame; for fade, use opacity
-          if (transitionState.type === "smooth") {
-            prepared = computeSprite(currentState, (currentState as any).__interpolatedPalette);
-          }
+          // Recompute sprite with interpolated state
+          prepared = computeSprite(currentState, (currentState as any).__interpolatedPalette);
         }
       }
-      const motionScale = clamp(currentState.motionIntensity / 100, 0, 1.5);
+      let motionScale = clamp(currentState.motionIntensity / 100, 0, 1.5);
       const deltaMs = typeof p.deltaTime === "number" ? p.deltaTime : 16.666;
       // Delta time for time-based effects
       (p as P5WithCanvas).deltaMs = deltaMs;
@@ -2443,10 +2807,10 @@ export const createSpriteController = (
       
       // Calculate animated hue shifts with smooth wrapping
       // Use modulo to ensure smooth transitions when wrapping (360° = 0°)
-      const animatedSpriteHueShift = currentState.hueRotationEnabled
+      let animatedSpriteHueShift = currentState.hueRotationEnabled
         ? ((spriteHueRotationTime / 10) * 360) % 360
         : 0;
-      const animatedCanvasHueShift = currentState.canvasHueRotationEnabled
+      let animatedCanvasHueShift = currentState.canvasHueRotationEnabled
         ? ((canvasHueRotationTime / 12) * 360) % 360
         : 0;
       
@@ -2511,7 +2875,8 @@ export const createSpriteController = (
       // Update tracking variable for next frame
       wasPaletteCycleEnabled = currentState.paletteCycleEnabled;
       
-      const backgroundHueShiftDegrees = ((currentState.backgroundHueShift / 100) * 360) + animatedCanvasHueShift;
+      // Calculate backgroundHueShiftDegrees - use let so it can be reassigned in fade transition loop
+      let backgroundHueShiftDegrees = ((currentState.backgroundHueShift / 100) * 360) + animatedCanvasHueShift;
       const MOTION_SPEED_MAX_INTERNAL = 12.5;
       // Apply mode-specific speed multiplier to normalize perceived speed across modes
       // Higher multiplier = slower animation (divide to slow down)
@@ -2703,7 +3068,208 @@ export const createSpriteController = (
         return color;
       };
       
-      // Handle canvas background (gradient or solid)
+      // Handle fade transitions - calculate opacities
+      const isFadeTransition = transitionState.isTransitioning && transitionState.type === "fade";
+      let fadeProgress = 0;
+      let fromOpacity = 1.0;
+      let toOpacity = 0.0;
+      
+      if (isFadeTransition) {
+        const elapsed = Date.now() - transitionState.startTime;
+        fadeProgress = calculateTransitionProgress(elapsed, transitionState.duration);
+        // Calculate opacities for crossfade
+        fromOpacity = 1 - fadeProgress; // Fade out: 1 → 0
+        toOpacity = fadeProgress; // Fade in: 0 → 1
+      }
+      
+      // For fade transitions, render both states with crossfade
+      // Calculate which states to render
+      const statesToRender = isFadeTransition && transitionState.fromState && transitionState.toState
+        ? [
+            { state: transitionState.fromState, prepared: (transitionState as any).preparedFrom, opacity: fromOpacity },
+            { state: transitionState.toState, prepared: (transitionState as any).preparedTo, opacity: toOpacity }
+          ]
+        : [{ state: currentState, prepared: prepared, opacity: 1.0 }];
+      
+      // Clear canvas first (for fade transitions, use black; otherwise normal background)
+      if (isFadeTransition) {
+        p.background(0, 0, 0);
+      }
+      
+      // Render each state (for fade: both states; otherwise: just current state)
+      statesToRender.forEach(({ state: renderState, prepared: renderPrepared, opacity: renderOpacity }) => {
+        // Save current state
+        const savedState = currentState;
+        const savedPrepared = prepared;
+        const savedActivePalette = activePalette;
+        const savedPaletteCycleInterpolation = paletteCycleInterpolation;
+        const savedAnimatedSpriteHueShift = animatedSpriteHueShift;
+        const savedAnimatedCanvasHueShift = animatedCanvasHueShift;
+        const savedBackgroundHueShiftDegrees = backgroundHueShiftDegrees;
+        const savedMotionScale = motionScale;
+        
+        // Swap to render state
+        currentState = renderState;
+        prepared = renderPrepared;
+        
+        // Recalculate state-dependent values for this state
+        const renderMotionScale = clamp(currentState.motionIntensity / 100, 0, 1.5);
+        const renderAnimatedSpriteHueShift = currentState.hueRotationEnabled
+          ? ((spriteHueRotationTime / 10) * 360) % 360
+          : 0;
+        const renderAnimatedCanvasHueShift = currentState.canvasHueRotationEnabled
+          ? ((canvasHueRotationTime / 12) * 360) % 360
+          : 0;
+        
+        // Get palette for this state
+        let renderActivePalette = getPalette(currentState.paletteId);
+        let renderPaletteCycleInterpolation = 0;
+        
+        if (currentState.paletteCycleEnabled) {
+          const allPalettes = getAllPalettes();
+          if (allPalettes.length > 0) {
+            const cycleProgress = (paletteCycleTime / 30) * allPalettes.length;
+            const fractionalPart = cycleProgress - Math.floor(cycleProgress);
+            const currentPaletteIndex = Math.floor(cycleProgress) % allPalettes.length;
+            const nextIndex = (currentPaletteIndex + 1) % allPalettes.length;
+            const easedT = fractionalPart < 0.5
+              ? 2 * fractionalPart * fractionalPart
+              : 1 - Math.pow(-2 * fractionalPart + 2, 2) / 2;
+            renderPaletteCycleInterpolation = easedT;
+            renderActivePalette = {
+              ...allPalettes[currentPaletteIndex],
+              colors: interpolatePaletteColors(
+                allPalettes[currentPaletteIndex].colors,
+                allPalettes[nextIndex].colors,
+                renderPaletteCycleInterpolation
+              ),
+            };
+          }
+        }
+        
+        const renderBackgroundHueShiftDegrees = ((currentState.backgroundHueShift / 100) * 360) + renderAnimatedCanvasHueShift;
+        
+        // Temporarily override these values for rendering
+        activePalette = renderActivePalette;
+        paletteCycleInterpolation = renderPaletteCycleInterpolation;
+        animatedSpriteHueShift = renderAnimatedSpriteHueShift;
+        animatedCanvasHueShift = renderAnimatedCanvasHueShift;
+        backgroundHueShiftDegrees = renderBackgroundHueShiftDegrees;
+        motionScale = renderMotionScale;
+        
+        // Set opacity for this state
+        p.push();
+        p.drawingContext.globalAlpha = renderOpacity;
+        
+        // Redefine helper functions to use the updated state-dependent values
+        // These functions are used in background and sprite rendering
+        const resolveBackgroundPaletteIdForState = () =>
+          currentState.backgroundMode === "auto" ? (currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId) : currentState.backgroundMode;
+        
+        const getBaseBackgroundColorForState = () => {
+          if (currentState.paletteCycleEnabled && currentState.backgroundMode === "auto" && activePalette) {
+            const bgColorIndex = calculateBackgroundColorIndex(
+              currentState.seed,
+              activePalette.id,
+              currentState.backgroundColorSeedSuffix || ""
+            );
+            const validBgIndex = activePalette.colors.length > 0
+              ? (bgColorIndex % activePalette.colors.length)
+              : 0;
+            const color = activePalette.colors[validBgIndex] ?? activePalette.colors[0];
+            if (activePalette.colors.length > 0 && activePalette.colors.every(c => c === activePalette.colors[0])) {
+              return activePalette.colors[0];
+            }
+            return color;
+          }
+          const bgPaletteId = resolveBackgroundPaletteIdForState();
+          const bgPalette = getPalette(bgPaletteId);
+          if (!bgPalette || bgPalette.colors.length === 0) {
+            const fallbackPalette = getPalette(currentState.paletteId);
+            return fallbackPalette?.colors[0] ?? "#000000";
+          }
+          const bgColorIndex = calculateBackgroundColorIndex(
+            currentState.seed,
+            bgPaletteId,
+            currentState.backgroundColorSeedSuffix || ""
+          );
+          const validBgIndex = bgPalette.colors.length > 0
+            ? (bgColorIndex % bgPalette.colors.length)
+            : 0;
+          const color = bgPalette.colors[validBgIndex] ?? bgPalette.colors[0];
+          if (bgPalette.colors.length > 0 && bgPalette.colors.every(c => c === bgPalette.colors[0])) {
+            return bgPalette.colors[0];
+          }
+          return color;
+        };
+        
+        const applyCanvasAdjustmentsForState = (hex: string) => {
+          let adjusted = shiftHue(hex, backgroundHueShiftDegrees);
+          const saturation = currentState.backgroundSaturation ?? 100;
+          const brightness = currentState.backgroundBrightness ?? 50;
+          const contrast = currentState.backgroundContrast ?? 100;
+          const brightnessPercent = brightness * 2;
+          adjusted = applyColorAdjustments(adjusted, saturation, brightnessPercent, contrast);
+          return adjusted;
+        };
+        
+        const getAnimatedTileColorForState = (tile: any, isThumbnailPrimary: boolean = false): string => {
+          if (currentState.thumbnailMode && isThumbnailPrimary) {
+            try {
+              if (typeof document !== 'undefined' && document.documentElement) {
+                const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-accent-base').trim();
+                if (accentColor && accentColor.length > 0) {
+                  const normalizedColor = accentColor.startsWith('#') ? accentColor : `#${accentColor}`;
+                  if (normalizedColor.length >= 4) {
+                    return normalizedColor;
+                  }
+                }
+              }
+            } catch (error) {
+              // Fall through
+            }
+            return '#2dd4bf';
+          }
+          if (currentState.thumbnailMode && !isThumbnailPrimary) {
+            try {
+              if (typeof document !== 'undefined' && document.documentElement) {
+                const tint600 = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary-tint600').trim();
+                if (tint600 && tint600.length > 0) {
+                  const normalizedColor = tint600.startsWith('#') ? tint600 : `#${tint600}`;
+                  if (normalizedColor.length >= 4) {
+                    return normalizedColor;
+                  }
+                }
+              }
+            } catch (error) {
+              // Fall through
+            }
+            return '#475569';
+          }
+          let color = tile.tint;
+          if (currentState.paletteCycleEnabled && activePalette) {
+            const paletteColor = activePalette.colors[tile.paletteColorIndex % activePalette.colors.length];
+            const variance = clamp(currentState.paletteVariance / 100, 0, 1.5);
+            const colorRng = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}`));
+            color = jitterColor(paletteColor, variance, colorRng);
+            if (!currentState.hueRotationEnabled) {
+              const staticHueShift = (currentState.hueShift / 100) * 360;
+              color = shiftHue(color, staticHueShift);
+            }
+          }
+          if (currentState.hueRotationEnabled) {
+            const staticHueShift = (currentState.hueShift / 100) * 360;
+            const totalHueShift = staticHueShift + animatedSpriteHueShift;
+            color = shiftHue(color, totalHueShift);
+          }
+          const saturation = currentState.saturation ?? 100;
+          const brightness = currentState.brightness ?? 100;
+          const contrast = currentState.contrast ?? 100;
+          color = applyColorAdjustments(color, saturation, brightness, contrast);
+          return color;
+        };
+        
+        // Handle canvas background (gradient or solid) for this state
       if (currentState.canvasFillMode === "gradient") {
         // Calculate gradient line for full canvas
         const gradientLine = calculateGradientLine(
@@ -2718,21 +3284,21 @@ export const createSpriteController = (
           gradientLine.y1,
         );
 
-        const resolveGradientPaletteId = () => {
+        const resolveGradientPaletteIdForState = () => {
           if (currentState.canvasGradientMode === "auto") {
-            return resolveBackgroundPaletteId();
+            return resolveBackgroundPaletteIdForState();
           }
           return currentState.canvasGradientMode;
         };
         // Use interpolated palette colors if palette cycling is enabled and using auto mode
-        const gradientPaletteId = resolveGradientPaletteId();
+        const gradientPaletteId = resolveGradientPaletteIdForState();
         const useInterpolatedForGradient = currentState.paletteCycleEnabled && 
           currentState.canvasGradientMode === "auto" && 
           activePalette;
         const gradientPalette = useInterpolatedForGradient 
           ? activePalette 
           : getPalette(gradientPaletteId);
-        const baseBgColor = getBaseBackgroundColor();
+        const baseBgColor = getBaseBackgroundColorForState();
         // For gradient, calculate start index using seeded RNG, then take next 3 colors (wrapping)
         const gradientSourceColors =
           gradientPalette.colors.length > 0
@@ -2754,7 +3320,7 @@ export const createSpriteController = (
         // Apply hue shift and brightness to each gradient color
         // This ensures user's hue shift/brightness settings are preserved when re-applying palette
         const gradientColors = gradientSourceColors
-          .map((color) => applyCanvasAdjustments(color))
+          .map((color) => applyCanvasAdjustmentsForState(color))
           .filter(Boolean);
 
         const usableGradientColors =
@@ -2762,7 +3328,7 @@ export const createSpriteController = (
             ? gradientColors
             : gradientColors.length === 1
             ? [...gradientColors, gradientColors[0]]
-            : [baseBgColor, baseBgColor].map((color) => applyCanvasAdjustments(color));
+            : [baseBgColor, baseBgColor].map((color) => applyCanvasAdjustmentsForState(color));
 
         usableGradientColors.forEach((color, index) => {
           const stop =
@@ -2799,11 +3365,11 @@ export const createSpriteController = (
         }
       } else {
         // Solid background - get base palette color and apply adjustments
-        // getBaseBackgroundColor() returns a palette color (using backgroundColorSeedSuffix for randomization)
-        // applyCanvasAdjustments() preserves hue shift and brightness settings
-        const baseBackgroundColor = getBaseBackgroundColor();
+        // getBaseBackgroundColorForState() returns a palette color (using backgroundColorSeedSuffix for randomization)
+        // applyCanvasAdjustmentsForState() preserves hue shift and brightness settings
+        const baseBackgroundColor = getBaseBackgroundColorForState();
         // Apply hue shift and brightness to the base color
-        const animatedBackground = applyCanvasAdjustments(baseBackgroundColor);
+        const animatedBackground = applyCanvasAdjustmentsForState(baseBackgroundColor);
         
         // Check if black background is enabled (read from localStorage each frame)
         let useBlackBackground = false;
@@ -2828,26 +3394,6 @@ export const createSpriteController = (
           p.background(finalBackground);
         }
       }
-      
-      // Apply fade transition opacity if transitioning
-      // For fade transitions, we fade the entire canvas during transition
-      let fadeOpacity = 1.0;
-      if (transitionState.isTransitioning && transitionState.type === "fade") {
-        const elapsed = Date.now() - transitionState.startTime;
-        const progress = calculateTransitionProgress(elapsed, transitionState.duration);
-        // Fade out from state, fade in to state
-        // At progress 0: opacity = 1 (fully visible)
-        // At progress 0.5: opacity = 0 (fully transparent, crossfade point)
-        // At progress 1: opacity = 1 (fully visible)
-        fadeOpacity = progress < 0.5 
-          ? 1 - (progress * 2) // Fade out: 1 -> 0
-          : (progress - 0.5) * 2; // Fade in: 0 -> 1
-      }
-      
-      // Set global alpha for fade transitions (will be reset after drawing)
-      if (transitionState.isTransitioning && transitionState.type === "fade") {
-        p.drawingContext.globalAlpha = fadeOpacity;
-      }
 
       const blendMap: Record<BlendModeKey, p5.BLEND_MODE> = {
         NONE: p.BLEND,
@@ -2871,56 +3417,53 @@ export const createSpriteController = (
         DARKEST: "darken",
         LIGHTEST: "lighten",
       };
-
-      // Depth of field setup
-      const MAX_BLUR_RADIUS = 48; // Maximum blur radius in pixels
-      // Increased threshold to skip blur for more sprites (performance optimization at high density)
-      // At 10% threshold, sprites within 10% of focus plane distance won't get blur applied
-      // This significantly improves performance when DoF is enabled with many tiles
-      const DOF_THRESHOLD = 0.1; // 10% threshold to skip blur for sprites close to focus
-      let minSize = Infinity;
-      let maxSize = 0;
-      
-      // First pass: collect all sprite sizes to determine z-index range
-      if (currentState.depthOfFieldEnabled) {
-        prepared.layers.forEach((layer, layerIndex) => {
-          if (layer.tiles.length === 0) {
-            return;
-          }
-          const baseLayerSize = drawSize * layer.baseSizeRatio;
-          
-          layer.tiles.forEach((tile, tileIndex) => {
-            if (tile.kind === "svg") {
-              const baseSpriteSize =
-                baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
-              const movement = computeMovementOffsets(currentState.movementMode, {
-                time: scaledAnimationTime * tile.animationTimeMultiplier,
-                phase: tileIndex * 7, // Use actual tile phase for accurate size calculation
-                motionScale,
-                layerIndex,
-                baseUnit: baseSpriteSize,
-                layerTileSize: baseLayerSize,
-                speedFactor: 1.0,
-              });
-              const spriteSize = baseSpriteSize * movement.scaleMultiplier;
-              minSize = Math.min(minSize, spriteSize);
-              maxSize = Math.max(maxSize, spriteSize);
+        
+        // Depth of field setup for this state
+        const MAX_BLUR_RADIUS = 48;
+        const DOF_THRESHOLD = 0.1;
+        let minSize = Infinity;
+        let maxSize = 0;
+        
+        // First pass: collect all sprite sizes to determine z-index range
+        if (currentState.depthOfFieldEnabled) {
+          prepared.layers.forEach((layer, layerIndex) => {
+            if (layer.tiles.length === 0) {
+              return;
             }
+            const baseLayerSize = drawSize * layer.baseSizeRatio;
+            
+            layer.tiles.forEach((tile, tileIndex) => {
+              if (tile.kind === "svg") {
+                const baseSpriteSize =
+                  baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
+                const movement = computeMovementOffsets(currentState.movementMode, {
+                  time: scaledAnimationTime * tile.animationTimeMultiplier,
+                  phase: tileIndex * 7,
+                  motionScale,
+                  layerIndex,
+                  baseUnit: baseSpriteSize,
+                  layerTileSize: baseLayerSize,
+                  speedFactor: 1.0,
+                  parallaxDepth: tile.parallaxDepth,
+                } as any);
+                const spriteSize = baseSpriteSize * movement.scaleMultiplier;
+                minSize = Math.min(minSize, spriteSize);
+                maxSize = Math.max(maxSize, spriteSize);
+              }
+            });
           });
-        });
-      }
-      
-      const sizeRange = maxSize - minSize;
-      // Only enable DoF if we have a valid size range and DoF is enabled
-      const hasValidSizeRange = sizeRange > 0 && isFinite(minSize) && isFinite(maxSize);
-      const focusZ = currentState.depthOfFieldEnabled && hasValidSizeRange
-        ? lerp(0, 1, currentState.depthOfFieldFocus / 100) // Normalized focus (0-1)
-        : 0.5;
-      const maxBlur = currentState.depthOfFieldEnabled && hasValidSizeRange
-        ? (currentState.depthOfFieldStrength / 100) * MAX_BLUR_RADIUS
-        : 0;
+        }
+        
+        const sizeRange = maxSize - minSize;
+        const hasValidSizeRange = sizeRange > 0 && isFinite(minSize) && isFinite(maxSize);
+        const focusZ = currentState.depthOfFieldEnabled && hasValidSizeRange
+          ? lerp(0, 1, currentState.depthOfFieldFocus / 100)
+          : 0.5;
+        const maxBlur = currentState.depthOfFieldEnabled && hasValidSizeRange
+          ? (currentState.depthOfFieldStrength / 100) * MAX_BLUR_RADIUS
+          : 0;
 
-      prepared.layers.forEach((layer, layerIndex) => {
+        prepared.layers.forEach((layer, layerIndex) => {
         if (layer.tiles.length === 0) {
           return;
         }
@@ -2946,9 +3489,21 @@ export const createSpriteController = (
           ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
           
           // Calculate movement offsets
-          // Normal wrapping for all modes - calculate first
+          // For parallax mode, ignore initial grid positions - all sprites start off-screen left
+          // For other modes, use normal wrapping
+          // CRITICAL: Ensure normalized coordinates are in [0, 1] range
+          // For line sprites, tile.v is already normalized to [0, 1] after post-processing
+          // For other sprites, tile.v might be outside [0, 1] due to movement, so wrap it
           let normalizedU = ((tile.u % 1) + 1) % 1;
-          let normalizedV = ((tile.v % 1) + 1) % 1;
+          // Check if this is a line sprite tile
+          const isLineSpriteTile = tile.spriteId === "line";
+          // For line sprites, tile.v is already in [0, 1] range, so clamp it instead of wrapping
+          // Wrapping would cause v=1 to become 0, which is incorrect
+          // CRITICAL: Line sprites use normalized v [0,1] where v=0 is top, v=1 is bottom
+          // The formula baseY = normalizedV * p.height correctly maps this to canvas coordinates
+          let normalizedV = isLineSpriteTile
+            ? clamp(tile.v, 0, 1) // Line sprites: clamp to [0, 1] (already normalized in post-processing)
+            : ((tile.v % 1) + 1) % 1; // Other sprites: wrap for movement modes
           let movement = { offsetX: 0, offsetY: 0, scaleMultiplier: 1 };
           
           if (tile.kind === "svg") {
@@ -2956,25 +3511,163 @@ export const createSpriteController = (
             // Get animated tile color (applies sprite hue rotation if enabled)
             // Pass isThumbnailPrimary flag so primary sprite can use theme accent color
             // Calculate inline to avoid any scope issues
-            const animatedTileColor = getAnimatedTileColor(
+            const animatedTileColor = getAnimatedTileColorForState(
               tile, 
               currentState.thumbnailMode && layerIndex === 0 && tileIndex === layer.tiles.length - 1
             );
             const baseSvgSize =
               baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
             
-            movement = computeMovementOffsets(currentState.movementMode, {
-              time: scaledAnimationTime * tile.animationTimeMultiplier, // Use per-tile animation time variation
-              phase: tileIndex * 7,
-              motionScale,
-              layerIndex,
-              baseUnit: baseSvgSize,
-              layerTileSize: baseLayerSize,
-              speedFactor: 1.0,
-            });
+            // Parallax mode: handle sprite recycling and depth-based movement
+            if (currentState.movementMode === "parallax" && tile.parallaxDepth !== undefined) {
+              // Get depth (0-1, where 0 = farthest, 1 = closest)
+              const depth = tile.parallaxDepth;
+              
+              // Calculate depth-based speed multiplier: closer (higher depth) = faster
+              const depthSpeedMultiplier = 1.0 + depth * 1.5; // Range: 1.0 to 2.5
+              
+              // Base parallax speed - pixels per animation second
+              // Use a reasonable base speed that works well with canvas dimensions
+              // At 100% motion speed, sprites should cross a 1920px canvas in ~5-10 seconds
+              const baseParallaxSpeed = 100; // pixels per animation second at base (faster for better visibility)
+              const horizontalSpeed = baseParallaxSpeed * depthSpeedMultiplier * motionScale;
+              
+              // Calculate sprite's world X position
+              // Sprites start distributed across canvas, move right, then recycle from left
+              const exitBuffer = baseSvgSize * 0.5; // Buffer for smooth exit/entry
+              
+              // Get initial position from grid (sprites start spread across canvas)
+              const initialU = tile.parallaxInitialU ?? normalizedU;
+              const initialX = initialU * p.width;
+              
+              // Calculate delay (in animation seconds)
+              const delay = tile.parallaxDelay ?? 0;
+              
+              // Calculate travel time from left edge to right edge (for recycling)
+              const travelDistance = p.width + exitBuffer * 2;
+              const travelTime = travelDistance / horizontalSpeed;
+              const recycleCycleTime = travelTime + delay;
+              
+              // Get current time with start phase offset (stagger sprites)
+              // Start phase can be negative (sprite already moving) or positive (sprite hasn't started yet)
+              const startPhase = tile.parallaxStartPhase ?? 0;
+              const currentTime = (scaledAnimationTime * tile.animationTimeMultiplier) + startPhase;
+              
+              // Calculate exit point
+              const exitX = p.width + exitBuffer;
+              
+              // Calculate X position if sprite started from initial position at time 0
+              // Then adjust based on currentTime (which includes start phase)
+              const xFromInitial = initialX + (currentTime * horizontalSpeed);
+              
+              // Determine sprite position
+              let currentWorldX: number;
+              let currentWorldY: number;
+              
+              // Check if sprite is in first journey (hasn't exited yet)
+              // Sprite is in first journey if: X is between initial position and exit point
+              // If X is negative (off-screen left due to negative start phase), it should recycle
+              // If X is past exit point, it should recycle
+              if (xFromInitial >= 0 && xFromInitial < exitX) {
+                // First journey: sprite is moving from initial position to exit
+                currentWorldX = xFromInitial;
+                // Use initial V position for first journey
+                // CRITICAL: For line sprites, use tile.v directly to preserve uniform distribution
+                // Don't use normalizedV which might have been modified
+                currentWorldY = isLineSpriteTile 
+                  ? tile.v * p.height  // Line sprites: use original tile.v for uniform distribution
+                  : normalizedV * p.height;  // Other sprites: use normalizedV
+              } else {
+                // Sprite is recycling (either exited right or started off-screen left)
+                let timeSinceExit: number;
+                let recycleCycleNumber: number;
+                
+                if (xFromInitial < 0) {
+                  // Sprite started off-screen left (negative start phase)
+                  // Calculate how long it's been since it would have been at -exitBuffer
+                  // Position relative to -exitBuffer: xFromInitial - (-exitBuffer) = xFromInitial + exitBuffer
+                  const distanceFromLeftEdge = xFromInitial + exitBuffer;
+                  const timeFromLeftEdge = distanceFromLeftEdge / horizontalSpeed;
+                  // This time represents where we are in a recycle cycle
+                  timeSinceExit = timeFromLeftEdge;
+                } else {
+                  // Sprite exited from the right
+                  // Calculate time when sprite would have exited (from initial position)
+                  const timeToExit = (exitX - initialX) / horizontalSpeed;
+                  timeSinceExit = currentTime - timeToExit;
+                }
+                
+                // Calculate which recycle cycle we're in
+                recycleCycleNumber = Math.floor(timeSinceExit / recycleCycleTime);
+                const timeInRecycleCycle = timeSinceExit % recycleCycleTime;
+                
+                // Calculate random Y position for this recycle cycle (deterministic)
+                // Y is within visible area plus 10% buffer (4.b requirement)
+                const yRng = createMulberry32(hashSeed(`${currentState.seed}-parallax-y-${layerIndex}-${tileIndex}-${recycleCycleNumber}`));
+                const yBuffer = p.height * 0.1; // 10% buffer
+                currentWorldY = yBuffer + (yRng() * (p.height - yBuffer * 2));
+                
+                if (timeInRecycleCycle < delay) {
+                  // Delay phase: sprite is off-screen left, waiting to enter
+                  currentWorldX = -exitBuffer;
+                } else {
+                  // Moving phase: sprite travels from left to right
+                  const moveTime = timeInRecycleCycle - delay;
+                  currentWorldX = -exitBuffer + (moveTime * horizontalSpeed);
+                }
+              }
+              
+              // Convert to normalized coordinates
+              normalizedU = currentWorldX / p.width;
+              // CRITICAL: For line sprites, preserve original normalizedV (from tile.v) for uniform distribution
+              // Don't recalculate from currentWorldY as it breaks uniform distribution
+              if (!isLineSpriteTile) {
+                normalizedV = currentWorldY / p.height;
+              }
+              // Line sprites: normalizedV already set from tile.v above, don't overwrite it
+              
+              // Calculate movement offsets
+              movement = {
+                offsetX: 0, // Already accounted for in normalizedU
+                offsetY: 0, // Already accounted for in normalizedV
+                scaleMultiplier: clampScale(1.0 + Math.sin(scaledAnimationTime * tile.animationTimeMultiplier * 0.08) * 0.05), // Breathing effect (10.b)
+              };
+            } else {
+              // Non-parallax mode: use standard movement calculation
+              movement = computeMovementOffsets(currentState.movementMode, {
+                time: scaledAnimationTime * tile.animationTimeMultiplier,
+                phase: tileIndex * 7,
+                motionScale,
+                layerIndex,
+                baseUnit: baseSvgSize,
+                layerTileSize: baseLayerSize,
+                speedFactor: 1.0,
+                parallaxDepth: tile.parallaxDepth, // Pass depth if available
+              } as any);
+            }
             
+            // CRITICAL: p5.js coordinate system - Y=0 is at TOP, Y increases downward
+            // For line sprites, ignore movement.offsetY to ensure uniform vertical distribution
+            // Line sprites: baseY = normalizedV * p.height where v [0,1] maps to Y [0, p.height]
             const baseX = offsetX + normalizedU * p.width + movement.offsetX;
-            const baseY = offsetY + normalizedV * p.height + movement.offsetY;
+            const baseY = isLineSpriteTile
+              ? normalizedV * p.height  // Line sprites: v=0 → Y=0 (top), v=1 → Y=p.height (bottom)
+              : offsetY + normalizedV * p.height + movement.offsetY;  // Other sprites: include offsets
+            
+            // DEBUG: Log first few line sprites to verify values (remove after debugging)
+            if (isLineSpriteTile && tileIndex < 5 && layerIndex === 0 && process.env.NODE_ENV === 'development') {
+              console.log(`[draw] Line sprite tileIndex=${tileIndex}, layerIndex=${layerIndex}:`, {
+                tileV: tile.v,
+                tileVType: typeof tile.v,
+                normalizedV: normalizedV,
+                pHeight: p.height,
+                calculatedY: baseY,
+                movementMode: currentState.movementMode,
+                spriteId: tile.spriteId,
+                // Check if tile object has been modified
+                tileKeys: Object.keys(tile)
+              });
+            }
             
             const finalMovement = movement;
             const svgSize = baseSvgSize * finalMovement.scaleMultiplier;
@@ -3077,20 +3770,37 @@ export const createSpriteController = (
             // Use actual rendered dimensions for clamping (especially important for line sprite)
             const halfWidth = finalWidth / 2;
             const halfHeight = finalHeight / 2;
-            const allowableOverflow = Math.max(Math.max(p.width, p.height) * 0.6, Math.max(finalWidth, finalHeight) * 1.25);
+            
+            // Calculate overflow allowance separately for X and Y axes
+            // For X: use width-based overflow (important for long horizontal line sprites)
+            // For Y: use height-based overflow (prevents line sprites from being pushed to bottom)
+            // For line sprites, use a larger Y overflow since they're very thin but we want full canvas distribution
+            const allowableOverflowX = Math.max(Math.max(p.width, p.height) * 0.6, finalWidth * 1.25);
+            const baseOverflowY = Math.max(p.width, p.height) * 0.6;
+            const heightBasedOverflowY = finalHeight * 1.25;
+            // For line sprites, ensure we have enough Y overflow for full canvas distribution
+            const allowableOverflowY = isLineSprite 
+              ? Math.max(baseOverflowY, p.height * 0.5) // Use at least 50% of canvas height for line sprites
+              : Math.max(baseOverflowY, heightBasedOverflowY);
             
             // Clamp positions to canvas bounds with overflow allowance
             // Note: baseX/baseY already includes movement.offsetX/offsetY, so don't add it again
             const clampedX = clamp(
               baseX,
-              offsetX + halfWidth - allowableOverflow,
-              offsetX + p.width - halfWidth + allowableOverflow,
+              offsetX + halfWidth - allowableOverflowX,
+              offsetX + p.width - halfWidth + allowableOverflowX,
             );
-            const clampedY = clamp(
-              baseY,
-              offsetY + halfHeight - allowableOverflow,
-              offsetY + p.height - halfHeight + allowableOverflow,
-            );
+            // For line sprites, use less restrictive Y clamping to allow full canvas distribution
+            // Line sprites are very thin, so they don't need as much vertical constraint
+            // Also compensate for movement offsets that might bias positions downward
+            // by ensuring the initial v position accounts for expected movement range
+            const clampedY = isLineSprite
+              ? baseY // Don't clamp Y for line sprites - allow full canvas distribution
+              : clamp(
+                  baseY,
+                  offsetY + halfHeight - allowableOverflowY,
+                  offsetY + p.height - halfHeight + allowableOverflowY,
+                );
             
             p.translate(clampedX, clampedY);
             const rotationTime = scaledAnimationTime; // Use smoothly accumulating scaled time
@@ -3457,7 +4167,24 @@ export const createSpriteController = (
           }
         });
 
-      p.pop();
+        p.pop(); // Close layer context
+        
+        p.pop(); // Close opacity context
+        }); // Close prepared.layers.forEach
+        
+        // Reset opacity after rendering this state
+        p.drawingContext.globalAlpha = 1.0;
+        
+        // Restore saved values
+        currentState = savedState;
+        prepared = savedPrepared;
+        activePalette = savedActivePalette;
+        paletteCycleInterpolation = savedPaletteCycleInterpolation;
+        animatedSpriteHueShift = savedAnimatedSpriteHueShift;
+        animatedCanvasHueShift = savedAnimatedCanvasHueShift;
+        backgroundHueShiftDegrees = savedBackgroundHueShiftDegrees;
+        motionScale = savedMotionScale;
+      }); // End of statesToRender.forEach
       
       // Reset global alpha after drawing (for fade transitions)
       if (transitionState.isTransitioning && transitionState.type === "fade") {
@@ -3529,10 +4256,20 @@ export const createSpriteController = (
       }
       
       // Apply Pixelation effects if enabled (after bloom, before noise)
-      if ((currentState.pixelationEnabled || currentState.colorQuantizationEnabled) && hasCanvas(p5Instance)) {
+      // Also apply during pixellate transitions (pixelation is controlled by transition state)
+      const shouldApplyPixelation = currentState.pixelationEnabled || 
+                                    currentState.colorQuantizationEnabled ||
+                                    (transitionState.isTransitioning && transitionState.type === "pixellate");
+      
+      if (shouldApplyPixelation && hasCanvas(p5Instance)) {
         const canvas = p5Instance.canvas as HTMLCanvasElement;
         if (canvas) {
-          const pixelationSize = currentState.pixelationEnabled ? currentState.pixelationSize : 1;
+          // During pixellate transition, use the transition-controlled pixelation size
+          // Otherwise use the state's pixelation size
+          const pixelationSize = (transitionState.isTransitioning && transitionState.type === "pixellate")
+            ? currentState.pixelationSize // Already set by transition logic
+            : (currentState.pixelationEnabled ? currentState.pixelationSize : 1);
+          
           const pixelationGridEnabled = currentState.pixelationGridEnabled;
           const pixelationGridBrightness = currentState.pixelationGridBrightness;
           const quantizationBits = currentState.colorQuantizationEnabled ? currentState.colorQuantizationBits : null;
@@ -3565,7 +4302,6 @@ export const createSpriteController = (
           );
         }
       }
-    });
 
       if (p.frameCount % 24 === 0) {
         options.onFrameRate?.(Math.round(p.frameRate()));
@@ -3620,7 +4356,7 @@ export const createSpriteController = (
 
   const controller: SpriteController = {
     getState: () => ({ ...stateRef.current }),
-    applyState: (newState: GeneratorState, transition: TransitionType = "instant") => {
+    applyState: (newState: GeneratorState, transition: TransitionType = "instant", durationMs?: number) => {
       if (transition === "instant") {
         // Instant transition - immediate state swap
       stateRef.current = { ...newState };
@@ -3631,13 +4367,30 @@ export const createSpriteController = (
       }
       
       // Start transition
+      // For pixellate transitions, duration comes from durationMs parameter (from scene's transitionTimeSeconds)
+      // For other transitions, use defaults
+      let transitionDuration = 1500; // Default 1.5s
+      if (transition === "fade") {
+        transitionDuration = 1000; // 1s for fade
+      } else if (transition === "smooth") {
+        transitionDuration = 2500; // 2.5s for smooth
+      } else if (transition === "pixellate") {
+        // Use provided duration or default to 1.5s
+        transitionDuration = durationMs ? durationMs : 1500;
+      }
+      
+      // For pixellate transitions, store the target pixelation size
+      const targetPixelationSize = newState.pixelationEnabled ? newState.pixelationSize : 1;
+      
       transitionState = {
         isTransitioning: true,
         fromState: { ...stateRef.current },
         toState: { ...newState },
         startTime: Date.now(),
-        duration: transition === "fade" ? 1000 : 2500, // 1s for fade, 2.5s for smooth
+        duration: transitionDuration,
         type: transition,
+        targetPixelationSize: transition === "pixellate" ? targetPixelationSize : undefined,
+        sceneLoadedAtMax: false,
       };
       
       // Update target state immediately (for discrete values)

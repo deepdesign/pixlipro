@@ -2,12 +2,13 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Dialog, DialogTitle, DialogBody, DialogActions } from "@/components/ui/dialog";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/ui/Input";
-import { Label, Field } from "@/components/ui/Fieldset";
+import { Textarea } from "@/components/ui/textarea";
+import { Label, Field, ErrorMessage } from "@/components/ui/Fieldset";
 import { SwitchField } from "@/components/ui/switch";
 import { Switch } from "@/components/ui/switch-adapter";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { Upload, FileText, Loader2 } from "lucide-react";
-import { validateSvg, extractSpriteNameFromSvg, optimizeSvg } from "@/lib/utils/svgOptimizer";
+import { validateSvg, extractSpriteNameFromSvg, optimizeSvg, removeSvgFrames } from "@/lib/utils/svgOptimizer";
 import { generateSpriteId } from "@/lib/storage/customSpriteStorage";
 import type { CustomSprite } from "@/lib/storage/customSpriteStorage";
 import { getCollection } from "@/constants/spriteCollections";
@@ -107,11 +108,15 @@ export function UploadSpriteModal({
   useEffect(() => {
     if (optimizeEnabled && svgContent && validateSvg(svgContent)) {
       setIsOptimizing(true);
-      optimizeSvg(svgContent)
+      // Ensure frames are removed before optimization
+      const frameRemovedSvg = removeSvgFrames(svgContent);
+      optimizeSvg(frameRemovedSvg)
         .then((result) => {
-          setOptimizedSvg(result.optimized);
+          // Remove frames from optimized result as well (in case optimization reintroduced them)
+          const finalOptimized = removeSvgFrames(result.optimized);
+          setOptimizedSvg(finalOptimized);
           setOriginalSize(result.originalSize);
-          setOptimizedSize(result.optimizedSize);
+          setOptimizedSize(new Blob([finalOptimized], { type: 'text/plain' }).size);
         })
         .catch((err) => {
           setError(err instanceof Error ? err.message : "Optimization failed");
@@ -147,7 +152,9 @@ export function UploadSpriteModal({
         return;
       }
 
-      setSvgContent(text);
+      // Remove frames from imported SVG (same processing as file-based sprites)
+      const processedSvg = removeSvgFrames(text);
+      setSvgContent(processedSvg);
       if (!spriteName) {
         // Extract name from filename
         const nameWithoutExt = file.name.replace(/\.svg$/i, '');
@@ -163,13 +170,17 @@ export function UploadSpriteModal({
 
   const handlePasteChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const text = e.target.value;
-    setSvgContent(text);
+    setError(null);
     
     if (text && !validateSvg(text)) {
       setError("Invalid SVG code");
-    } else {
-      setError(null);
+      setSvgContent(text); // Still set content so user can fix it
+      return;
     }
+    
+    // Remove frames from pasted SVG (same processing as file-based sprites)
+    const processedSvg = text ? removeSvgFrames(text) : text;
+    setSvgContent(processedSvg);
   }, []);
 
   const handleSave = useCallback(() => {
@@ -219,58 +230,74 @@ export function UploadSpriteModal({
       <DialogBody>
         <div className="space-y-6">
           {/* Mode Selection */}
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={mode === "upload" ? "default" : "outline"}
-              onClick={() => setMode("upload")}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload File
-            </Button>
-            <Button
-              type="button"
-              variant={mode === "paste" ? "default" : "outline"}
-              onClick={() => setMode("paste")}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Paste Code
-            </Button>
-          </div>
+          <Field>
+            <Label>Upload Method</Label>
+            <div data-slot="control" className="mt-3">
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={mode === "upload" ? "default" : "outline"}
+                  onClick={() => setMode("upload")}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload File
+                </Button>
+                <Button
+                  type="button"
+                  variant={mode === "paste" ? "default" : "outline"}
+                  onClick={() => setMode("paste")}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Paste Code
+                </Button>
+              </div>
+            </div>
+          </Field>
 
           {/* Upload Mode */}
           {mode === "upload" && (
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".svg"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Choose SVG File
-              </Button>
-            </div>
+            <Field>
+              <Label htmlFor="svg-file">SVG File</Label>
+              <div data-slot="control" className="mt-3">
+                <input
+                  ref={fileInputRef}
+                  id="svg-file"
+                  type="file"
+                  accept=".svg"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose SVG File
+                </Button>
+                {svgContent && (
+                  <p className="text-sm text-theme-muted mt-2">
+                    File selected: {spriteName || "SVG file"}
+                  </p>
+                )}
+              </div>
+            </Field>
           )}
 
           {/* Paste Mode */}
           {mode === "paste" && (
             <Field>
               <Label htmlFor="svg-code">SVG Code</Label>
-              <textarea
+              <Textarea
                 ref={textareaRef}
                 id="svg-code"
                 value={svgContent}
                 onChange={handlePasteChange}
                 placeholder="Paste SVG code here..."
-                className="w-full h-32 px-3 py-2 border border-theme-panel rounded-md bg-theme-select text-theme-primary font-mono text-sm"
+                rows={10}
+                resizable={true}
+                className="font-mono text-sm"
               />
             </Field>
           )}
@@ -315,77 +342,81 @@ export function UploadSpriteModal({
 
           {/* Preview Section */}
           {svgContent && validateSvg(svgContent) && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                {/* Original Preview */}
-                <div>
-                  <label className="block text-sm font-medium text-theme-primary">
-                    Original
-                  </label>
-                  <div className="mt-2 aspect-square bg-theme-panel rounded border border-theme-panel flex items-center justify-center overflow-hidden">
-                    {previewUrl ? (
-                      <img
-                        src={previewUrl}
-                        alt="Original"
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-theme-subtle text-xs">Loading...</div>
-                    )}
-                  </div>
-                  {originalSize > 0 && (
-                    <p className="text-xs text-theme-muted mt-1">
-                      {originalSize} bytes
-                    </p>
-                  )}
-                </div>
-
-                {/* Optimized Preview */}
-                {optimizeEnabled && (
+            <Field>
+              <Label>Preview</Label>
+              <div data-slot="control" className="mt-3">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Original Preview */}
                   <div>
-                    <label className="block text-sm font-medium text-theme-primary">
-                      Optimized
-                      {isOptimizing && (
-                        <Loader2 className="h-3 w-3 inline-block ml-2 animate-spin" />
-                      )}
-                    </label>
-                    <div className="mt-2 aspect-square bg-theme-panel rounded border border-theme-panel flex items-center justify-center overflow-hidden">
-                      {optimizedPreviewUrl ? (
+                    <Label className="text-sm font-medium mb-2">
+                      Original
+                    </Label>
+                    <div className="aspect-square bg-theme-panel rounded-lg border border-theme-border-card flex items-center justify-center overflow-hidden">
+                      {previewUrl ? (
                         <img
-                          src={optimizedPreviewUrl}
-                          alt="Optimized"
+                          src={previewUrl}
+                          alt="Original"
                           className="w-full h-full object-contain"
                         />
-                      ) : isOptimizing ? (
-                        <div className="text-theme-subtle text-xs">Optimizing...</div>
                       ) : (
-                        <div className="text-theme-subtle text-xs">No preview</div>
+                        <div className="text-theme-subtle text-xs">Loading...</div>
                       )}
                     </div>
-                    {optimizedSize > 0 && (
-                      <p className="text-xs text-theme-muted mt-1">
-                        {optimizedSize} bytes ({reductionPercent > 0 ? `-${reductionPercent}%` : '0%'})
+                    {originalSize > 0 && (
+                      <p className="text-xs text-theme-muted mt-2">
+                        {originalSize} bytes
                       </p>
                     )}
                   </div>
-                )}
+
+                  {/* Optimized Preview */}
+                  {optimizeEnabled && (
+                    <div>
+                      <Label className="text-sm font-medium mb-2">
+                        Optimized
+                        {isOptimizing && (
+                          <Loader2 className="h-3 w-3 inline-block ml-2 animate-spin" />
+                        )}
+                      </Label>
+                      <div className="aspect-square bg-theme-panel rounded-lg border border-theme-border-card flex items-center justify-center overflow-hidden">
+                        {optimizedPreviewUrl ? (
+                          <img
+                            src={optimizedPreviewUrl}
+                            alt="Optimized"
+                            className="w-full h-full object-contain"
+                          />
+                        ) : isOptimizing ? (
+                          <div className="text-theme-subtle text-xs">Optimizing...</div>
+                        ) : (
+                          <div className="text-theme-subtle text-xs">No preview</div>
+                        )}
+                      </div>
+                      {optimizedSize > 0 && (
+                        <p className="text-xs text-theme-muted mt-2">
+                          {optimizedSize} bytes ({reductionPercent > 0 ? `-${reductionPercent}%` : '0%'})
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </Field>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="text-sm text-status-error" role="alert">
-              {error}
-            </div>
+            <Field>
+              <ErrorMessage>{error}</ErrorMessage>
+            </Field>
           )}
         </div>
       </DialogBody>
       <DialogActions>
-        <Button variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={onClose}>
           Cancel
         </Button>
         <Button
+          type="button"
           onClick={handleSave}
           disabled={!svgContent || !validateSvg(svgContent) || !spriteName.trim() || !selectedCollectionId}
         >

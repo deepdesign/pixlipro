@@ -313,7 +313,26 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.7 Beta (Latest)
+### v0.3.9 Beta (Latest)
+
+**New Features:**
+- Added default sprite collections to Sprites page with lock icons (read-only)
+- Default collections now visible alongside custom collections for browsing all available sprites
+
+**Improvements:**
+- Fixed SVG frame removal for imported/pasted SVG code - frames are now automatically removed
+- Fixed modal styling - consistent background colors, borders, and backdrop overlay
+- Fixed theme colors for sprite previews - default collections now use theme-aware colors (tint50 in dark mode, textPrimary in light mode)
+- Fixed custom collections being incorrectly identified as file-based collections
+- Improved SVG processing pipeline for both custom and default collections
+
+### v0.3.8 Beta
+
+**Improvements:**
+- Enhanced SVG optimization and frame removal for imported sprites
+- Improved modal UI consistency
+
+### v0.3.7 Beta
 
 **Improvements:**
 - Fixed lock icon buttons in control panel to use link-icon-destructive variant with correct styling

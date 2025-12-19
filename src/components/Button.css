@@ -80,13 +80,13 @@
   color: var(--accent-primary-contrast);
 }
 
-/* Selected icon buttons with accent-primary maintain accent color on hover */
+/* Selected icon buttons with accent-primary - hover matches selected state exactly (no visual change) */
 .btn-default.btn-icon.btn-selected:hover:not(:disabled),
 .btn-default.btn-icon[class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
 button.btn-default.btn-icon[style*="--accent-primary"]:hover:not(:disabled) {
   background-color: var(--accent-primary) !important;
-  opacity: 0.9;
-  transition: background-color 100ms ease, opacity 100ms ease;
+  opacity: 1 !important; /* Match selected state exactly - no opacity change */
+  transition: none !important; /* No transition to prevent any visual change */
 }
 
 /* Icon button active state - uses theme accent color */
@@ -603,10 +603,22 @@ button.icon-button[style*="--accent-primary"]:hover:not(:disabled),
 .icon-button[style*="background-color: var(--accent-primary)"]:hover:not(:disabled),
 button[class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
 button.icon-button[class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
-.sprite-icon-buttons button[class*="bg-[var(--accent-primary)"]:hover:not(:disabled) {
+/* Selected sprite buttons - hover state matches selected state exactly (no visual change) */
+/* Override all default button hover styles for selected sprite buttons */
+.sprite-icon-buttons button[data-selected="true"][class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
+.sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button.btn-default[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button.btn-default.btn-icon[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button.btn.btn-default.btn-icon[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button[class*="btn"][class*="default"][class*="btn-icon"][data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons [class*="btn-default"][class*="btn-icon"][data-selected="true"]:hover:not(:disabled) {
   background-color: var(--accent-primary) !important;
-  opacity: 0.9;
-  transition: background-color 100ms ease, opacity 100ms ease !important;
+  background: var(--accent-primary) !important; /* Also set background shorthand */
+  opacity: 1 !important; /* Match selected state exactly - no opacity change */
+  color: var(--accent-primary-contrast) !important;
+  /* Remove all transitions to prevent any visual changes */
+  transition: none !important;
+  box-shadow: none !important;
 }
 
 /* Icon button active state - uses theme accent color (but can be overridden by specific variants) */
@@ -1347,12 +1359,13 @@ button[class*="btn"][class*="secondary"][class*="btn-icon"].btn-selected svg,
  * ============================================================================ */
 /* Primary icon (default) hover - must match .btn-hover.btn-default.btn-icon static state */
 /* Use maximum specificity and place at end of file to ensure it overrides all other rules */
-button.btn.btn-default.btn-icon:hover:not(:disabled),
-button.btn-default.btn-icon:hover:not(:disabled),
-.btn.btn-default.btn-icon:hover:not(:disabled),
-.btn-default.btn-icon:hover:not(:disabled),
-button[class*="btn"][class*="default"][class*="btn-icon"]:hover:not(:disabled),
-[class*="btn-default"][class*="btn-icon"]:hover:not(:disabled) {
+/* Exclude selected sprite buttons from default hover - they should have no hover state */
+button.btn.btn-default.btn-icon:hover:not(:disabled):not([data-selected="true"]),
+button.btn-default.btn-icon:hover:not(:disabled):not([data-selected="true"]),
+.btn.btn-default.btn-icon:hover:not(:disabled):not([data-selected="true"]),
+.btn-default.btn-icon:hover:not(:disabled):not([data-selected="true"]),
+button[class*="btn"][class*="default"][class*="btn-icon"]:hover:not(:disabled):not([data-selected="true"]),
+[class*="btn-default"][class*="btn-icon"]:hover:not(:disabled):not([data-selected="true"]) {
   background-color: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important; /* Same as static hover state */
   background: color-mix(in srgb, var(--accent-primary) 90%, transparent) !important; /* Also set background shorthand */
   opacity: 0.9 !important; /* Same as static hover state */
@@ -1386,5 +1399,44 @@ button.btn-link.btn-icon.btn-selected svg,
 button[class*="btn"][class*="link"][class*="btn-icon"].btn-selected svg,
 [class*="btn-link"][class*="btn-icon"].btn-selected svg {
   color: var(--accent-primary-contrast) !important; /* Same as active state */
+}
+
+/* ============================================================================
+ * SELECTED SPRITE BUTTONS - HOVER STATE
+ * ============================================================================ */
+/* CRITICAL: These rules must be at the end of the file with maximum specificity */
+/* to override all default button hover rules for selected sprite buttons */
+/* Light mode: hover matches selected state (no visual change) */
+.sprite-icon-buttons button[data-selected="true"][class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
+.sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button.btn-default[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button.btn-default.btn-icon[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button.btn.btn-default.btn-icon[data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons button[class*="btn"][class*="default"][class*="btn-icon"][data-selected="true"]:hover:not(:disabled),
+.sprite-icon-buttons [class*="btn-default"][class*="btn-icon"][data-selected="true"]:hover:not(:disabled) {
+  background-color: var(--accent-primary) !important;
+  background: var(--accent-primary) !important; /* Also set background shorthand */
+  opacity: 1 !important;
+  color: var(--accent-primary-contrast) !important;
+  transition: background-color 150ms ease !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* Dark mode: subtle hover - background becomes one tint darker */
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"][class*="bg-[var(--accent-primary)"]:hover:not(:disabled),
+[data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled),
+[data-theme="dark"] .sprite-icon-buttons button.btn-default[data-selected="true"]:hover:not(:disabled),
+[data-theme="dark"] .sprite-icon-buttons button.btn-default.btn-icon[data-selected="true"]:hover:not(:disabled),
+[data-theme="dark"] .sprite-icon-buttons button.btn.btn-default.btn-icon[data-selected="true"]:hover:not(:disabled),
+[data-theme="dark"] .sprite-icon-buttons button[class*="btn"][class*="default"][class*="btn-icon"][data-selected="true"]:hover:not(:disabled),
+[data-theme="dark"] .sprite-icon-buttons [class*="btn-default"][class*="btn-icon"][data-selected="true"]:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent-primary) 85%, black) !important;
+  background: color-mix(in srgb, var(--accent-primary) 85%, black) !important;
+  opacity: 1 !important;
+  color: var(--theme-primary-tint700) !important;
+  transition: background-color 150ms ease !important;
+  box-shadow: none !important;
+  border: 0 !important;
 }
 

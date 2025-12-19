@@ -18,6 +18,7 @@ export const MOVEMENT_MODES: Array<{ value: MovementMode; label: string }> = [
   { value: "linear", label: "Linear" },
   { value: "isometric", label: "Isometric" },
   { value: "triangular", label: "Triangular" },
+  { value: "parallax", label: "Parallax" },
 ];
 
 /**

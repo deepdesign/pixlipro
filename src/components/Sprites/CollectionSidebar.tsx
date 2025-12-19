@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/Button";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Lock } from "lucide-react";
 import type { CustomSpriteCollection } from "@/lib/storage/customSpriteStorage";
+import type { SpriteCollection } from "@/constants/spriteCollections";
 
 interface CollectionSidebarProps {
   selectedCollectionId: string | null;
   customCollections: CustomSpriteCollection[];
+  fileBasedCollections: SpriteCollection[];
   onSelectCollection: (collectionId: string) => void;
   onCreateCollection: () => void;
   onRenameCollection: (collectionId: string, newName: string) => void;
@@ -15,6 +17,7 @@ interface CollectionSidebarProps {
 export function CollectionSidebar({
   selectedCollectionId,
   customCollections,
+  fileBasedCollections,
   onSelectCollection,
   onCreateCollection,
   onRenameCollection,
@@ -24,13 +27,23 @@ export function CollectionSidebar({
   const [editName, setEditName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Only show custom collections (file-based collections are managed elsewhere)
-  const collections = customCollections.map(c => ({
+  // Combine file-based (default) collections and custom collections
+  // File-based collections come first, then custom collections
+  const fileBased = fileBasedCollections.map(c => ({
+    id: c.id,
+    name: c.label,
+    spriteCount: c.sprites.length,
+    isCustom: false,
+  }));
+  
+  const custom = customCollections.map(c => ({
     id: c.id,
     name: c.name,
     spriteCount: c.sprites.length,
     isCustom: true,
   }));
+  
+  const collections = [...fileBased, ...custom];
 
   // Focus input when editing starts
   useEffect(() => {
@@ -120,9 +133,14 @@ export function CollectionSidebar({
                   />
                 ) : (
                   <>
-                    <span className="flex-1 text-sm font-medium truncate">
-                      {collection.name}
-                    </span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {!collection.isCustom && (
+                        <Lock className="h-3 w-3 text-theme-subtle flex-shrink-0" />
+                      )}
+                      <span className="text-sm font-medium truncate">
+                        {collection.name}
+                      </span>
+                    </div>
                     <span className="text-xs text-theme-subtle">
                       {collection.spriteCount}
                     </span>

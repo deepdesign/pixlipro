@@ -100,6 +100,7 @@ const CanvasHoverWrapper = ({
   const overlayRef = useRef<HTMLDivElement>(null);
 
   if (isFullscreen) {
+    // In fullscreen, return children directly without wrapper - sketch-container handles its own sizing
     return <>{children}</>;
   }
 
@@ -823,8 +824,8 @@ const App = () => {
 
 
   const handleLoadPreset = useCallback(
-    (state: GeneratorState, transition?: "instant" | "fade" | "smooth") => {
-      controllerRef.current?.applyState(state, transition);
+    (state: GeneratorState, transition?: "instant" | "fade" | "smooth" | "pixellate", durationMs?: number) => {
+      controllerRef.current?.applyState(state, transition, durationMs);
     },
     [],
   );
@@ -1023,7 +1024,7 @@ const App = () => {
       <>
         {/* Canvas - always mounted but hidden when on other pages */}
         <div 
-          className={`canvas-card-shell ${isCanvasPage ? '' : 'hidden'}`}
+          className={`canvas-card-shell ${isCanvasPage ? '' : 'hidden'} ${isFullscreen ? 'canvas-card--fullscreen' : ''}`}
           ref={canvasCardShellRef}
         >
           {/* MINIMAL: Simple container - let CSS handle aspect ratio via padding-top trick */}
@@ -1032,9 +1033,19 @@ const App = () => {
             ready={ready}
             onFullscreenToggle={handleFullscreenToggle}
           >
+            {/* Stable container structure - always the same element, CSS handles fullscreen styling */}
             <div 
               className="w-full relative" 
-              style={{ paddingTop: '56.25%' }}
+              style={isFullscreen ? {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100vw',
+                height: '100vh',
+                paddingTop: 0,
+              } : { paddingTop: '56.25%' }}
             >
               <div
                 className="sketch-container absolute inset-0"

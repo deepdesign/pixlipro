@@ -21,6 +21,7 @@ export interface SequenceItem {
 
 // New types for enhanced sequence editor
 export type FadeType = 'cut' | 'crossfade' | 'fadeToBlack' | 'custom';
+export type TransitionType = 'fade' | 'pixellate';
 export type DurationMode = 'seconds' | 'manual';
 
 export interface SequenceScene {
@@ -36,6 +37,8 @@ export interface SequenceScene {
   durationMode: DurationMode; // 'seconds' | 'manual'
   fadeTypeOverride?: FadeType; // Override sequence default, undefined = use default
   fadeDurationSeconds?: number; // Duration of fade transition in seconds (default: 1.5)
+  transitionType?: TransitionType; // Transition type: 'fade' or 'pixellate'
+  transitionTimeSeconds?: number; // Duration of transition in seconds (default: 1.5)
   notes?: string; // Optional notes for live performance
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { createSpriteController } from "@/generator";
 import { createThumbnail, getCanvasFromP5 } from "@/lib/services/exportService";
 import type { GeneratorState } from "@/types/generator";
@@ -8,7 +8,7 @@ interface SceneThumbnailProps {
   size?: number;
 }
 
-export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
+function SceneThumbnailComponent({ state, size = 80 }: SceneThumbnailProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<ReturnType<typeof createSpriteController> | null>(null);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
@@ -17,31 +17,76 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
   const isInitializingRef = useRef(false);
 
   // Create a stable identifier for the state
+  // Always use full JSON to ensure uniqueness - seed alone is not unique enough
+  // This ensures we correctly identify when state actually changes
   const stateId = JSON.stringify(state);
 
   useEffect(() => {
-    // Don't re-initialize if we already have a thumbnail for this state
+    // Don't re-initialize if we already have a thumbnail for this exact state
+    // This is the key check - if stateId matches and we have a thumbnail, do nothing
     if (stateIdRef.current === stateId && thumbnail) {
-      return;
+      // Ensure loading state is false if we have a thumbnail
+      if (isLoading) {
+        setIsLoading(false);
+      }
+      return; // Already have thumbnail for this state, don't re-initialize
     }
 
-    // Prevent concurrent initializations
-    if (isInitializingRef.current) {
-      return;
+    // If we're already initializing the same state, wait
+    if (stateIdRef.current === stateId && isInitializingRef.current) {
+      return; // Already initializing this state
+    }
+
+    // If state changed while initializing, cancel previous and start new
+    if (isInitializingRef.current && stateIdRef.current !== stateId) {
+      // Cancel previous initialization
+      isInitializingRef.current = false;
+      if (controllerRef.current) {
+        try {
+          controllerRef.current.destroy();
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+        controllerRef.current = null;
+      }
     }
 
     if (!containerRef.current) return;
 
-    // Mark as initializing
+    // Check if container is actually laid out before proceeding
+    const container = containerRef.current;
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      // Container not ready, skip initialization
+      return;
+    }
+
+    // Mark as initializing and update stateId
+    const previousStateId = stateIdRef.current;
     isInitializingRef.current = true;
     stateIdRef.current = stateId;
 
-    // Reset loading state
+    // Only reset loading/thumbnail if this is actually a new state
+    // Don't clear existing thumbnail if state hasn't changed
+    const isNewState = previousStateId !== stateId;
+    if (isNewState || !thumbnail) {
     setIsLoading(true);
+      // Only clear thumbnail if state actually changed
+      if (isNewState) {
     setThumbnail(null);
+      }
+    }
 
-    // Create a hidden container for the preview
-    const container = containerRef.current;
+    // Clean up any existing controller first
+    if (controllerRef.current) {
+      try {
+        controllerRef.current.destroy();
+      } catch (error) {
+        console.error("SceneThumbnail: Error destroying existing controller:", error);
+      }
+      controllerRef.current = null;
+    }
+
     // Use 2x size for better thumbnail quality
     const containerSize = size * 2;
     
@@ -66,15 +111,26 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
     const initController = () => {
       // Check if container is properly laid out
       if (!checkLayout()) {
-        // Retry after a short delay
+        // Only retry a few times to avoid infinite loops
+        let retryCount = 0;
+        const maxRetries = 5;
+        const retry = () => {
+          if (retryCount >= maxRetries) {
+            console.warn("SceneThumbnail: Container not laid out after max retries, skipping");
+            setIsLoading(false);
+            isInitializingRef.current = false;
+            return;
+          }
+          retryCount++;
         setTimeout(() => {
           if (checkLayout()) {
             initController();
           } else {
-            console.warn("SceneThumbnail: Container not laid out, cannot initialize");
-            setIsLoading(false);
+              retry();
           }
         }, 100);
+        };
+        retry();
         return;
       }
 
@@ -153,10 +209,13 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
                 
                 const thumb = createThumbnail(canvasToCapture, size);
                 if (thumb && thumb.length > 0) {
+                  // Only update if state hasn't changed during capture
+                  if (stateIdRef.current === stateId) {
                   setThumbnail(thumb);
                   setIsLoading(false);
                   captured = true;
                   isInitializingRef.current = false; // Mark initialization complete
+                  }
                   
                   // Clean up polling and controller after capture
                   if (pollInterval) {
@@ -198,9 +257,9 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
             return;
           }
           
-          // Poll every 100ms
+          // Poll every 100ms, but with a shorter timeout to avoid too many contexts
           let attempts = 0;
-          const maxAttempts = 80; // 8 seconds total
+          const maxAttempts = 40; // 4 seconds total (reduced from 80)
           
           pollInterval = setInterval(() => {
             if (captured) {
@@ -221,6 +280,16 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
               if (pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
+              }
+              
+              // Clean up controller if we failed to capture
+              if (controllerRef.current) {
+                try {
+                  controllerRef.current.destroy();
+                } catch (error) {
+                  console.error("SceneThumbnail: Error destroying controller after timeout:", error);
+                }
+                controllerRef.current = null;
               }
               
               console.warn(`SceneThumbnail: Max attempts (${maxAttempts}) reached`);
@@ -253,9 +322,25 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
         console.error("SceneThumbnail: Failed to initialize controller:", error);
         setIsLoading(false);
         isInitializingRef.current = false;
-        return () => {
-          if (controllerRef.current) {
+        
+        // Clean up any partial controller
+        if (controllerRef.current) {
+          try {
             controllerRef.current.destroy();
+          } catch (destroyError) {
+            console.error("SceneThumbnail: Error destroying controller after init failure:", destroyError);
+          }
+          controllerRef.current = null;
+        }
+        
+        return () => {
+          // Cleanup on error
+          if (controllerRef.current) {
+            try {
+            controllerRef.current.destroy();
+            } catch (destroyError) {
+              // Ignore cleanup errors
+            }
             controllerRef.current = null;
           }
         };
@@ -271,14 +356,21 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
     });
 
     return () => {
+      // Cleanup function - ensure everything is destroyed
       cancelAnimationFrame(rafId);
+      isInitializingRef.current = false;
+      
+      // Destroy controller if it exists
       if (controllerRef.current) {
+        try {
         controllerRef.current.destroy();
+        } catch (error) {
+          console.error("SceneThumbnail: Error destroying controller in cleanup:", error);
+        }
         controllerRef.current = null;
       }
-      isInitializingRef.current = false;
     };
-  }, [stateId, size]);
+  }, [stateId, size]); // Only depend on stateId and size - thumbnail is a result, not a dependency
 
   return (
     <div 
@@ -322,6 +414,7 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
         </div>
       ) : thumbnail ? (
         <img
+          key={thumbnail} // Use thumbnail URL as key to prevent flickering
           src={thumbnail}
           alt="Scene preview"
           className="rounded border border-theme-panel"
@@ -338,4 +431,35 @@ export function SceneThumbnail({ state, size = 80 }: SceneThumbnailProps) {
     </div>
   );
 }
+
+// Memoize to prevent unnecessary re-renders that cause flashing
+export const SceneThumbnail = memo(SceneThumbnailComponent, (prevProps, nextProps) => {
+  // React.memo comparison: return true if props are equal (skip re-render), false if different (re-render)
+  
+  // Check size first (cheapest comparison)
+  if (prevProps.size !== nextProps.size) {
+    return false; // Props changed, should re-render
+  }
+  
+  // Handle null/undefined states
+  if (!prevProps.state || !nextProps.state) {
+    return prevProps.state === nextProps.state;
+  }
+  
+  // Quick reference check - if same object reference, definitely equal
+  if (prevProps.state === nextProps.state) {
+    return true; // Same object, skip re-render
+  }
+  
+  // Deep equality check using JSON.stringify
+  // This handles cases where loadSceneState creates new objects with same content
+  try {
+    const prevStateStr = JSON.stringify(prevProps.state);
+    const nextStateStr = JSON.stringify(nextProps.state);
+    return prevStateStr === nextStateStr; // true = equal (skip), false = different (re-render)
+  } catch (error) {
+    // If comparison fails, assume different to be safe
+    return false;
+  }
+});
 

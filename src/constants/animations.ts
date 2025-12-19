@@ -89,6 +89,13 @@ export const DEFAULT_ANIMATIONS: DefaultAnimation[] = [
     movementMode: "triangular",
     isDefault: true,
   },
+  {
+    id: "default-parallax",
+    name: "Parallax",
+    description: "Left-to-right parallax movement with depth-based speed",
+    movementMode: "parallax",
+    isDefault: true,
+  },
 ];
 
 /**

@@ -14,28 +14,51 @@ export function DurationControl({
   durationSeconds = 0,
   onChange,
 }: DurationControlProps) {
-  const [localSeconds, setLocalSeconds] = useState(
-    durationSeconds?.toString() || "0"
-  );
+  const totalSeconds = durationSeconds || 0;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  
+  const [localMinutes, setLocalMinutes] = useState(minutes.toString());
+  const [localSeconds, setLocalSeconds] = useState(seconds.toString().padStart(2, '0'));
 
   useEffect(() => {
-    setLocalSeconds(durationSeconds?.toString() || "0");
+    const total = durationSeconds || 0;
+    const mins = Math.floor(total / 60);
+    const secs = Math.floor(total % 60);
+    setLocalMinutes(mins.toString());
+    setLocalSeconds(secs.toString().padStart(2, '0'));
   }, [durationSeconds]);
 
   const handleModeChange = (mode: DurationMode) => {
     if (mode === "seconds") {
-      onChange(mode, parseFloat(localSeconds) || 0);
+      const mins = parseInt(localMinutes) || 0;
+      const secs = parseInt(localSeconds) || 0;
+      const total = mins * 60 + secs;
+      onChange(mode, total);
     } else {
       onChange(mode);
     }
   };
 
+  const handleMinutesChange = (value: string) => {
+    // Only allow digits, max 3 characters
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 3);
+    setLocalMinutes(digitsOnly);
+    const mins = parseInt(digitsOnly) || 0;
+    const secs = parseInt(localSeconds) || 0;
+    const total = mins * 60 + secs;
+    onChange("seconds", total);
+  };
+
   const handleSecondsChange = (value: string) => {
-    setLocalSeconds(value);
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue) && numValue >= 0) {
-      onChange("seconds", numValue);
-    }
+    // Only allow digits, max 2 characters, pad with leading zero
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 2);
+    const padded = digitsOnly.padStart(2, '0');
+    setLocalSeconds(padded);
+    const mins = parseInt(localMinutes) || 0;
+    const secs = parseInt(padded) || 0;
+    const total = mins * 60 + secs;
+    onChange("seconds", total);
   };
 
   return (
@@ -68,16 +91,26 @@ export function DurationControl({
       {durationMode === "seconds" ? (
         <div className="flex items-center gap-2">
           <Input
-            type="number"
-            min="0"
-            step="0.1"
+            type="text"
+            inputMode="numeric"
+            value={localMinutes}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMinutesChange(e.target.value)}
+            className="w-6 text-center text-sm"
+            placeholder="0"
+            maxLength={3}
+          />
+          <span className="text-sm text-theme-muted">:</span>
+          <Input
+            type="text"
+            inputMode="numeric"
             value={localSeconds}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSecondsChange(e.target.value)}
-            className="w-24"
-            placeholder="0"
+            className="w-5 text-center text-sm"
+            placeholder="00"
+            maxLength={2}
           />
           <span className="text-sm text-theme-muted">
-            seconds
+            (mm:ss)
           </span>
         </div>
       ) : (

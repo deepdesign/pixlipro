@@ -73,6 +73,8 @@ export const Input = forwardRef(function Input(
           'relative block w-full appearance-none rounded-lg px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]',
           // Typography
           'text-base/6 text-[var(--text-primary)] placeholder:text-[var(--text-subtle)] sm:text-sm/6',
+          // Caret color - ensure cursor is visible
+          'caret-[var(--text-primary)]',
           // Border
           'border border-[var(--select-border)] data-hover:border-[var(--select-hover)]',
           // Background color

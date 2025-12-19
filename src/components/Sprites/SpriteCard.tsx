@@ -50,14 +50,23 @@ export function SpriteCard({
 
   useEffect(() => {
     // Get the sprite preview color based on current theme
-    // Light mode: slate-800 (#1e293b - one shade lighter than slate-900, dark sprites)
-    // Dark mode: slate-100 (#f1f5f9 - one shade darker than slate-50, light sprites)
+    // Light mode: darkest tint of primary theme color (900/textPrimary)
+    // Dark mode: lightest primary theme color (050/tint50)
     const getSpriteColor = () => {
-      // Use theme state to determine color directly
+      if (typeof window === 'undefined') {
+        return theme === 'light' ? '#0f172a' : '#f8fafc'; // Fallback colors
+      }
+      
+      // Get theme colors dynamically from CSS variables
+      const root = document.documentElement;
       if (theme === 'light') {
-        return '#1e293b'; // slate-800 - one shade lighter for light mode (dark sprites)
+        // Light mode: use textPrimary (slate-900) or darkest tint
+        const textPrimary = getComputedStyle(root).getPropertyValue('--theme-primary-textPrimary').trim();
+        return textPrimary || '#0f172a'; // Fallback to slate-900
       } else {
-        return '#f1f5f9'; // slate-100 - one shade darker for dark mode (light sprites)
+        // Dark mode: use tint50 (lightest primary theme color)
+        const tint50 = getComputedStyle(root).getPropertyValue('--theme-primary-tint50').trim();
+        return tint50 || '#f8fafc'; // Fallback to slate-50
       }
     };
 

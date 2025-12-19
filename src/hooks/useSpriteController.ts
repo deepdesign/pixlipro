@@ -53,15 +53,21 @@ export function useSpriteController(containerRef: React.RefObject<HTMLDivElement
       // Verify parent is a valid container
       // Main app now uses simple div with padding-top (no canvas-wrapper)
       // ProjectorPage uses 'h-screen w-screen bg-black overflow-hidden'
+      // Fullscreen mode also uses 'h-screen w-screen' directly on sketch-container
       const hasValidClass = parentContainer.classList.contains('canvas-wrapper') ||
                             parentContainer.classList.contains('canvas-card-shell');
       const hasPaddingTop = parentContainer.style.paddingTop && parseFloat(parentContainer.style.paddingTop) > 0;
       const hasWidth = parentContainer.clientWidth > 0 || parentContainer.offsetWidth > 0;
+      const hasScreenClasses = parentContainer.classList.contains('h-screen') || 
+                               parentContainer.classList.contains('w-screen');
       const isMainApp = hasValidClass || hasPaddingTop || hasWidth;
-      const isProjectorPage = window.location.pathname === '/projector' || 
-                              parentContainer.classList.contains('h-screen');
+      const isProjectorPage = window.location.pathname === '/projector' || hasScreenClasses;
+      const isFullscreen = document.fullscreenElement !== null || 
+                          (document as any).webkitFullscreenElement !== null ||
+                          (document as any).mozFullScreenElement !== null ||
+                          (document as any).msFullscreenElement !== null;
       
-      if (!isMainApp && !isProjectorPage) {
+      if (!isMainApp && !isProjectorPage && !isFullscreen) {
         timeoutId = setTimeout(() => {
           if (isMounted) {
             initializeController();

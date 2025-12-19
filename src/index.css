@@ -1409,7 +1409,7 @@ body {
   caret-color: transparent;
 }
 
-/* Re-enable caret for actual text inputs and textareas */
+/* Re-enable caret for actual text inputs and textareas - use higher specificity */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -1417,9 +1417,26 @@ input[type="number"],
 input[type="search"],
 input[type="tel"],
 input[type="url"],
+input:not([type]),
 textarea,
-[contenteditable="true"] {
-  caret-color: auto;
+[contenteditable="true"],
+[data-slot="control"] input,
+[data-slot="control"] textarea {
+  caret-color: var(--text-primary) !important;
+}
+
+/* Number input spinners - show on hover */
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:hover::-webkit-outer-spin-button,
+input[type="number"]:focus::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
 /* Theme-specific body backgrounds are handled by CSS variables */
@@ -3433,22 +3450,28 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 }
 
 
-/* Selected sprite buttons - maintain accent color on hover (override general icon-button hover) */
+/* Selected sprite buttons - hover state matches selected state exactly (no visual change) */
 .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) {
   background-color: var(--accent-primary) !important;
-  opacity: 0.9;
+  opacity: 1 !important;
   color: var(--accent-primary-contrast) !important;
+  /* Remove any transitions to prevent visual changes */
+  transition: none !important;
 }
 
-/* Dark mode: selected sprite button icons use tint700 even on hover */
+/* Dark mode: selected sprite button icons - subtle hover (background becomes one tint darker) */
 [data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--accent-primary) 85%, black) !important;
+  background: color-mix(in srgb, var(--accent-primary) 85%, black) !important;
   color: var(--theme-primary-tint700) !important;
+  transition: background-color 150ms ease !important;
 }
 
 [data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg,
 [data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg[data-slot="icon"] {
   color: var(--theme-primary-tint700) !important;
   fill: var(--theme-primary-tint700) !important;
+  transition: none !important;
 }
 
 [data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg path,
@@ -3460,6 +3483,7 @@ body:has(.app-frame--stacked) .canvas-card-shell {
 [data-theme="dark"] .sprite-icon-buttons button[data-selected="true"]:hover:not(:disabled) svg ellipse {
   fill: var(--theme-primary-tint700) !important;
   stroke: none !important;
+  transition: none !important;
 }
 
 /* Ensure icons are centered in regenerate/refresh buttons */
@@ -6537,12 +6561,14 @@ html[data-theme="dark"] .export-quick-section {
   background: var(--bg-base) !important;
   box-shadow: none !important;
   z-index: 1;
-  overflow: hidden !important;
-  pointer-events: none;
+  overflow: visible !important;
+  pointer-events: auto !important;
   max-width: none !important;
   max-height: none !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
   gap: 0 !important;
-  flex-direction: row !important;
+  display: block !important;
 }
 
 .canvas-card--fullscreen .canvas-wrapper,
@@ -6555,55 +6581,41 @@ html[data-theme="dark"] .export-quick-section {
   position: fixed !important;
 }
 
-.canvas-card--fullscreen .canvas-wrapper {
-  position: relative !important;
-  width: 100vw !important;
-  height: 100svh !important;
-  height: 100vh !important; /* Fallback for browsers that don't support svh */
-  padding-top: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  max-width: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  overflow: visible !important;
-}
+/* Fullscreen mode - sketch-container is now directly h-screen w-screen, no wrapper needed */
 
+/* Fullscreen sketch-container - matches ProjectorPage approach */
 .canvas-card--fullscreen .sketch-container {
-  position: relative !important;
-  width: 100vw !important;
-  height: 100svh !important;
-  height: 100vh !important; /* Fallback for browsers that don't support svh */
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  overflow: hidden !important;
-}
-
-.canvas-card--fullscreen .sketch-container canvas {
-  display: block !important;
   position: absolute !important;
-  /* Fill the sketch-container which is centered in viewport */
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  overflow: hidden !important;
+  z-index: 1 !important;
+  background: var(--bg-base) !important;
+}
+
+.canvas-card--fullscreen .sketch-container canvas {
+  display: block !important;
+  position: relative !important;
+  /* Canvas should fill container while maintaining aspect ratio */
   width: 100% !important;
   height: 100% !important;
   max-width: 100% !important;
   max-height: 100% !important;
+  object-fit: contain !important;
   visibility: visible !important;
   opacity: 1 !important;
   z-index: 1 !important;
-  /* Remove any inline styles that might override */
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -6687,6 +6699,83 @@ html[data-theme="dark"] .export-quick-section {
 
 :fullscreen .display-column {
   overflow: visible !important;
+}
+
+/* Ensure canvas-card-shell fills viewport when in fullscreen */
+.canvas-card-shell:fullscreen,
+.canvas-card-shell:-webkit-full-screen,
+.canvas-card-shell:-moz-full-screen,
+.canvas-card-shell:-ms-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--bg-base) !important;
+}
+
+/* Ensure the padding-top div is removed in fullscreen */
+.canvas-card-shell:fullscreen > div[style*="paddingTop"],
+.canvas-card-shell:-webkit-full-screen > div[style*="paddingTop"],
+.canvas-card-shell:-moz-full-screen > div[style*="paddingTop"],
+.canvas-card-shell:-ms-fullscreen > div[style*="paddingTop"],
+.canvas-card--fullscreen > div[style*="paddingTop"],
+.canvas-card--fullscreen .canvas-wrapper {
+  padding-top: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  position: relative !important;
+}
+
+/* Ensure sketch-container fills viewport in fullscreen */
+.canvas-card-shell:fullscreen .sketch-container,
+.canvas-card-shell:-webkit-full-screen .sketch-container,
+.canvas-card-shell:-moz-full-screen .sketch-container,
+.canvas-card-shell:-ms-fullscreen .sketch-container,
+.canvas-card--fullscreen .sketch-container {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensure canvas is visible in fullscreen */
+.canvas-card-shell:fullscreen canvas,
+.canvas-card-shell:-webkit-full-screen canvas,
+.canvas-card-shell:-moz-full-screen canvas,
+.canvas-card-shell:-ms-fullscreen canvas,
+.canvas-card--fullscreen canvas {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 1 !important;
+  object-fit: contain !important;
+}
+
+/* Ensure canvas-card-shell itself is visible in fullscreen */
+.canvas-card-shell:fullscreen,
+.canvas-card-shell:-webkit-full-screen,
+.canvas-card-shell:-moz-full-screen,
+.canvas-card-shell:-ms-fullscreen {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* ABSOLUTE FINAL OVERRIDE: Lock gap at spacing.5 for small-canvas at ALL viewport sizes */

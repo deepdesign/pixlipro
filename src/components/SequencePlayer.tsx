@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/Button";
 import { Play, Pause, Square, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Sequence, SequenceItem } from "@/lib/storage/sequenceStorage";
+import type { Sequence, SequenceItem, SequenceScene } from "@/lib/storage/sequenceStorage";
 import type { GeneratorState } from "@/types/generator";
 import { getAllScenes, loadSceneState, type Scene } from "@/lib/storage/sceneStorage";
 
@@ -10,7 +10,7 @@ import type { TransitionType } from "@/generator";
 interface SequencePlayerProps {
   sequence: Sequence | null;
   currentState: GeneratorState | null;
-  onLoadScene: (state: GeneratorState, transition?: TransitionType) => void;
+  onLoadScene: (state: GeneratorState, transition?: TransitionType, durationMs?: number) => void;
   onRandomize: () => void;
 }
 
@@ -53,10 +53,17 @@ export function SequencePlayer({
   const loadCurrentScene = useCallback(() => {
     if (!currentItem || !currentScene) return;
     const state = loadSceneState(currentScene);
-    if (state) {
+    if (state && isNewFormat) {
+      // Use new format: check transitionType and transitionTimeSeconds
+      const scene = sequenceScenes[currentIndex];
+      const transitionType = scene.transitionType || "fade";
+      const transitionTimeMs = scene.transitionTimeSeconds ? scene.transitionTimeSeconds * 1000 : undefined;
+      onLoadScene(state, transitionType as any, transitionTimeMs);
+    } else if (state) {
+      // Old format: use transition from currentItem
       onLoadScene(state, currentItem.transition);
     }
-  }, [currentItem, currentScene, onLoadScene]);
+  }, [currentItem, currentScene, onLoadScene, isNewFormat, sequenceScenes, currentIndex]);
 
   // Start playback timer
   useEffect(() => {
