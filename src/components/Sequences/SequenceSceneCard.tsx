@@ -99,6 +99,21 @@ export function SequenceSceneCard({
     });
   };
 
+  const handleTransitionTypeChange = (transitionType: TransitionType) => {
+    onUpdate({
+      ...scene,
+      transitionType,
+    });
+  };
+
+  const handleTransitionTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value) || 1.5;
+    onUpdate({
+      ...scene,
+      transitionTimeSeconds: value,
+    });
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -277,17 +292,28 @@ export function SequenceSceneCard({
             </div>
           </div>
 
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="link"
-            size="icon"
-            onClick={() => onDelete(scene.id)}
-            title="Remove scene"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => onDuplicate(scene.id)}
+              title="Duplicate scene"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="link"
+              size="icon"
+              onClick={() => onDelete(scene.id)}
+              title="Remove scene"
+              className="text-status-error"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

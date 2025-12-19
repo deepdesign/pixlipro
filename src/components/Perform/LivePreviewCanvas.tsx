@@ -48,7 +48,7 @@ export function LivePreviewCanvas({ currentState, isPlaying, transition, transit
       try {
         const controller = createSpriteController(container, {
           onStateChange: () => {},
-          onFrameRateUpdate: (fps) => {
+          onFrameRate: (fps: number) => {
             if (isMounted) {
               setFrameRate(Math.round(fps));
             }

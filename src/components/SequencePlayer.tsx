@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/Button";
 import { Play, Pause, Square, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Sequence, SequenceItem, SequenceScene } from "@/lib/storage/sequenceStorage";
+import type { Sequence, SequenceItem } from "@/lib/storage/sequenceStorage";
 import type { GeneratorState } from "@/types/generator";
 import { getAllScenes, loadSceneState, type Scene } from "@/lib/storage/sceneStorage";
 

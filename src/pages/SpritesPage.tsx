@@ -102,15 +102,15 @@ function ReadOnlySpriteGrid({ collection }: { collection: SpriteCollection }) {
             });
             
             // Replace fill/stroke in style attributes
-            svgText = svgText.replace(/style\s*=\s*["']([^"']*)["']/gi, (_match, styleContent) => {
-              let newStyle = styleContent.replace(/fill\s*:\s*([^;]+)/gi, (_fillMatch, fillValue) => {
+            svgText = svgText.replace(/style\s*=\s*["']([^"']*)["']/gi, (_match: string, styleContent: string) => {
+              let newStyle = styleContent.replace(/fill\s*:\s*([^;]+)/gi, (_fillMatch: string, fillValue: string) => {
                 const trimmedFill = fillValue.trim().toLowerCase();
                 if (trimmedFill === 'none' || trimmedFill === 'transparent') {
                   return _fillMatch;
                 }
                 return `fill: ${spriteColor}`;
               });
-              newStyle = newStyle.replace(/stroke\s*:\s*([^;]+)/gi, (_strokeMatch, strokeValue) => {
+              newStyle = newStyle.replace(/stroke\s*:\s*([^;]+)/gi, (_strokeMatch: string, strokeValue: string) => {
                 const trimmedStroke = strokeValue.trim().toLowerCase();
                 if (trimmedStroke === 'none' || trimmedStroke === 'transparent') {
                   return _strokeMatch;

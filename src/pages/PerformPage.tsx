@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SettingsPageLayout } from "@/components/Settings/SettingsPageLayout";
 import { LivePreviewCanvas } from "@/components/Perform/LivePreviewCanvas";
 import { PlaybackControls } from "@/components/Perform/PlaybackControls";

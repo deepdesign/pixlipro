@@ -434,7 +434,7 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete, onEditScene
   );
 }
 
-export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose, onNavigateToPerform, onNavigateToCanvas }: SequenceManagerProps) {
+export function SequenceManager({ onLoadScene, onLoadPreset, onClose: _onClose, onNavigateToPerform: _onNavigateToPerform, onNavigateToCanvas }: SequenceManagerProps) {
   const handleLoadScene = onLoadScene || onLoadPreset; // Use onLoadScene if provided, fallback to onLoadPreset for backward compatibility
   
   // Handler to edit a scene - loads scene and navigates to canvas

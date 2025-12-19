@@ -1240,7 +1240,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
   
   // Track line sprite count and indices during first pass
   let lineSpriteCount = 0;
-  const lineSpriteIndices: number[] = []; // Store which tiles are line sprites
+  const lineSpriteIndices: Array<{ layerIndex: number; tileIndex: number; index: number }> = []; // Store which tiles are line sprites
   
   // Track global tile index for uniform distribution of line sprites
   // CRITICAL: Only increment for line sprites to ensure correct distribution
@@ -2012,7 +2012,7 @@ export const createSpriteController = (
   // Helper function to calculate canvas dimensions based on aspect ratio
   const calculateCanvasDimensions = (
     containerWidth: number,
-    containerHeight: number,
+    _containerHeight: number,
     isFullscreen: boolean
   ): { width: number; height: number } => {
     const state = getState();
@@ -2020,7 +2020,6 @@ export const createSpriteController = (
     const minCanvasHeight = 240;
     
     let targetWidth: number;
-    let targetHeight: number;
     
     if (isFullscreen) {
       // In fullscreen, fit to viewport while maintaining aspect ratio
@@ -2108,7 +2107,6 @@ export const createSpriteController = (
     } else {
       // In normal mode, use container dimensions
       targetWidth = Math.max(minCanvasWidth, containerWidth);
-      targetHeight = containerHeight;
       
       // Calculate dimensions based on aspect ratio
       switch (state.aspectRatio) {
@@ -2915,158 +2913,6 @@ export const createSpriteController = (
       
       const ctx = p.drawingContext as CanvasRenderingContext2D;
       ctx.imageSmoothingEnabled = false;
-      const resolveBackgroundPaletteId = () =>
-        currentState.backgroundMode === "auto" ? (currentState.paletteCycleEnabled ? activePalette.id : currentState.paletteId) : currentState.backgroundMode;
-      
-      // Get base background color (without hue shift) for animated hue rotation
-      const getBaseBackgroundColor = () => {
-        // If palette cycling is enabled and using auto mode, use interpolated palette colors directly
-        // This ensures smooth transitions without jumps when cycling between palettes
-        if (currentState.paletteCycleEnabled && currentState.backgroundMode === "auto" && activePalette) {
-          const bgColorIndex = calculateBackgroundColorIndex(
-            currentState.seed,
-            activePalette.id,
-            currentState.backgroundColorSeedSuffix || ""
-          );
-          const validBgIndex = activePalette.colors.length > 0
-            ? (bgColorIndex % activePalette.colors.length)
-            : 0;
-          const color = activePalette.colors[validBgIndex] ?? activePalette.colors[0];
-          
-          // If all colors in palette are identical, always use the first color
-          // This prevents random color selection from causing issues with monochrome palettes
-          if (activePalette.colors.length > 0 && activePalette.colors.every(c => c === activePalette.colors[0])) {
-            return activePalette.colors[0];
-          }
-          return color;
-        }
-        
-        // Otherwise use discrete palette
-        const bgPaletteId = resolveBackgroundPaletteId();
-        const bgPalette = getPalette(bgPaletteId);
-        
-        // Safety check: if palette not found, fall back to sprite palette
-        if (!bgPalette || bgPalette.colors.length === 0) {
-          const fallbackPalette = getPalette(currentState.paletteId);
-          return fallbackPalette?.colors[0] ?? "#000000";
-        }
-        
-        // Calculate background color index using seeded RNG with optional suffix
-        const bgColorIndex = calculateBackgroundColorIndex(
-          currentState.seed,
-          bgPaletteId,
-          currentState.backgroundColorSeedSuffix || ""
-        );
-        // Wrap index to valid range
-        const validBgIndex = bgPalette.colors.length > 0
-          ? (bgColorIndex % bgPalette.colors.length)
-          : 0;
-        const color = bgPalette.colors[validBgIndex] ?? bgPalette.colors[0];
-        
-        // If all colors in palette are identical, always use the first color
-        // This prevents random color selection from causing issues with monochrome palettes
-        if (bgPalette.colors.length > 0 && bgPalette.colors.every(c => c === bgPalette.colors[0])) {
-          return bgPalette.colors[0];
-        }
-        return color;
-      };
-      
-      const applyCanvasAdjustments = (hex: string) => {
-        // Apply hue shift first
-        let adjusted = shiftHue(hex, backgroundHueShiftDegrees);
-        // Then apply saturation, brightness, and contrast adjustments
-        const saturation = currentState.backgroundSaturation ?? 100;
-        const brightness = currentState.backgroundBrightness ?? 50;
-        const contrast = currentState.backgroundContrast ?? 100;
-        // Convert brightness from 0-100 range (0=black, 50=normal, 100=white) 
-        // to 0-200 range (0=black, 100=normal, 200=white) for applyColorAdjustments
-        const brightnessPercent = brightness * 2; // Map 0-100 to 0-200
-        adjusted = applyColorAdjustments(adjusted, saturation, brightnessPercent, contrast);
-        return adjusted;
-      };
-      
-      // Helper function to get animated tile color
-      // Handles palette cycling (updates color from animated palette) and sprite hue rotation
-      const getAnimatedTileColor = (tile: PreparedTile, isThumbnailPrimary: boolean = false): string => {
-        // In thumbnail mode, primary sprite uses theme accent color
-        if (currentState.thumbnailMode && isThumbnailPrimary) {
-          // Get theme accent color from CSS variable
-          try {
-            if (typeof document !== 'undefined' && document.documentElement) {
-              const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-accent-base').trim();
-              // Accept any non-empty value (CSS variables might have different formats)
-              if (accentColor && accentColor.length > 0) {
-                // Ensure it starts with # if it's a hex color
-                const normalizedColor = accentColor.startsWith('#') ? accentColor : `#${accentColor}`;
-                // Basic validation - just check it's not empty and looks like a color
-                if (normalizedColor.length >= 4) {
-                  return normalizedColor;
-                }
-              }
-            }
-          } catch (error) {
-            // Silently fall through to default
-          }
-          // Fallback to default teal if CSS variable not available
-          return '#2dd4bf';
-        }
-        
-        // In thumbnail mode, background sprites (non-primary) use tint 600 of primary theme color
-        if (currentState.thumbnailMode && !isThumbnailPrimary) {
-          // Get theme primary tint 600 from CSS variable
-          try {
-            if (typeof document !== 'undefined' && document.documentElement) {
-              const tint600 = getComputedStyle(document.documentElement).getPropertyValue('--theme-primary-tint600').trim();
-              // Accept any non-empty value (CSS variables might have different formats)
-              if (tint600 && tint600.length > 0) {
-                // Ensure it starts with # if it's a hex color
-                const normalizedColor = tint600.startsWith('#') ? tint600 : `#${tint600}`;
-                // Basic validation - just check it's not empty and looks like a color
-                if (normalizedColor.length >= 4) {
-                  return normalizedColor;
-                }
-              }
-            }
-          } catch (error) {
-            // Silently fall through to default
-          }
-          // Fallback to default slate-600 if CSS variable not available
-          return '#475569';
-        }
-        
-        let color = tile.tint;
-        
-        // If palette cycling is enabled, get color from animated palette and reapply variance
-        if (currentState.paletteCycleEnabled && activePalette) {
-          const paletteColor = activePalette.colors[tile.paletteColorIndex % activePalette.colors.length];
-          // Apply variance deterministically (same seed-based RNG as in computeSprite)
-          const variance = clamp(currentState.paletteVariance / 100, 0, 1.5);
-          const colorRng = createMulberry32(hashSeed(`${currentState.seed}-color${currentState.colorSeedSuffix || ""}-${tile.u}-${tile.v}`));
-          color = jitterColor(paletteColor, variance, colorRng);
-          // Don't apply static hue shift here if hue rotation is enabled (will be applied below)
-          if (!currentState.hueRotationEnabled) {
-            const staticHueShift = (currentState.hueShift / 100) * 360;
-            color = shiftHue(color, staticHueShift);
-          }
-        }
-        
-        // Apply sprite hue rotation (combines static and animated shifts)
-        if (currentState.hueRotationEnabled) {
-          const staticHueShift = (currentState.hueShift / 100) * 360;
-          const totalHueShift = staticHueShift + animatedSpriteHueShift;
-          color = shiftHue(color, totalHueShift);
-        }
-        
-        // Apply saturation, brightness, and contrast adjustments
-        // Always apply (even at 100% defaults) to ensure code path is executed
-        const saturation = currentState.saturation ?? 100;
-        const brightness = currentState.brightness ?? 100;
-        const contrast = currentState.contrast ?? 100;
-        // Always apply adjustments - the function handles 100% as "no change"
-        color = applyColorAdjustments(color, saturation, brightness, contrast);
-        
-        return color;
-      };
       
       // Handle fade transitions - calculate opacities
       const isFadeTransition = transitionState.isTransitioning && transitionState.type === "fade";

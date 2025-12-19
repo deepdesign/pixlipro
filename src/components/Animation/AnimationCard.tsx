@@ -28,6 +28,7 @@ function getWaveformForMode(mode: MovementMode): string {
     linear: "Sine (Oscillation)",
     isometric: "Sine (Oscillation)",
     triangular: "Sine (Oscillation)",
+    parallax: "Sine/Cosine",
   };
   return waveformMap[mode] || "Unknown";
 }
