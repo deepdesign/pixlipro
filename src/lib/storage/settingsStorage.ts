@@ -44,6 +44,7 @@ export interface AppSettings {
   remoteControlEnabled: boolean;
   remoteControlPort: number;
   canvasBlackBackground: boolean;
+  projectorMaxResolution: "720p" | "1080p" | "1440p" | "4k" | "unlimited";
   integrations: IntegrationSettings;
 }
 
@@ -56,6 +57,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   remoteControlEnabled: false,
   remoteControlPort: 8080,
   canvasBlackBackground: false,
+  projectorMaxResolution: "1080p",
   integrations: {
     osc: {
       enabled: false,

@@ -347,6 +347,19 @@ export function SpriteControls({
           disabled={!ready}
           tooltip="Expands or tightens the difference between the smallest and largest sprites."
         />
+        <ControlSlider
+          id="scale-weighting"
+          label="Scale weighting"
+          min={0}
+          max={100}
+          value={Math.round(spriteState.scaleWeighting ?? 50)}
+          displayValue={spriteState.scaleWeighting !== undefined && spriteState.scaleWeighting !== 50 
+            ? (spriteState.scaleWeighting < 50 ? "Sm" : "Lg") 
+            : "—"}
+          onChange={(value) => controller?.setScaleWeighting(value)}
+          disabled={!ready}
+          tooltip="Adjusts the distribution of sprite sizes. Low values favor smaller sprites, high values favor larger sprites."
+        />
         {hasLineSprite && (
           <ControlSlider
             id="lines-ratio"

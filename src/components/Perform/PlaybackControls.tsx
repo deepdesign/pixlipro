@@ -143,8 +143,8 @@ export function PlaybackControls({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const previousSequenceIdRef = useRef<string | null>(null);
   const sequenceIdWhenPlaybackStartedRef = useRef<string | null>(null);
-  // Memoize allScenes to prevent creating new array/object references on every render
-  const allScenes = useMemo(() => getAllScenes(), []);
+  // Get all scenes - refresh when sequence changes
+  const allScenes = useMemo(() => getAllScenes(), [sequence?.id]);
   const [localSequence, setLocalSequence] = useState<Sequence | null>(sequence);
 
   // Update local sequence when prop changes
@@ -160,6 +160,14 @@ export function PlaybackControls({
     }
     setLocalSequence(sequence);
   }, [sequence, playbackState]);
+
+  // Initialize playback tracking if returning with persisted "playing" state
+  // This handles the case where user navigates away and back while playing
+  useEffect(() => {
+    if (playbackState === "playing" && sequence && !sequenceIdWhenPlaybackStartedRef.current) {
+      sequenceIdWhenPlaybackStartedRef.current = sequence.id;
+    }
+  }, [playbackState, sequence]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -268,11 +276,21 @@ export function PlaybackControls({
     }
   }, [localSequence, sequenceItems, playbackState, onLoadScene, onCurrentIndexChange, allScenes]);
 
-  // Auto-advance to next scene
-  const handleNext = useCallback(() => {
-    if (!localSequence || sequenceItems.length === 0) return;
+  // Use ref to get current index without recreating callback
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+  
+  const sequenceItemsRef = useRef(sequenceItems);
+  sequenceItemsRef.current = sequenceItems;
 
-    const nextIndex = (currentIndex + 1) % sequenceItems.length;
+  // Auto-advance to next scene - stable callback that reads from refs
+  const handleNext = useCallback(() => {
+    const items = sequenceItemsRef.current;
+    const idx = currentIndexRef.current;
+    
+    if (!localSequence || items.length === 0) return;
+
+    const nextIndex = (idx + 1) % items.length;
     if (nextIndex === 0) {
       // Reached end, stop
       onPlaybackStateChange("stopped");
@@ -282,15 +300,18 @@ export function PlaybackControls({
 
     onCurrentIndexChange(nextIndex);
     // Don't call loadCurrentScene here - it will be triggered by the useEffect when index changes
-  }, [sequence?.id, sequenceItems.length, currentIndex, onPlaybackStateChange, onCurrentIndexChange]);
+  }, [localSequence, onPlaybackStateChange, onCurrentIndexChange]);
 
   const handlePrevious = useCallback(() => {
-    if (!localSequence || sequenceItems.length === 0) return;
+    const items = sequenceItemsRef.current;
+    const idx = currentIndexRef.current;
+    
+    if (!localSequence || items.length === 0) return;
 
-    const prevIndex = currentIndex > 0 ? currentIndex - 1 : sequenceItems.length - 1;
+    const prevIndex = idx > 0 ? idx - 1 : items.length - 1;
     onCurrentIndexChange(prevIndex);
     // Don't call loadCurrentScene here - it will be triggered by the useEffect when index changes
-  }, [sequence?.id, sequenceItems.length, currentIndex, onCurrentIndexChange]);
+  }, [localSequence, onCurrentIndexChange]);
 
   const handlePlay = () => {
     if (!localSequence || sequenceItems.length === 0) return;
@@ -317,8 +338,13 @@ export function PlaybackControls({
     sequenceIdWhenPlaybackStartedRef.current = null;
   };
 
+  // Track if component is mounted to handle returning from navigation
+  const isMountedRef = useRef(false);
+  
   // Start playback timer
   useEffect(() => {
+    isMountedRef.current = true;
+    
     if (playbackState !== "playing" || !currentItem) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -327,9 +353,14 @@ export function PlaybackControls({
       return;
     }
 
-    // If duration is 0, don't auto-advance
+    // If duration is 0, don't auto-advance (manual mode)
     if (currentItem.duration === 0) {
       return;
+    }
+
+    // Clear any existing interval before starting new one
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
     }
 
     // Start countdown
@@ -345,31 +376,38 @@ export function PlaybackControls({
     };
   }, [playbackState, currentItem?.id, currentItem?.duration, handleNext]);
 
-  // Load scene when index changes or when starting playback
-  // Only load if actually playing (not just switching sequences)
+  // Load scene when index changes or when starting/resuming playback
   useEffect(() => {
-    // Don't load scenes when just switching sequences - only load when actually playing
+    // Don't load scenes when not playing
     if (playbackState !== "playing" || !currentItem || !currentScene || !onLoadScene) {
       return;
     }
 
-    // Don't load scenes if sequence changed but playback hasn't started for the new sequence yet
-    // This prevents loading a scene when user just selects a new sequence while another is playing
-    if (currentIndex === 0 && sequence?.id !== sequenceIdWhenPlaybackStartedRef.current) {
-      // We're at index 0 but playback hasn't been started for this sequence yet
-      // This means user just selected a new sequence - don't load the scene yet
-      // Let the existing sequence keep playing until user presses play
+    // Guard: Don't load scenes if user just selected a NEW sequence while playback is active
+    // (This prevents loading scene 0 of a new sequence when another sequence was playing)
+    // But DO load if: 
+    // 1. We're not at index 0 (user is mid-sequence)
+    // 2. OR the ref matches (playback was started for this sequence)
+    // 3. OR the ref is being set in this render cycle (returning from navigation)
+    const refMatchesOrBeingSet = 
+      sequenceIdWhenPlaybackStartedRef.current === sequence?.id || 
+      !sequenceIdWhenPlaybackStartedRef.current; // Will be set by init effect
+    
+    if (currentIndex === 0 && !refMatchesOrBeingSet) {
       return;
+    }
+
+    // Ensure ref is set (in case we're returning from navigation)
+    if (!sequenceIdWhenPlaybackStartedRef.current && sequence) {
+      sequenceIdWhenPlaybackStartedRef.current = sequence.id;
     }
 
     const state = loadSceneState(currentScene);
     if (!state) return;
 
     // Transitions are handled in PerformPage's handleLoadScene callback
-    // It will get the transition from the previous scene (transitions are applied BETWEEN scenes, not at start)
-    // For the first scene (index 0), there's no previous scene, so no transition
     onLoadScene(state);
-  }, [currentIndex, playbackState, currentItem?.id, currentScene?.id, onLoadScene, isNewFormat, sequenceScenes, items, sequence?.id]);
+  }, [currentIndex, playbackState, currentItem?.id, currentScene?.id, onLoadScene, sequence?.id]);
 
   if (!localSequence) {
     return (

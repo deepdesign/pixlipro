@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { SettingsPageLayout } from "@/components/Settings/SettingsPageLayout";
 import { LivePreviewCanvas } from "@/components/Perform/LivePreviewCanvas";
 import { PlaybackControls } from "@/components/Perform/PlaybackControls";
@@ -11,19 +11,99 @@ import type { Sequence } from "@/lib/storage/sequenceStorage";
 import type { GeneratorState } from "@/types/generator";
 import { getAllSequences } from "@/lib/storage/sequenceStorage";
 
+interface PersistedPerformState {
+  selectedSequence: Sequence | null;
+  playbackState: "stopped" | "playing" | "paused";
+  currentIndex: number;
+  previewState: GeneratorState | null;
+}
+
 interface PerformPageProps {
   currentState?: GeneratorState | null;
   onLoadScene?: (state: GeneratorState) => void;
   initialSequenceId?: string;
+  persistedState?: PersistedPerformState;
+  onStateChange?: (state: PersistedPerformState) => void;
 }
 
-export function PerformPage({ currentState, onLoadScene, initialSequenceId }: PerformPageProps) {
-  const [selectedSequence, setSelectedSequence] = useState<Sequence | null>(null);
-  const [playbackState, setPlaybackState] = useState<"stopped" | "playing" | "paused">("stopped");
-  const [currentIndex, setCurrentIndex] = useState(0);
+export function PerformPage({ 
+  currentState, 
+  onLoadScene, 
+  initialSequenceId,
+  persistedState,
+  onStateChange,
+}: PerformPageProps) {
+  // Use persisted state if provided, otherwise use local state
+  const [localSelectedSequence, setLocalSelectedSequence] = useState<Sequence | null>(null);
+  const [localPlaybackState, setLocalPlaybackState] = useState<"stopped" | "playing" | "paused">("stopped");
+  const [localCurrentIndex, setLocalCurrentIndex] = useState(0);
+  const [localPreviewState, setLocalPreviewState] = useState<GeneratorState | null>(null);
+  
+  // Derive actual state from persisted or local
+  const selectedSequence = persistedState?.selectedSequence ?? localSelectedSequence;
+  const playbackState = persistedState?.playbackState ?? localPlaybackState;
+  const currentIndex = persistedState?.currentIndex ?? localCurrentIndex;
+  const previewState = persistedState?.previewState ?? localPreviewState;
+  
+  // Use refs to always get latest values (avoids stale closure issues)
+  const stateRef = useRef({ selectedSequence, playbackState, currentIndex, previewState });
+  stateRef.current = { selectedSequence, playbackState, currentIndex, previewState };
+  
+  // State setters that update both local and persisted state
+  const setSelectedSequence = useCallback((seq: Sequence | null) => {
+    setLocalSelectedSequence(seq);
+    if (onStateChange) {
+      const current = stateRef.current;
+      onStateChange({ 
+        selectedSequence: seq, 
+        playbackState: current.playbackState, 
+        currentIndex: current.currentIndex, 
+        previewState: current.previewState 
+      });
+    }
+  }, [onStateChange]);
+  
+  const setPlaybackState = useCallback((state: "stopped" | "playing" | "paused") => {
+    setLocalPlaybackState(state);
+    if (onStateChange) {
+      const current = stateRef.current;
+      onStateChange({ 
+        selectedSequence: current.selectedSequence, 
+        playbackState: state, 
+        currentIndex: current.currentIndex, 
+        previewState: current.previewState 
+      });
+    }
+  }, [onStateChange]);
+  
+  const setCurrentIndex = useCallback((index: number) => {
+    setLocalCurrentIndex(index);
+    if (onStateChange) {
+      const current = stateRef.current;
+      onStateChange({ 
+        selectedSequence: current.selectedSequence, 
+        playbackState: current.playbackState, 
+        currentIndex: index, 
+        previewState: current.previewState 
+      });
+    }
+  }, [onStateChange]);
+  
+  const setPreviewState = useCallback((state: GeneratorState | null) => {
+    setLocalPreviewState(state);
+    if (onStateChange) {
+      const current = stateRef.current;
+      onStateChange({ 
+        selectedSequence: current.selectedSequence, 
+        playbackState: current.playbackState, 
+        currentIndex: current.currentIndex, 
+        previewState: state 
+      });
+    }
+  }, [onStateChange]);
+  
   const [editQueue, setEditQueue] = useState<Partial<GeneratorState>[]>([]);
   const [sequences, setSequences] = useState<Sequence[]>([]);
-  const [previewState, setPreviewState] = useState<GeneratorState | null>(null);
   const [previewTransition, setPreviewTransition] = useState<"instant" | "fade" | "smooth" | "pixellate" | undefined>(undefined);
   const [previewTransitionDuration, setPreviewTransitionDuration] = useState<number | undefined>(undefined);
 
@@ -34,7 +114,7 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
       setPreviewTransition(undefined);
       setPreviewTransitionDuration(undefined);
     }
-  }, [selectedSequence, playbackState]);
+  }, [selectedSequence, playbackState, setPreviewState]);
 
   // Load sequences
   useEffect(() => {
@@ -54,23 +134,28 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
     }
   }, [initialSequenceId, sequences]);
 
-  // Stable callback for loading scenes
+  // Stable callback for loading scenes - use refs for values that change often
   const handleLoadScene = useCallback((state: GeneratorState) => {
     // Update main canvas
     if (onLoadScene) {
       onLoadScene(state);
     }
+    
+    // Get current values from ref to avoid stale closures
+    const currentSeq = stateRef.current.selectedSequence;
+    const currentIdx = stateRef.current.currentIndex;
+    
     // Get transition info from PREVIOUS scene (transitions are applied BETWEEN scenes, not at start)
     // The transition on scene N is used when transitioning FROM scene N TO scene N+1
     // For the first scene (index 0), there's no previous scene, so no transition
-    if (selectedSequence && currentIndex > 0) {
-      const sequenceScenes = (selectedSequence as any).scenes || [];
-      const sequenceItems = (selectedSequence as any).items || [];
-      const isNewFormat = sequenceScenes.length > 0 || (sequenceItems.length === 0 && !(selectedSequence as any).items);
+    if (currentSeq && currentIdx > 0) {
+      const sequenceScenes = (currentSeq as any).scenes || [];
+      const sequenceItems = (currentSeq as any).items || [];
+      const isNewFormat = sequenceScenes.length > 0 || (sequenceItems.length === 0 && !(currentSeq as any).items);
       
-      if (isNewFormat && sequenceScenes[currentIndex - 1]) {
+      if (isNewFormat && sequenceScenes[currentIdx - 1]) {
         // Get transition from previous scene (the one we're transitioning FROM)
-        const previousScene = sequenceScenes[currentIndex - 1];
+        const previousScene = sequenceScenes[currentIdx - 1];
         const transitionType = previousScene.transitionType || "fade";
         const transitionTimeMs = previousScene.transitionTimeSeconds 
           ? previousScene.transitionTimeSeconds * 1000 
@@ -78,9 +163,9 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
         
         setPreviewTransition(transitionType as any);
         setPreviewTransitionDuration(transitionTimeMs);
-      } else if (!isNewFormat && sequenceItems[currentIndex - 1]) {
+      } else if (!isNewFormat && sequenceItems[currentIdx - 1]) {
         // Old format - get transition from previous item
-        const previousItem = sequenceItems[currentIndex - 1];
+        const previousItem = sequenceItems[currentIdx - 1];
         const transition = previousItem.transition || "fade";
         setPreviewTransition(transition === "instant" ? "instant" : transition === "fade" ? "fade" : "fade");
         // Old format doesn't have transitionTimeSeconds, use default
@@ -97,7 +182,7 @@ export function PerformPage({ currentState, onLoadScene, initialSequenceId }: Pe
     }
     // Update preview canvas state
     setPreviewState(state);
-  }, [onLoadScene, selectedSequence, currentIndex]);
+  }, [onLoadScene, setPreviewState]);
 
   return (
     <SettingsPageLayout title="Perform">

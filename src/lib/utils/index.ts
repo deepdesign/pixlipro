@@ -22,4 +22,4 @@ export * from "./conversions";
 export { formatBlendMode } from "./formatting";
 export { generatePaletteOptions } from "./paletteOptions";
 export * from "./animations";
-
+export * from "./parallax-math-robust";

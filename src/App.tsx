@@ -32,6 +32,7 @@ import { useMIDI } from "./hooks/useMIDI";
 import { useDMX } from "./hooks/useDMX";
 import { getAllScenes, loadSceneState } from "./lib/storage/sceneStorage";
 import { loadSettings } from "./lib/storage/settingsStorage";
+import type { Sequence } from "./lib/storage/sequenceStorage";
 import { getActiveTheme } from "./lib/storage/themeStorage";
 import { applyTheme } from "./lib/theme/themeApplier";
 
@@ -97,6 +98,7 @@ const CanvasHoverWrapper = ({
   children: React.ReactNode;
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   if (isFullscreen) {
@@ -106,18 +108,20 @@ const CanvasHoverWrapper = ({
 
   return (
     <div 
+      ref={containerRef}
       className="relative"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={(e) => {
-        // Only hide if we're not moving to the overlay
-        if (overlayRef.current) {
+        // Only hide if mouse is truly leaving the entire container (not moving to button or canvas)
+        if (containerRef.current) {
           // If relatedTarget is null or not a Node, hide the overlay
           if (!e.relatedTarget || !(e.relatedTarget instanceof Node)) {
             setIsHovered(false);
-          } else if (!overlayRef.current.contains(e.relatedTarget)) {
-            // If relatedTarget is a Node but not contained in overlay, hide
+          } else if (!containerRef.current.contains(e.relatedTarget)) {
+            // If relatedTarget is not contained in the container, hide
             setIsHovered(false);
           }
+          // If relatedTarget is still within the container, keep it visible
         }
       }}
     >
@@ -134,7 +138,19 @@ const CanvasHoverWrapper = ({
         }`}
         style={{ top: '12px', right: '12px', zIndex: 30 }}
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseLeave={(e) => {
+          // When leaving the button, check if we're moving to the canvas area
+          // Only hide if mouse is truly leaving the container
+          if (containerRef.current) {
+            if (!e.relatedTarget || !(e.relatedTarget instanceof Node)) {
+              setIsHovered(false);
+            } else if (!containerRef.current.contains(e.relatedTarget)) {
+              // Mouse is leaving the entire container, hide
+              setIsHovered(false);
+            }
+            // If mouse is moving to canvas area (still in container), keep visible
+          }
+        }}
       >
         <Button
           type="button"
@@ -171,6 +187,19 @@ const App = () => {
   
   // Settings state (kept for backward compatibility)
   const [showSettingsPage, setShowSettingsPage] = useState(false);
+  
+  // Perform state - persists across navigation
+  const [performState, setPerformState] = useState<{
+    selectedSequence: Sequence | null;
+    playbackState: "stopped" | "playing" | "paused";
+    currentIndex: number;
+    previewState: GeneratorState | null;
+  }>({
+    selectedSequence: null,
+    playbackState: "stopped",
+    currentIndex: 0,
+    previewState: null,
+  });
   
   // Dual monitor support
   const dualMonitor = useDualMonitor();
@@ -1147,6 +1176,8 @@ const App = () => {
                 clients: webSocket.clients,
               }}
               initialSection={initialSection}
+              performState={performState}
+              onPerformStateChange={setPerformState}
             />
           );
         })()}

@@ -16,6 +16,14 @@ import { PerformPage } from "@/pages/PerformPage";
 import { SettingsFooter } from "@/components/Footer/SettingsFooter";
 import type { AppSettings } from "@/lib/storage/settingsStorage";
 import type { GeneratorState } from "@/types/generator";
+import type { Sequence } from "@/lib/storage/sequenceStorage";
+
+interface PersistedPerformState {
+  selectedSequence: Sequence | null;
+  playbackState: "stopped" | "playing" | "paused";
+  currentIndex: number;
+  previewState: GeneratorState | null;
+}
 
 interface SettingsPageProps {
   onClose: () => void;
@@ -31,6 +39,8 @@ interface SettingsPageProps {
     clients: number;
   };
   initialSection?: string;
+  performState?: PersistedPerformState;
+  onPerformStateChange?: (state: PersistedPerformState) => void;
 }
 
 export const SettingsPage = ({ 
@@ -41,7 +51,9 @@ export const SettingsPage = ({
   frameRate = 60, 
   ready = false, 
   webSocketState,
-  initialSection = "display"
+  initialSection = "display",
+  performState,
+  onPerformStateChange,
 }: SettingsPageProps) => {
   // Get initial section from URL or props
   const getInitialSection = () => {
@@ -92,6 +104,8 @@ export const SettingsPage = ({
             currentState={currentState}
             onLoadScene={onLoadPreset}
             initialSequenceId={typeof window !== "undefined" ? sessionStorage.getItem("performSequenceId") || undefined : undefined}
+            persistedState={performState}
+            onStateChange={onPerformStateChange}
           />
         );
       case "display":

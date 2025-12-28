@@ -88,6 +88,7 @@ export const speedToUi = (value: number) => {
  */
 export const uiToSpeed = (value: number) => {
   const bounded = clampValue(value, 0, 100);
-  return Math.round((bounded / 100) * MOTION_SPEED_MAX);
+  // Remove Math.round() to allow decimal precision for granular control (e.g., step=0.1)
+  return (bounded / 100) * MOTION_SPEED_MAX;
 };
 

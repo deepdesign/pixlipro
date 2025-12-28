@@ -3,6 +3,7 @@ import { createSpriteController } from "@/generator";
 import type { GeneratorState, SpriteController } from "@/types/generator";
 import { getActiveTheme } from "@/lib/storage/themeStorage";
 import { applyTheme } from "@/lib/theme/themeApplier";
+import { loadSettings } from "@/lib/storage/settingsStorage";
 
 /**
  * Projector Page - Canvas-only view for secondary display
@@ -67,6 +68,29 @@ export function ProjectorPage() {
         }, 100);
         return;
       }
+      
+      // Load projector max resolution setting
+      const settings = loadSettings();
+      let maxResolution: number | undefined;
+      switch (settings.projectorMaxResolution) {
+        case "720p":
+          maxResolution = 1280; // 720p width
+          break;
+        case "1080p":
+          maxResolution = 1920; // 1080p width
+          break;
+        case "1440p":
+          maxResolution = 2560; // 1440p width
+          break;
+        case "4k":
+          maxResolution = 3840; // 4K width
+          break;
+        case "unlimited":
+        default:
+          maxResolution = undefined; // No cap
+          break;
+      }
+      
       try {
         const controller = createSpriteController(container, {
           onStateChange: () => {
@@ -75,6 +99,7 @@ export function ProjectorPage() {
           onFrameRate: () => {
             // Frame rate updates not needed for projector
           },
+          maxResolution,
         });
 
         controllerRef.current = controller;

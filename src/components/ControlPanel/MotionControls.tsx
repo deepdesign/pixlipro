@@ -47,6 +47,9 @@ export function MotionControls({
   onCanvasHueRotationEnabledToggle,
   onCanvasHueRotationSpeedChange,
 }: MotionControlsProps) {
+  // Toggle for snapping parallax angle to 45-degree increments
+  const [angleSnapping, setAngleSnapping] = useState(true);
+  
   // Track palette cycle time for displaying current palette name
   const [paletteCycleTime, setPaletteCycleTime] = useState(0);
   const lastUpdateRef = useRef(Date.now());
@@ -113,8 +116,11 @@ export function MotionControls({
           label="Motion intensity"
           min={0}
           max={100}
-          value={Math.round(spriteState.motionIntensity)}
-          displayValue={`${Math.round(spriteState.motionIntensity)}%`}
+          step={spriteState.movementMode === "parallax" ? 0.1 : 1}
+          value={spriteState.movementMode === "parallax" ? spriteState.motionIntensity : Math.round(spriteState.motionIntensity)}
+          displayValue={spriteState.movementMode === "parallax" 
+            ? `${spriteState.motionIntensity.toFixed(1)}%` 
+            : `${Math.round(spriteState.motionIntensity)}%`}
           onChange={(value) => controller?.setMotionIntensity(value)}
           disabled={!ready}
           tooltip="Adjust how far sprites travel within their chosen movement path."
@@ -124,12 +130,65 @@ export function MotionControls({
           label="Motion speed"
           min={0}
           max={100}
+          step={spriteState.movementMode === "parallax" ? 0.1 : 1}
           value={speedToUi(spriteState.motionSpeed)}
-          displayValue={`${speedToUi(spriteState.motionSpeed)}%`}
+          displayValue={spriteState.movementMode === "parallax"
+            ? `${speedToUi(spriteState.motionSpeed).toFixed(1)}%`
+            : `${speedToUi(spriteState.motionSpeed)}%`}
           onChange={(value) => controller?.setMotionSpeed(uiToSpeed(value))}
           disabled={!ready}
           tooltip="Slow every layer down or accelerate the motion-wide choreography."
         />
+        {spriteState.movementMode === "parallax" && (
+          <>
+            <ControlSlider
+              id="parallax-angle"
+              label="Parallax angle"
+              min={0}
+              max={angleSnapping ? 315 : 359}
+              step={angleSnapping ? 45 : 1}
+              value={angleSnapping ? Math.round(spriteState.parallaxAngle / 45) * 45 : Math.round(spriteState.parallaxAngle)}
+              displayValue={`${Math.round(spriteState.parallaxAngle)}°`}
+              onChange={(value) => controller?.setParallaxAngle(value)}
+              disabled={!ready}
+              tooltip="Adjust the direction of parallax movement (0° = right, 90° = down, 180° = left, 270° = up)."
+            />
+            <div className="control-field">
+              <div className="field-heading">
+                <div className="field-heading-left">
+                  <TextWithTooltip
+                    id="angle-snap-tip"
+                    text="Snap angle to 45° increments (0°, 45°, 90°, etc.)"
+                  >
+                    <span className="field-label">Snap to 45°</span>
+                  </TextWithTooltip>
+                </div>
+              </div>
+              <div className="switch-row">
+                <Switch
+                  id="angle-snapping"
+                  checked={angleSnapping}
+                  onCheckedChange={setAngleSnapping}
+                  disabled={!ready}
+                  aria-label="Snap angle to 45 degrees"
+                />
+              </div>
+            </div>
+          </>
+        )}
+        {spriteState.movementMode === "parallax" && (
+          <ControlSlider
+            id="parallax-depth-effect"
+            label="Depth effect"
+            min={0}
+            max={100}
+            value={Math.round(spriteState.parallaxDepthEffect ?? 50)}
+            displayValue={`${Math.round(spriteState.parallaxDepthEffect ?? 50)}%`}
+            onChange={(value) => controller?.setParallaxDepthEffect(value)}
+            disabled={!ready}
+            tooltip="Controls the speed difference between foreground and background sprites. 0% = all same speed, 100% = foreground moves 5× faster."
+          />
+        )}
       </div>
 
       <div className="section section--spaced">

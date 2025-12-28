@@ -16,6 +16,7 @@ import { loadSpriteImage, getCachedSpriteImage, preloadSpriteImages } from "./li
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 import { applyNoiseOverlay } from "./lib/utils/fxNoise";
 import { applyPixelationEffects } from "./lib/utils/fxPixelation";
+import { stepSprite, initSpritePosition, type Vec2 } from "./lib/utils/parallax-math-robust";
 
 const MIN_TILE_SCALE = 0.12;
 const MAX_TILE_SCALE = 5.5; // Allow large sprites, but positioning will be adjusted
@@ -146,6 +147,9 @@ interface SvgTile {
   parallaxDelay?: number; // Delay before re-entering after exiting (for sprite recycling)
   parallaxInitialU?: number; // Initial U position for parallax (stored for recycling)
   parallaxStartPhase?: number; // Initial phase offset to stagger sprite start times
+  // Stateful world position for parallax (pixels) - updated each frame
+  worldX?: number; // Current X position in world pixels
+  worldY?: number; // Current Y position in world pixels
 }
 
 type PreparedTile = SvgTile;
@@ -176,6 +180,7 @@ export interface GeneratorState {
   scalePercent: number;
   scaleBase: number;
   scaleSpread: number;
+  scaleWeighting: number; // 0-100: 0 = favor small sprites, 50 = uniform, 100 = favor large sprites
   motionIntensity: number;
   blendMode: BlendModeKey;
   blendModeAuto: boolean;
@@ -191,6 +196,8 @@ export interface GeneratorState {
   backgroundContrast: number; // Canvas contrast adjustment (0-200, 100 = normal)
   backgroundColorIndex: number; // Index of palette color used for background (0-based)
   motionSpeed: number;
+  parallaxAngle: number; // Parallax movement angle in degrees (0-360, 0 = right, 90 = down, 180 = left, 270 = up)
+  parallaxDepthEffect: number; // Controls speed difference between foreground/background (0-100, higher = more difference)
   rotationEnabled: boolean;
   rotationAmount: number;
   rotationSpeed: number;
@@ -273,6 +280,7 @@ export interface GeneratorState {
 export interface SpriteControllerOptions {
   onStateChange?: (state: GeneratorState) => void;
   onFrameRate?: (fps: number) => void;
+  maxResolution?: number; // Maximum width in pixels (for projector performance)
 }
 
 // All sprites now use SVG files - no shape primitives needed
@@ -305,6 +313,7 @@ export const DEFAULT_STATE: GeneratorState = {
   scalePercent: 925, // 50% UI: uiToDensity(50) = 50 + (50/100) * (1800-50) = 50 + 875 = 925
   scaleBase: 50,
   scaleSpread: 50,
+  scaleWeighting: 50, // Default: uniform distribution
   motionIntensity: 58,
   blendMode: "NONE",
   blendModeAuto: true,
@@ -320,6 +329,8 @@ export const DEFAULT_STATE: GeneratorState = {
   backgroundContrast: 100, // Default 100% = normal contrast
   backgroundColorIndex: 0, // Default to first color for backward compatibility
   motionSpeed: 8.5,
+  parallaxAngle: 0, // Default: horizontal movement (0 degrees = right)
+  parallaxDepthEffect: 50, // Default: medium depth effect (0 = all same speed, 100 = max difference)
   rotationEnabled: false,
   rotationAmount: 72,
   rotationSpeed: 48,
@@ -1389,11 +1400,20 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       }
 
       const scaleRange = Math.max(0, maxScaleFactor - minScaleFactor);
+      
+      // Apply scale weighting: power curve biases toward small or large sprites
+      // weighting 0 → power 3 (favor small sprites)
+      // weighting 50 → power 1 (uniform distribution)
+      // weighting 100 → power ~0.33 (favor large sprites)
+      const weighting = state.scaleWeighting ?? 50;
+      const power = Math.pow(3, 1 - (weighting / 50)); // Exponential mapping
+      const scaleFraction = Math.pow(positionRng(), power);
+      
       const scale =
         scaleRange < 1e-6
           ? baseScale
           : clamp(
-              minScaleFactor + positionRng() * scaleRange,
+              minScaleFactor + scaleFraction * scaleRange,
               MIN_TILE_SCALE,
               MAX_TILE_SCALE,
             );
@@ -1420,10 +1440,11 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       // This allows toggling gradients without regenerating sprite positions/scales
       
       // Assign parallax depth (0-1) for parallax mode
-      // Depth is independent of sprite size - used for speed calculation
-      // 0 = farthest (slowest), 1 = closest (fastest)
+      // Depth is DERIVED FROM SPRITE SIZE - smaller sprites are further away (slower)
+      // 0 = farthest (smallest, slowest), 1 = closest (largest, fastest)
+      // Normalize scale to 0-1 range based on min/max scale factors
       const parallaxDepth = state.movementMode === "parallax" 
-        ? positionRng() // Random depth between 0-1, deterministic based on seed
+        ? clamp((scale - MIN_TILE_SCALE) / (MAX_TILE_SCALE - MIN_TILE_SCALE), 0, 1)
         : undefined;
       
       // Assign parallax delay for sprite recycling (random delay before re-entering)
@@ -1704,6 +1725,7 @@ export interface SpriteController {
   setScalePercent: (value: number) => void;
   setScaleBase: (value: number) => void;
   setScaleSpread: (value: number) => void;
+  setScaleWeighting: (value: number) => void;
   setLinesRatio: (value: number) => void;
   setPaletteVariance: (value: number) => void;
   setHueShift: (value: number) => void;
@@ -1717,6 +1739,8 @@ export interface SpriteController {
   setDensityScaleEnabled: (enabled: boolean) => void;
   setMotionIntensity: (value: number) => void;
   setMotionSpeed: (value: number) => void;
+  setParallaxAngle: (angle: number) => void;
+  setParallaxDepthEffect: (value: number) => void;
   setAnimationEnabled: (enabled: boolean) => void;
   setBlendMode: (mode: BlendModeOption) => void;
   setBlendModeAuto: (value: boolean) => void;
@@ -1872,6 +1896,12 @@ export const createSpriteController = (
   let state = stateRef.current;
   let prepared = computeSprite(state);
   
+  // Persistent storage for parallax world positions
+  // Key: "seed-layer-u-v" (deterministic based on tile position)
+  // Value: { x: number, y: number } (world position in pixels)
+  // This persists across computeSprite calls which recreate tile objects
+  const parallaxPositions = new Map<string, { x: number; y: number }>();
+  
   // Initialize CSS variable for container aspect ratio
   const initializeAspectRatioCSS = () => {
     const currentRatio = stateRef.current.aspectRatio;
@@ -2007,6 +2037,8 @@ export const createSpriteController = (
   const updateSeed = (seed?: string) => {
     stateRef.current.seed = seed ?? generateSeedString();
     state = stateRef.current; // Keep local variable in sync
+    // Clear parallax positions when seed changes (new scene = new tile positions)
+    parallaxPositions.clear();
   };
 
   // Helper function to calculate canvas dimensions based on aspect ratio
@@ -2018,7 +2050,9 @@ export const createSpriteController = (
     const state = getState();
     const minCanvasWidth = 320;
     const minCanvasHeight = 240;
+    const maxResolution = options.maxResolution; // Get max resolution from options
     
+    let dimensions: { width: number; height: number };
     let targetWidth: number;
     
     if (isFullscreen) {
@@ -2033,75 +2067,80 @@ export const createSpriteController = (
           const aspectRatio = 16 / 9;
           if (viewportRatio > aspectRatio) {
             // Viewport is wider than 16:9, height is limiting
-            return {
+            dimensions = {
               width: Math.round(viewportHeight * aspectRatio),
               height: viewportHeight,
             };
           } else {
             // Viewport is taller than 16:9, width is limiting
-            return {
+            dimensions = {
               width: viewportWidth,
               height: Math.round(viewportWidth / aspectRatio),
             };
           }
+          break;
         }
         case "21:9": {
           const aspectRatio = 21 / 9;
           if (viewportRatio > aspectRatio) {
-            return {
+            dimensions = {
               width: Math.round(viewportHeight * aspectRatio),
               height: viewportHeight,
             };
           } else {
-            return {
+            dimensions = {
               width: viewportWidth,
               height: Math.round(viewportWidth / aspectRatio),
             };
           }
+          break;
         }
         case "16:10": {
           const aspectRatio = 16 / 10;
           if (viewportRatio > aspectRatio) {
-            return {
+            dimensions = {
               width: Math.round(viewportHeight * aspectRatio),
               height: viewportHeight,
             };
           } else {
-            return {
+            dimensions = {
               width: viewportWidth,
               height: Math.round(viewportWidth / aspectRatio),
             };
           }
+          break;
         }
         case "custom": {
           const custom = state.customAspectRatio;
           const customRatio = custom.width / custom.height;
           if (viewportRatio > customRatio) {
-            return {
+            dimensions = {
               width: Math.round(viewportHeight * customRatio),
               height: viewportHeight,
             };
           } else {
-            return {
+            dimensions = {
               width: viewportWidth,
               height: Math.round(viewportWidth / customRatio),
             };
           }
+          break;
         }
         default: {
           // Fallback to 16:9
           const aspectRatio = 16 / 9;
           if (viewportRatio > aspectRatio) {
-            return {
+            dimensions = {
               width: Math.round(viewportHeight * aspectRatio),
               height: viewportHeight,
             };
           } else {
-            return {
+            dimensions = {
               width: viewportWidth,
               height: Math.round(viewportWidth / aspectRatio),
             };
           }
+          break;
         }
       }
     } else {
@@ -2112,46 +2151,58 @@ export const createSpriteController = (
       switch (state.aspectRatio) {
         case "16:9":
           // 16:9 (Widescreen)
-          const width169 = Math.max(minCanvasWidth, targetWidth);
-          return {
-            width: width169,
-            height: Math.max(minCanvasHeight, Math.round(width169 * (9 / 16))),
+          dimensions = {
+            width: Math.max(minCanvasWidth, targetWidth),
+            height: Math.max(minCanvasHeight, Math.round(Math.max(minCanvasWidth, targetWidth) * (9 / 16))),
           };
+          break;
       
         case "21:9":
           // 21:9 (Ultra-Wide)
-          const width219 = Math.max(minCanvasWidth, targetWidth);
-          return {
-            width: width219,
-            height: Math.max(minCanvasHeight, Math.round(width219 * (9 / 21))),
+          dimensions = {
+            width: Math.max(minCanvasWidth, targetWidth),
+            height: Math.max(minCanvasHeight, Math.round(Math.max(minCanvasWidth, targetWidth) * (9 / 21))),
           };
+          break;
         
         case "16:10":
           // 16:10 (WUXGA)
-          const width1610 = Math.max(minCanvasWidth, targetWidth);
-          return {
-            width: width1610,
-            height: Math.max(minCanvasHeight, Math.round(width1610 * (10 / 16))),
+          dimensions = {
+            width: Math.max(minCanvasWidth, targetWidth),
+            height: Math.max(minCanvasHeight, Math.round(Math.max(minCanvasWidth, targetWidth) * (10 / 16))),
           };
+          break;
         
         case "custom":
           // Custom dimensions - scale to fit container width
           const custom = state.customAspectRatio;
           const scale = targetWidth / custom.width;
-          return {
+          dimensions = {
             width: Math.max(minCanvasWidth, Math.round(custom.width * scale)),
             height: Math.max(minCanvasHeight, Math.round(custom.height * scale)),
           };
+          break;
         
         default:
           // Fallback to 16:9
-          const widthDefault = Math.max(minCanvasWidth, targetWidth);
-          return {
-            width: widthDefault,
-            height: Math.max(minCanvasHeight, Math.round(widthDefault * (9 / 16))),
+          dimensions = {
+            width: Math.max(minCanvasWidth, targetWidth),
+            height: Math.max(minCanvasHeight, Math.round(Math.max(minCanvasWidth, targetWidth) * (9 / 16))),
           };
+          break;
       }
     }
+    
+    // Apply max resolution cap if specified
+    if (maxResolution && dimensions.width > maxResolution) {
+      const scale = maxResolution / dimensions.width;
+      dimensions = {
+        width: maxResolution,
+        height: Math.max(minCanvasHeight, Math.round(dimensions.height * scale)),
+      };
+    }
+    
+    return dimensions;
   };
 
   const sketch = (p: p5) => {
@@ -3316,7 +3367,14 @@ export const createSpriteController = (
         const baseLayerSize = drawSize * layer.baseSizeRatio;
 
         p.push();
-        layer.tiles.forEach((tile, tileIndex) => {
+        
+        // In parallax mode, sort tiles by depth so smaller/slower sprites render behind larger/faster ones
+        // Lower depth (0 = far) renders first, higher depth (1 = close) renders last (on top)
+        const tilesToRender = currentState.movementMode === "parallax"
+          ? [...layer.tiles].sort((a, b) => (a.parallaxDepth ?? 0.5) - (b.parallaxDepth ?? 0.5))
+          : layer.tiles;
+        
+        tilesToRender.forEach((tile, tileIndex) => {
           // In thumbnail mode, primary sprite (last tile in layer 0) should have no blend mode
           const isThumbnailPrimary = currentState.thumbnailMode && 
                                      layerIndex === 0 && 
@@ -3364,119 +3422,106 @@ export const createSpriteController = (
             const baseSvgSize =
               baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
             
-            // Parallax mode: handle sprite recycling and depth-based movement
-            if (currentState.movementMode === "parallax" && tile.parallaxDepth !== undefined) {
+            // Parallax mode: stateful per-sprite position tracking
+            // Uses robust spawn/despawn with per-sprite radius culling
+            if (currentState.movementMode === "parallax") {
               // Get depth (0-1, where 0 = farthest, 1 = closest)
-              const depth = tile.parallaxDepth;
+              const depth = tile.parallaxDepth ?? (normalizedU * 0.5 + 0.25);
               
               // Calculate depth-based speed multiplier: closer (higher depth) = faster
-              const depthSpeedMultiplier = 1.0 + depth * 1.5; // Range: 1.0 to 2.5
+              // parallaxDepthEffect controls the RANGE of speeds (the delta between slow and fast)
+              // At 0%: all sprites move at same speed (multiplier = 1.0)
+              // At 100%: depth 0 (far) = 0.01x speed, depth 1 (close) = 1.0x speed (100x difference)
+              const depthEffect = (currentState.parallaxDepthEffect ?? 50) / 100; // 0 to 1
+              // At max effect: far sprites get 0.01x, close sprites get 1.0x
+              // Lerp from 1.0 (no effect) toward the target range based on depthEffect
+              const slowestMultiplier = 1.0 - depthEffect * 0.99; // 1.0 -> 0.01 at max
+              const fastestMultiplier = 1.0; // Always 1.0 (close sprites stay at base speed)
+              const depthSpeedMultiplier = slowestMultiplier + depth * (fastestMultiplier - slowestMultiplier);
               
-              // Base parallax speed - pixels per animation second
-              // Use a reasonable base speed that works well with canvas dimensions
-              // At 100% motion speed, sprites should cross a 1920px canvas in ~5-10 seconds
-              const baseParallaxSpeed = 100; // pixels per animation second at base (faster for better visibility)
-              const horizontalSpeed = baseParallaxSpeed * depthSpeedMultiplier * motionScale;
+              // Base parallax speed - pixels per second (700 for fast movement at max speed)
+              const baseParallaxSpeed = 700;
+              // Apply motion speed slider (0-12.5 range, normalize to 0-1 then scale)
+              const MOTION_SPEED_MAX = 12.5;
+              const motionSpeedFactor = (currentState.motionSpeed ?? 8.5) / MOTION_SPEED_MAX; // 0 to 1
+              // Combine motion speed with motion intensity for final speed
+              // motionScale from intensity, motionSpeedFactor from speed slider
+              const effectiveMotionScale = motionScale > 0 ? Math.max(0.1, motionScale) : 0;
+              const speed = baseParallaxSpeed * depthSpeedMultiplier * effectiveMotionScale * motionSpeedFactor;
               
-              // Calculate sprite's world X position
-              // Sprites start distributed across canvas, move right, then recycle from left
-              const exitBuffer = baseSvgSize * 0.5; // Buffer for smooth exit/entry
-              
-              // Get initial position from grid (sprites start spread across canvas)
-              const initialU = tile.parallaxInitialU ?? normalizedU;
+              // Get initial position from grid
+              const initialU = tile.parallaxInitialU ?? ((tile.u % 1) + 1) % 1;
               const initialX = initialU * p.width;
+              const initialY = isLineSpriteTile 
+                ? tile.v * p.height 
+                : normalizedV * p.height;
               
-              // Calculate delay (in animation seconds)
-              const delay = tile.parallaxDelay ?? 0;
+              // Direction vector from angle (0 = right, 90 = down, 180 = left, 270 = up)
+              const angleRad = (currentState.parallaxAngle * Math.PI) / 180;
+              const dir: Vec2 = { x: Math.cos(angleRad), y: Math.sin(angleRad) };
               
-              // Calculate travel time from left edge to right edge (for recycling)
-              const travelDistance = p.width + exitBuffer * 2;
-              const travelTime = travelDistance / horizontalSpeed;
-              const recycleCycleTime = travelTime + delay;
+              // Delta time in seconds (deltaMs is milliseconds per frame)
+              const dt = deltaMs / 1000;
               
-              // Get current time with start phase offset (stagger sprites)
-              // Start phase can be negative (sprite already moving) or positive (sprite hasn't started yet)
-              const startPhase = tile.parallaxStartPhase ?? 0;
-              const currentTime = (scaledAnimationTime * tile.animationTimeMultiplier) + startPhase;
+              // Create stable key for this tile's position (persists across computeSprite calls)
+              // Use tile's original u,v and layer index as key (deterministic based on seed)
+              const positionKey = `${currentState.seed}-${layerIndex}-${tile.u.toFixed(4)}-${tile.v.toFixed(4)}`;
               
-              // Calculate exit point
-              const exitX = p.width + exitBuffer;
-              
-              // Calculate X position if sprite started from initial position at time 0
-              // Then adjust based on currentTime (which includes start phase)
-              const xFromInitial = initialX + (currentTime * horizontalSpeed);
-              
-              // Determine sprite position
-              let currentWorldX: number;
-              let currentWorldY: number;
-              
-              // Check if sprite is in first journey (hasn't exited yet)
-              // Sprite is in first journey if: X is between initial position and exit point
-              // If X is negative (off-screen left due to negative start phase), it should recycle
-              // If X is past exit point, it should recycle
-              if (xFromInitial >= 0 && xFromInitial < exitX) {
-                // First journey: sprite is moving from initial position to exit
-                currentWorldX = xFromInitial;
-                // Use initial V position for first journey
-                // CRITICAL: For line sprites, use tile.v directly to preserve uniform distribution
-                // Don't use normalizedV which might have been modified
-                currentWorldY = isLineSpriteTile 
-                  ? tile.v * p.height  // Line sprites: use original tile.v for uniform distribution
-                  : normalizedV * p.height;  // Other sprites: use normalizedV
-              } else {
-                // Sprite is recycling (either exited right or started off-screen left)
-                let timeSinceExit: number;
-                let recycleCycleNumber: number;
-                
-                if (xFromInitial < 0) {
-                  // Sprite started off-screen left (negative start phase)
-                  // Calculate how long it's been since it would have been at -exitBuffer
-                  // Position relative to -exitBuffer: xFromInitial - (-exitBuffer) = xFromInitial + exitBuffer
-                  const distanceFromLeftEdge = xFromInitial + exitBuffer;
-                  const timeFromLeftEdge = distanceFromLeftEdge / horizontalSpeed;
-                  // This time represents where we are in a recycle cycle
-                  timeSinceExit = timeFromLeftEdge;
-                } else {
-                  // Sprite exited from the right
-                  // Calculate time when sprite would have exited (from initial position)
-                  const timeToExit = (exitX - initialX) / horizontalSpeed;
-                  timeSinceExit = currentTime - timeToExit;
-                }
-                
-                // Calculate which recycle cycle we're in
-                recycleCycleNumber = Math.floor(timeSinceExit / recycleCycleTime);
-                const timeInRecycleCycle = timeSinceExit % recycleCycleTime;
-                
-                // Calculate random Y position for this recycle cycle (deterministic)
-                // Y is within visible area plus 10% buffer (4.b requirement)
-                const yRng = createMulberry32(hashSeed(`${currentState.seed}-parallax-y-${layerIndex}-${tileIndex}-${recycleCycleNumber}`));
-                const yBuffer = p.height * 0.1; // 10% buffer
-                currentWorldY = yBuffer + (yRng() * (p.height - yBuffer * 2));
-                
-                if (timeInRecycleCycle < delay) {
-                  // Delay phase: sprite is off-screen left, waiting to enter
-                  currentWorldX = -exitBuffer;
-                } else {
-                  // Moving phase: sprite travels from left to right
-                  const moveTime = timeInRecycleCycle - delay;
-                  currentWorldX = -exitBuffer + (moveTime * horizontalSpeed);
-                }
+              // Get or initialize world position from persistent storage
+              // Also store a respawn counter for deterministic respawn positions
+              let worldPos = parallaxPositions.get(positionKey);
+              if (!worldPos) {
+                // Create deterministic RNG for initialization
+                const initRng = createMulberry32(hashSeed(`${currentState.seed}-parallax-init-${layerIndex}-${tileIndex}`));
+                const initPos = initSpritePosition(
+                  initialX, 
+                  initialY, 
+                  p.width, 
+                  p.height, 
+                  baseSvgSize, 
+                  initRng, 
+                  dir
+                );
+                worldPos = { x: initPos.x, y: initPos.y };
+                parallaxPositions.set(positionKey, worldPos);
               }
+              
+              // Create RNG for respawn - use frame-independent seed based on position
+              // This ensures deterministic but varied respawn positions
+              const respawnSeed = Math.floor(worldPos.x * 1000) + Math.floor(worldPos.y * 1000);
+              const respawnRng = createMulberry32(hashSeed(`${currentState.seed}-respawn-${layerIndex}-${tileIndex}-${respawnSeed}`));
+              
+              // Step sprite (move, cull, respawn)
+              const newState = stepSprite(
+                worldPos,
+                { dir, dt, speed },
+                {
+                  canvasWidth: p.width,
+                  canvasHeight: p.height,
+                  spriteWidthPx: baseSvgSize,
+                  spriteHeightPx: baseSvgSize,
+                  safetyMarginPx: 2,
+                },
+                respawnRng
+              );
+              
+              // Update persistent position storage
+              worldPos.x = newState.x;
+              worldPos.y = newState.y;
               
               // Convert to normalized coordinates
-              normalizedU = currentWorldX / p.width;
-              // CRITICAL: For line sprites, preserve original normalizedV (from tile.v) for uniform distribution
-              // Don't recalculate from currentWorldY as it breaks uniform distribution
+              normalizedU = worldPos.x / p.width;
               if (!isLineSpriteTile) {
-                normalizedV = currentWorldY / p.height;
+                normalizedV = worldPos.y / p.height;
               }
-              // Line sprites: normalizedV already set from tile.v above, don't overwrite it
+              // Line sprites: normalizedV already set from tile.v above
               
-              // Calculate movement offsets
+              // Movement offsets (position is already in world coordinates)
+              // No pulsing/breathing for parallax - just linear movement
               movement = {
-                offsetX: 0, // Already accounted for in normalizedU
-                offsetY: 0, // Already accounted for in normalizedV
-                scaleMultiplier: clampScale(1.0 + Math.sin(scaledAnimationTime * tile.animationTimeMultiplier * 0.08) * 0.05), // Breathing effect (10.b)
+                offsetX: 0,
+                offsetY: 0,
+                scaleMultiplier: 1.0, // No scale animation for parallax mode
               };
             } else {
               // Non-parallax mode: use standard movement calculation
@@ -4162,6 +4207,12 @@ export const createSpriteController = (
     options: { recompute?: boolean } = {},
   ) => {
     const { recompute = true } = options;
+    
+    // Clear parallax positions when seed or movement mode changes
+    if (partial.seed !== undefined || partial.movementMode !== undefined) {
+      parallaxPositions.clear();
+    }
+    
     // Update state in the ref object - this ensures all closures see the update
     stateRef.current = { ...stateRef.current, ...partial };
     state = stateRef.current; // Keep local variable in sync
@@ -4203,6 +4254,9 @@ export const createSpriteController = (
   const controller: SpriteController = {
     getState: () => ({ ...stateRef.current }),
     applyState: (newState: GeneratorState, transition: TransitionType = "instant", durationMs?: number) => {
+      // Clear parallax positions when applying a new scene state
+      parallaxPositions.clear();
+      
       if (transition === "instant") {
         // Instant transition - immediate state swap
       stateRef.current = { ...newState };
@@ -4416,6 +4470,9 @@ export const createSpriteController = (
     setScaleSpread: (value: number) => {
       applyState({ scaleSpread: clamp(value, 0, 100) });
     },
+    setScaleWeighting: (value: number) => {
+      applyState({ scaleWeighting: clamp(value, 0, 100) }, { recompute: true });
+    },
     setLinesRatio: (value: number) => {
       applyState({ linesRatio: clamp(value, 0, 100) }, { recompute: true });
     },
@@ -4470,6 +4527,14 @@ export const createSpriteController = (
     },
     setMotionSpeed: (value: number) => {
       applyState({ motionSpeed: clamp(value, 0, 12.5) }, { recompute: false });
+    },
+    setParallaxAngle: (angle: number) => {
+      // Clamp angle to 0-360 range
+      const clampedAngle = ((angle % 360) + 360) % 360;
+      applyState({ parallaxAngle: clampedAngle }, { recompute: false });
+    },
+    setParallaxDepthEffect: (value: number) => {
+      applyState({ parallaxDepthEffect: clamp(value, 0, 100) }, { recompute: false });
     },
     setAnimationEnabled: (enabled: boolean) => {
       applyState({ animationEnabled: enabled }, { recompute: false });
@@ -4644,6 +4709,8 @@ export const createSpriteController = (
     },
     setMovementMode: (mode: MovementMode) => {
       // Movement mode is applied during rendering, no regeneration needed
+      // Clear parallax positions when mode changes to ensure proper initialization
+      parallaxPositions.clear();
       applyState({ movementMode: mode }, { recompute: false });
     },
     setRotationEnabled: (value: boolean) => {
@@ -5234,3 +5301,4 @@ export const createSpriteController = (
 
   return controller;
 };
+

@@ -3,6 +3,7 @@ import { Field, Label, Description } from "@/components/ui/Fieldset";
 import { RadioGroup, RadioField, Radio } from "@/components/ui/radio";
 import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { loadSettings, saveSettings, type AppSettings } from "@/lib/storage/settingsStorage";
 import { useDualMonitor } from "@/hooks/useDualMonitor";
 
@@ -257,6 +258,52 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
               )}
           </div>
         )}
+      </div>
+
+      {/* Projector Resolution Cap Card */}
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
+          <div>
+            <h3 className="text-base font-semibold text-theme-primary">Projector resolution cap</h3>
+            <p className="text-sm text-theme-muted mt-1">
+              Limit the projector output resolution to improve performance on high-resolution displays (4K/5K monitors).
+            </p>
+          </div>
+        </div>
+        <div className="p-6">
+          <Field>
+            <Label>Maximum resolution</Label>
+            <Description>
+              Set a maximum width for the projector output. This helps maintain smooth FPS on high-resolution displays.
+            </Description>
+            <div data-slot="control" className="mt-4">
+              <Select
+                value={settings.projectorMaxResolution || "1080p"}
+                onValueChange={(value) => {
+                  const newSettings = { ...settings, projectorMaxResolution: value as AppSettings["projectorMaxResolution"] };
+                  setSettings(newSettings);
+                  saveSettings(newSettings);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="720p">720p (1280×720) - Best performance</SelectItem>
+                  <SelectItem value="1080p">1080p (1920×1080) - Recommended</SelectItem>
+                  <SelectItem value="1440p">1440p (2560×1440) - High quality</SelectItem>
+                  <SelectItem value="4k">4K (3840×2160) - Maximum quality</SelectItem>
+                  <SelectItem value="unlimited">Unlimited - Match monitor resolution</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Field>
+          <div className="mt-4 p-3 bg-theme-status rounded-lg border border-theme-card">
+            <p className="text-sm text-theme-primary">
+              <span className="font-medium">Note:</span> Lower resolutions improve FPS on high-resolution displays. The canvas will be scaled to fit the projector window while maintaining aspect ratio.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
