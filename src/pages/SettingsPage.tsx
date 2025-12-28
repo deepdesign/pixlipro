@@ -25,6 +25,8 @@ interface PersistedPerformState {
   previewState: GeneratorState | null;
 }
 
+import type { SpriteController } from "@/generator";
+
 interface SettingsPageProps {
   onClose: () => void;
   onAspectRatioChange?: (aspectRatio: AppSettings["aspectRatio"], custom?: { width: number; height: number }) => void;
@@ -41,6 +43,7 @@ interface SettingsPageProps {
   initialSection?: string;
   performState?: PersistedPerformState;
   onPerformStateChange?: (state: PersistedPerformState) => void;
+  controller?: SpriteController | null;
 }
 
 export const SettingsPage = ({ 
@@ -54,6 +57,7 @@ export const SettingsPage = ({
   initialSection = "display",
   performState,
   onPerformStateChange,
+  controller,
 }: SettingsPageProps) => {
   // Get initial section from URL or props
   const getInitialSection = () => {
@@ -95,7 +99,7 @@ export const SettingsPage = ({
         return <PalettesPage />;
       case "presets":
       case "scenes":
-        return <ScenesPage currentState={currentState} onLoadScene={onLoadPreset} />;
+        return <ScenesPage currentState={currentState} onLoadScene={onLoadPreset} controller={controller} />;
       case "sequences":
         return <SequencesPage currentState={currentState} onLoadPreset={onLoadPreset} />;
       case "perform":

@@ -111,11 +111,15 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
       const primaryScale = basePrimaryScale * 0.25; // 75% smaller (~0.703)
       const secondaryScale = primaryScale * 0.4; // 60% smaller than primary (~0.281)
       
+      // Parallax animations use a much higher base speed (700 px/s), so reduce speed significantly for preview
+      const isParallax = defaultAnim.movementMode === "parallax";
+      const previewMotionSpeed = isParallax ? 1 : 25; // 1% for parallax (slower for preview), 25% for others
+      
       state = {
         ...state,
         movementMode: defaultAnim.movementMode,
         motionIntensity: 50,
-        motionSpeed: 25, // 50% of 50% = 25% speed for animation (half of current speed)
+        motionSpeed: previewMotionSpeed, // Reduced speed for parallax preview
         animationEnabled: true, // Enable animation
         // Density to show exactly 8 sprites total (1 primary + 7 secondary)
         // Use higher density to ensure we get at least 8 sprites in layer 0

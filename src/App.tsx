@@ -1178,6 +1178,7 @@ const App = () => {
               initialSection={initialSection}
               performState={performState}
               onPerformStateChange={setPerformState}
+              controller={controllerRef.current}
             />
           );
         })()}

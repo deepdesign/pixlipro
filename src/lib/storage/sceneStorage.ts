@@ -10,6 +10,7 @@ export interface Scene {
   id: string;
   name: string;
   state: GeneratorState & LegacySceneStateExtras;
+  thumbnail?: string; // Thumbnail data URL (generated on save)
   createdAt: number;
   updatedAt: number;
 }
@@ -59,7 +60,7 @@ export const checkSceneNameConflict = (name: string, excludeId?: string): SceneN
   return null;
 };
 
-export const saveScene = (name: string, state: GeneratorState, updateExistingId?: string): Scene => {
+export const saveScene = (name: string, state: GeneratorState, updateExistingId?: string, thumbnail?: string): Scene => {
   const scenes = getAllScenes();
   const now = Date.now();
   const stateSnapshot: GeneratorState = { ...state };
@@ -73,6 +74,9 @@ export const saveScene = (name: string, state: GeneratorState, updateExistingId?
       scene.name = sceneName;
       scene.updatedAt = now;
       scene.state = stateSnapshot;
+      if (thumbnail !== undefined) {
+        scene.thumbnail = thumbnail;
+      }
       
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes));
@@ -95,6 +99,7 @@ export const saveScene = (name: string, state: GeneratorState, updateExistingId?
     id: `scene-${now}-${Math.random().toString(36).substring(2, 9)}`,
     name: sceneName,
     state: stateSnapshot,
+    thumbnail,
     createdAt: now,
     updatedAt: now,
   };
@@ -114,7 +119,7 @@ export const saveScene = (name: string, state: GeneratorState, updateExistingId?
   return scene;
 };
 
-export const updateScene = (id: string, name: string, state: GeneratorState): Scene | null => {
+export const updateScene = (id: string, name: string, state: GeneratorState, thumbnail?: string): Scene | null => {
   const scenes = getAllScenes();
   const index = scenes.findIndex((s) => s.id === id);
   if (index === -1) {
@@ -133,6 +138,9 @@ export const updateScene = (id: string, name: string, state: GeneratorState): Sc
   scene.name = newName;
   scene.updatedAt = Date.now();
   scene.state = { ...state };
+  if (thumbnail !== undefined) {
+    scene.thumbnail = thumbnail;
+  }
 
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(scenes));

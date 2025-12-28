@@ -92,7 +92,7 @@ export const DEFAULT_ANIMATIONS: DefaultAnimation[] = [
   {
     id: "default-parallax",
     name: "Parallax",
-    description: "Left-to-right parallax movement with depth-based speed",
+    description: "Directional parallax movement with depth-based speed variation",
     movementMode: "parallax",
     isDefault: true,
   },

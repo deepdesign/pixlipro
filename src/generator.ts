@@ -1612,6 +1612,10 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     primaryTile.paletteColorIndex = primaryColorIndex;
     primaryTile.scale = thumbnailConfig.primaryScale;
     primaryTile.blendMode = "NONE"; // Primary sprite should have no blend mode
+    // For parallax mode, set primary sprite to highest depth (moves fastest)
+    if (state.movementMode === "parallax") {
+      primaryTile.parallaxDepth = 1.0; // Maximum depth = fastest movement
+    }
     if (thumbnailConfig.primaryPosition) {
       primaryTile.u = thumbnailConfig.primaryPosition.u;
       primaryTile.v = thumbnailConfig.primaryPosition.v;
@@ -1652,6 +1656,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
         v = Math.max(padding, Math.min(1 - padding, v));
         
         // Create new tile
+        // Scale and depth will be set in the loop below for parallax mode
         const newTile: PreparedTile = {
           kind: "svg",
           svgPath: defaultSpritePath,
@@ -1660,7 +1665,7 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           paletteColorIndex: thumbnailConfig.secondaryColorIndex,
           u,
           v,
-          scale: thumbnailConfig.secondaryScale,
+          scale: thumbnailConfig.secondaryScale, // Will be overridden for parallax
           blendMode: "NONE", // Secondary sprites should have no blend mode
           rotationBase: 0,
           rotationDirection: 1,
@@ -1676,10 +1681,29 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
     
     // Configure all secondary sprites (existing and newly created)
     // Re-position all secondary tiles to ensure even distribution
+    // For parallax mode, give secondary sprites varying sizes and depths
+    const isParallax = state.movementMode === "parallax";
+    const scaleRng = createMulberry32(hashSeed(`${state.seed}-thumbnail-secondary-scales`));
+    
     for (let i = 0; i < targetSecondaryCount; i++) {
       const tile = secondaryTiles[i];
       tile.paletteColorIndex = thumbnailConfig.secondaryColorIndex;
-      tile.scale = thumbnailConfig.secondaryScale;
+      
+      // For parallax mode, give secondary sprites varying sizes (but all smaller than primary)
+      if (isParallax) {
+        // Vary scale between 30% and 70% of primary scale (all smaller than primary)
+        const scaleVariation = 0.3 + scaleRng() * 0.4; // 0.3 to 0.7
+        tile.scale = thumbnailConfig.primaryScale * scaleVariation;
+        
+        // Set parallax depth based on size (larger = higher depth = faster)
+        // Depth range: 0.2 to 0.7 (all slower than primary which is 1.0)
+        const normalizedScale = (tile.scale - thumbnailConfig.primaryScale * 0.3) / (thumbnailConfig.primaryScale * 0.4);
+        tile.parallaxDepth = 0.2 + normalizedScale * 0.5; // 0.2 to 0.7
+      } else {
+        // Non-parallax: use fixed secondary scale
+        tile.scale = thumbnailConfig.secondaryScale;
+      }
+      
       tile.blendMode = "NONE"; // Secondary sprites should have no blend mode
       
       // Generate new position for all secondary tiles (ensures even distribution)
@@ -3444,10 +3468,8 @@ export const createSpriteController = (
               // Apply motion speed slider (0-12.5 range, normalize to 0-1 then scale)
               const MOTION_SPEED_MAX = 12.5;
               const motionSpeedFactor = (currentState.motionSpeed ?? 8.5) / MOTION_SPEED_MAX; // 0 to 1
-              // Combine motion speed with motion intensity for final speed
-              // motionScale from intensity, motionSpeedFactor from speed slider
-              const effectiveMotionScale = motionScale > 0 ? Math.max(0.1, motionScale) : 0;
-              const speed = baseParallaxSpeed * depthSpeedMultiplier * effectiveMotionScale * motionSpeedFactor;
+              // In parallax mode, only motion speed controls the speed (motion intensity is hidden/not used)
+              const speed = baseParallaxSpeed * depthSpeedMultiplier * motionSpeedFactor;
               
               // Get initial position from grid
               const initialU = tile.parallaxInitialU ?? ((tile.u % 1) + 1) % 1;
@@ -3473,16 +3495,43 @@ export const createSpriteController = (
               if (!worldPos) {
                 // Create deterministic RNG for initialization
                 const initRng = createMulberry32(hashSeed(`${currentState.seed}-parallax-init-${layerIndex}-${tileIndex}`));
-                const initPos = initSpritePosition(
-                  initialX, 
-                  initialY, 
-                  p.width, 
-                  p.height, 
-                  baseSvgSize, 
-                  initRng, 
-                  dir
-                );
-                worldPos = { x: initPos.x, y: initPos.y };
+                
+                // For thumbnail mode, ensure sprites start on-screen
+                if (currentState.thumbnailMode) {
+                  // In thumbnail mode, start secondary sprites on canvas (not primary - it's centered)
+                  const isThumbnailSecondary = currentState.thumbnailMode && 
+                                               layerIndex === 0 && 
+                                               tileIndex < layer.tiles.length - 1;
+                  
+                  if (isThumbnailSecondary) {
+                    // Start secondary sprites at their tile position (on-screen)
+                    worldPos = { x: initialX, y: initialY };
+                  } else {
+                    // Primary sprite or non-thumbnail: use normal initialization
+                    const initPos = initSpritePosition(
+                      initialX, 
+                      initialY, 
+                      p.width, 
+                      p.height, 
+                      baseSvgSize, 
+                      initRng, 
+                      dir
+                    );
+                    worldPos = { x: initPos.x, y: initPos.y };
+                  }
+                } else {
+                  // Non-thumbnail mode: use normal initialization
+                  const initPos = initSpritePosition(
+                    initialX, 
+                    initialY, 
+                    p.width, 
+                    p.height, 
+                    baseSvgSize, 
+                    initRng, 
+                    dir
+                  );
+                  worldPos = { x: initPos.x, y: initPos.y };
+                }
                 parallaxPositions.set(positionKey, worldPos);
               }
               
@@ -3492,6 +3541,8 @@ export const createSpriteController = (
               const respawnRng = createMulberry32(hashSeed(`${currentState.seed}-respawn-${layerIndex}-${tileIndex}-${respawnSeed}`));
               
               // Step sprite (move, cull, respawn)
+              // For thumbnail mode, use smaller safety margin and ensure immediate respawn
+              const safetyMargin = currentState.thumbnailMode ? 1 : 2;
               const newState = stepSprite(
                 worldPos,
                 { dir, dt, speed },
@@ -3500,7 +3551,7 @@ export const createSpriteController = (
                   canvasHeight: p.height,
                   spriteWidthPx: baseSvgSize,
                   spriteHeightPx: baseSvgSize,
-                  safetyMarginPx: 2,
+                  safetyMarginPx: safetyMargin,
                 },
                 respawnRng
               );
@@ -3540,10 +3591,13 @@ export const createSpriteController = (
             // CRITICAL: p5.js coordinate system - Y=0 is at TOP, Y increases downward
             // For line sprites, ignore movement.offsetY to ensure uniform vertical distribution
             // Line sprites: baseY = normalizedV * p.height where v [0,1] maps to Y [0, p.height]
+            // For thumbnail primary sprite, always center it vertically but allow horizontal movement and animation
             const baseX = offsetX + normalizedU * p.width + movement.offsetX;
-            const baseY = isLineSpriteTile
-              ? normalizedV * p.height  // Line sprites: v=0 → Y=0 (top), v=1 → Y=p.height (bottom)
-              : offsetY + normalizedV * p.height + movement.offsetY;  // Other sprites: include offsets
+            const baseY = isThumbnailPrimary
+              ? offsetY + 0.5 * p.height  // Always center vertically, but movement offsets still apply for animation effects
+              : isLineSpriteTile
+                ? normalizedV * p.height  // Line sprites: v=0 → Y=0 (top), v=1 → Y=p.height (bottom)
+                : offsetY + normalizedV * p.height + movement.offsetY;  // Other sprites: include offsets
             
             // DEBUG: Log first few line sprites to verify values (remove after debugging)
             if (isLineSpriteTile && tileIndex < 5 && layerIndex === 0 && process.env.NODE_ENV === 'development') {
@@ -4465,10 +4519,10 @@ export const createSpriteController = (
       applyState({ scalePercent: clamp(value, 0, MAX_DENSITY_PERCENT_UI) });
     },
     setScaleBase: (value: number) => {
-      applyState({ scaleBase: clamp(value, 0, 100) });
+      applyState({ scaleBase: clamp(value, 0, 100) }, { recompute: true });
     },
     setScaleSpread: (value: number) => {
-      applyState({ scaleSpread: clamp(value, 0, 100) });
+      applyState({ scaleSpread: clamp(value, 0, 100) }, { recompute: true });
     },
     setScaleWeighting: (value: number) => {
       applyState({ scaleWeighting: clamp(value, 0, 100) }, { recompute: true });

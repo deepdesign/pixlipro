@@ -16,13 +16,16 @@ import {
 import { SceneNameConflictDialog } from "@/components/SceneNameConflictDialog";
 import type { GeneratorState } from "@/types/generator";
 import { SceneThumbnail } from "@/components/SequenceManager/SceneThumbnail";
+import { createThumbnail, getCanvasFromP5 } from "@/lib/services/exportService";
+import type { SpriteController } from "@/generator";
 
 interface ScenesTabProps {
   currentState?: GeneratorState | null;
   onLoadScene?: (state: GeneratorState) => void;
+  controller?: SpriteController | null;
 }
 
-export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
+export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabProps) {
   const [scenes, setScenes] = useState<Scene[]>(getAllScenes());
   const [saveName, setSaveName] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -49,12 +52,29 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
     scene.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!currentState) {
       setSaveError("No current state to save");
       return;
     }
     setSaveError(null);
+    
+    // Capture thumbnail from current canvas if available
+    let thumbnail: string | undefined;
+    if (controller) {
+      try {
+        const p5Instance = controller.getP5Instance();
+        if (p5Instance) {
+          const canvas = getCanvasFromP5(p5Instance);
+          if (canvas && canvas.width > 0 && canvas.height > 0) {
+            thumbnail = createThumbnail(canvas, 80);
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to capture thumbnail:", error);
+        // Continue without thumbnail
+      }
+    }
     
     const sceneName = saveName.trim() || "";
     
@@ -78,7 +98,7 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
         
         // Update the loaded scene
     try {
-          saveScene(nameToUse, currentState, loadedSceneId);
+          saveScene(nameToUse, currentState, loadedSceneId, thumbnail);
           setSaveName("");
           refreshScenes();
         } catch (error) {
@@ -90,7 +110,7 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
     
     // New scene - check for conflicts
     try {
-      saveScene(sceneName, currentState);
+      saveScene(sceneName, currentState, undefined, thumbnail);
       setSaveName("");
       refreshScenes();
     } catch (error) {
@@ -108,7 +128,7 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
         setSaveError(errorMessage);
       }
     }
-  }, [currentState, saveName, refreshScenes, loadedSceneId, scenes]);
+  }, [currentState, saveName, refreshScenes, loadedSceneId, scenes, controller]);
 
   const handleLoad = useCallback(
     (scene: Scene) => {
@@ -325,11 +345,9 @@ export function ScenesTab({ currentState, onLoadScene }: ScenesTabProps) {
                     key={scene.id}
                     className="flex items-center gap-4 p-4 border border-theme-card rounded-lg hover:bg-theme-icon transition-colors"
                   >
-                    {sceneState && (
-                      <div className="flex-shrink-0">
-                        <SceneThumbnail state={sceneState} size={60} />
-                      </div>
-                    )}
+                    <div className="flex-shrink-0">
+                      <SceneThumbnail state={sceneState || currentState || {}} size={60} thumbnail={scene.thumbnail} />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-theme-primary truncate">
                         {scene.name}

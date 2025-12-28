@@ -201,8 +201,8 @@ export const stepSprite = (
 
   // 3) Sprite has fully exited - respawn on the INCOMING edge
   // Spawn just outside the outer rect on the opposite side of travel
-  // Use minimal backoff so sprite enters on next frame
-  const backoff = 1; // Just 1 pixel outside
+  // Use minimal backoff so sprite enters on next frame (immediate respawn)
+  const backoff = 0.1; // Just 0.1 pixels outside for immediate entry (no delay)
   
   const spawnLine = computeSpawnLine(outer, dir, backoff);
   const spawn = sampleSpawnPoint(rng01, spawnLine);

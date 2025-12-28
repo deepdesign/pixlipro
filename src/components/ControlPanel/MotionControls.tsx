@@ -111,20 +111,20 @@ export function MotionControls({
           locked={lockedMovementMode}
           onLockToggle={() => onLockMovementMode(!lockedMovementMode)}
         />
-        <ControlSlider
-          id="motion-range"
-          label="Motion intensity"
-          min={0}
-          max={100}
-          step={spriteState.movementMode === "parallax" ? 0.1 : 1}
-          value={spriteState.movementMode === "parallax" ? spriteState.motionIntensity : Math.round(spriteState.motionIntensity)}
-          displayValue={spriteState.movementMode === "parallax" 
-            ? `${spriteState.motionIntensity.toFixed(1)}%` 
-            : `${Math.round(spriteState.motionIntensity)}%`}
-          onChange={(value) => controller?.setMotionIntensity(value)}
-          disabled={!ready}
-          tooltip="Adjust how far sprites travel within their chosen movement path."
-        />
+        {!["parallax", "linear", "isometric", "triangular"].includes(spriteState.movementMode) && (
+          <ControlSlider
+            id="motion-range"
+            label="Motion intensity"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(spriteState.motionIntensity)}
+            displayValue={`${Math.round(spriteState.motionIntensity)}%`}
+            onChange={(value) => controller?.setMotionIntensity(value)}
+            disabled={!ready}
+            tooltip="Adjust how far sprites travel within their chosen movement path."
+          />
+        )}
         <ControlSlider
           id="motion-speed"
           label="Motion speed"
