@@ -15,6 +15,7 @@ import {
 } from "@/lib/storage/sceneStorage";
 import { SceneNameConflictDialog } from "@/components/SceneNameConflictDialog";
 import type { GeneratorState } from "@/types/generator";
+import { DEFAULT_STATE } from "@/generator";
 import { SceneThumbnail } from "@/components/SequenceManager/SceneThumbnail";
 import { generateSceneThumbnail } from "@/lib/services/thumbnailService";
 import type { SpriteController } from "@/generator";
@@ -489,7 +490,7 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
                     className="flex items-center gap-4 p-4 border border-theme-card rounded-lg hover:bg-theme-icon transition-colors"
                   >
                     <div className="flex-shrink-0">
-                      <SceneThumbnail state={sceneState || currentState || {}} size={60} thumbnail={scene.thumbnail} />
+                      <SceneThumbnail state={sceneState || currentState || DEFAULT_STATE} size={60} thumbnail={scene.thumbnail} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-theme-primary truncate">

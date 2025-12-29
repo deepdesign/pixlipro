@@ -7,7 +7,7 @@ interface SceneThumbnailProps {
   thumbnail?: string; // Optional stored thumbnail (generated on save)
 }
 
-function SceneThumbnailComponent({ state, size = 80, thumbnail }: SceneThumbnailProps) {
+function SceneThumbnailComponent({ state: _state, size = 80, thumbnail }: SceneThumbnailProps) {
   // Debug logging
   if (thumbnail) {
     console.log("[SceneThumbnail] Rendering with thumbnail:", {
