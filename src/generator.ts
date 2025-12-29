@@ -3509,6 +3509,7 @@ export const createSpriteController = (
           let normalizedV = isLineSpriteTile
             ? clamp(tile.v, 0, 1) // Line sprites: clamp to [0, 1] (already normalized in post-processing)
             : ((tile.v % 1) + 1) % 1; // Other sprites: wrap for movement modes
+          
           let movement = { offsetX: 0, offsetY: 0, scaleMultiplier: 1 };
           
           if (tile.kind === "svg") {
@@ -4026,6 +4027,7 @@ export const createSpriteController = (
                 ctx.globalCompositeOperation = blendToComposite[tileBlendMode] ?? "source-over";
                 // Reset to identity matrix - this ensures no legacy transforms affect our uniform scaling
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
+                
                 
                 // Now apply transforms in the correct order (they execute in reverse):
                 // 1. Apply p5.js translation (from clampedX, clampedY)

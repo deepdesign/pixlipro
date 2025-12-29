@@ -594,15 +594,18 @@ export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement
         // We'll use these to explicitly set image dimensions
         const viewBoxMatch = processedSvg.match(/viewBox=["']?([0-9.\s-]+)["']?/i);
         let svgAspectRatio: number | undefined;
-        let svgViewBox: { width: number; height: number } | undefined;
+        let svgViewBox: { x: number; y: number; width: number; height: number } | undefined;
         
         if (viewBoxMatch) {
           const viewBoxParts = viewBoxMatch[1].trim().split(/[\s,]+/);
           if (viewBoxParts.length >= 4) {
+            const vbX = parseFloat(viewBoxParts[0]);
+            const vbY = parseFloat(viewBoxParts[1]);
             const vbWidth = parseFloat(viewBoxParts[2]);
             const vbHeight = parseFloat(viewBoxParts[3]);
             svgAspectRatio = vbWidth / vbHeight;
-            svgViewBox = { width: vbWidth, height: vbHeight };
+            // Store full viewBox including x/y origin - critical for tight viewBox sprites
+            svgViewBox = { x: vbX, y: vbY, width: vbWidth, height: vbHeight };
           }
         }
         
