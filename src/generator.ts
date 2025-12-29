@@ -1644,11 +1644,6 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           parallaxStartPhase,
           };
           
-          // DEBUG: Verify v value is set correctly for line sprites
-          if (process.env.NODE_ENV === 'development' && spriteInfo.svgSprite.id === "line" && tiles.length < 5) {
-            console.log(`[computeSprite] Created line sprite tile: v=${newTile.v.toFixed(3)}, spriteId=${newTile.spriteId}`);
-          }
-          
           tiles.push(newTile);
       }
       // Note: globalTileIndex already incremented for line sprites before tile creation
