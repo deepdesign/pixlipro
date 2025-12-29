@@ -1444,13 +1444,12 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       // CRITICAL: Only count line sprites for uniform distribution, not all tiles
       // This ensures line sprites are evenly distributed even when mixed with other sprite types
       // NOTE: Check spriteInfo.svgSprite.id directly (not via isLineSprite which expects a path)
-      if (hasLineSprite && spriteInfo && spriteInfo.svgSprite.id === "line") {
+      const isThisTileLineSprite = spriteInfo && spriteInfo.svgSprite.id === "line";
+      
+      if (hasLineSprite && isThisTileLineSprite) {
         // Use current globalTileIndex value, then increment for next tile
         const currentIndex = globalTileIndex;
         lineSpriteCount++; // Count this line sprite
-        if (process.env.NODE_ENV === 'development' && currentIndex < 5) {
-          console.log(`[computeSprite] Line sprite: currentIndex=${currentIndex}, globalTileIndex=${globalTileIndex}, lineSpriteCount=${lineSpriteCount}`);
-        }
         globalTileIndex++; // Increment immediately so next tile gets next index
         // Store index for later normalization (we'll normalize after we know total count)
         lineSpriteIndices.push({ layerIndex, tileIndex: tiles.length, index: currentIndex });
@@ -3507,6 +3506,7 @@ export const createSpriteController = (
           let normalizedU = ((tile.u % 1) + 1) % 1;
           // Check if this is a line sprite tile
           const isLineSpriteTile = tile.spriteId === "line";
+          
           // For line sprites, tile.v is already in [0, 1] range, so clamp it instead of wrapping
           // Wrapping would cause v=1 to become 0, which is incorrect
           // CRITICAL: Line sprites use normalized v [0,1] where v=0 is top, v=1 is bottom
