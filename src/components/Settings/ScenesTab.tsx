@@ -16,8 +16,9 @@ import {
 import { SceneNameConflictDialog } from "@/components/SceneNameConflictDialog";
 import type { GeneratorState } from "@/types/generator";
 import { SceneThumbnail } from "@/components/SequenceManager/SceneThumbnail";
-import { createThumbnail, getCanvasFromP5 } from "@/lib/services/exportService";
+import { generateSceneThumbnail } from "@/lib/services/thumbnailService";
 import type { SpriteController } from "@/generator";
+import { updateScene } from "@/lib/storage/sceneStorage";
 
 interface ScenesTabProps {
   currentState?: GeneratorState | null;
@@ -26,6 +27,16 @@ interface ScenesTabProps {
 }
 
 export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabProps) {
+  // Log to multiple console methods to ensure visibility
+  console.log("[ScenesTab] Component rendered", { 
+    hasController: !!controller, 
+    hasCurrentState: !!currentState 
+  });
+  console.warn("[ScenesTab] Component rendered (warn)", { 
+    hasController: !!controller, 
+    hasCurrentState: !!currentState 
+  });
+  
   const [scenes, setScenes] = useState<Scene[]>(getAllScenes());
   const [saveName, setSaveName] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -33,6 +44,8 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loadedSceneId, setLoadedSceneId] = useState<string | null>(null);
+  const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState(false);
+  const [thumbnailProgress, setThumbnailProgress] = useState<{ current: number; total: number } | null>(null);
   const [conflictDialog, setConflictDialog] = useState<{
     isOpen: boolean;
     existingSceneId: string;
@@ -45,7 +58,18 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
   }, []);
 
   const refreshScenes = useCallback(() => {
-    setScenes(getAllScenes());
+    const updatedScenes = getAllScenes();
+    console.log("[ScenesTab] refreshScenes called", {
+      sceneCount: updatedScenes.length,
+      scenesWithThumbnails: updatedScenes.filter(s => s.thumbnail).length,
+      sceneDetails: updatedScenes.map(s => ({
+        id: s.id,
+        name: s.name,
+        hasThumbnail: !!s.thumbnail,
+        thumbnailLength: s.thumbnail?.length || 0
+      }))
+    });
+    setScenes(updatedScenes);
   }, []);
 
   const filteredScenes = scenes.filter((scene) =>
@@ -53,27 +77,43 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
   );
 
   const handleSave = useCallback(async () => {
+    // Use alert as a fallback to ensure we see if this is called
+    console.log("[ScenesTab] handleSave CALLED - START", { 
+      hasController: !!controller, 
+      hasCurrentState: !!currentState,
+      controllerType: controller ? typeof controller : 'null',
+      saveName: saveName.trim()
+    });
+    console.warn("[ScenesTab] handleSave CALLED - START (warn)", { 
+      hasController: !!controller, 
+      hasCurrentState: !!currentState 
+    });
+    
     if (!currentState) {
+      console.warn("[ScenesTab] No currentState, cannot save");
       setSaveError("No current state to save");
       return;
     }
     setSaveError(null);
     
-    // Capture thumbnail from current canvas if available
+    // Generate thumbnail using main controller's canvas
     let thumbnail: string | undefined;
+    console.log("[ScenesTab] About to generate thumbnail", { 
+      hasController: !!controller, 
+      hasCurrentState: !!currentState
+    });
+    
     if (controller) {
       try {
-        const p5Instance = controller.getP5Instance();
-        if (p5Instance) {
-          const canvas = getCanvasFromP5(p5Instance);
-          if (canvas && canvas.width > 0 && canvas.height > 0) {
-            thumbnail = createThumbnail(canvas, 80);
-          }
-        }
+        console.log("[ScenesTab] Generating thumbnail with controller...");
+        thumbnail = await generateSceneThumbnail(currentState, 80, controller);
+        console.log("[ScenesTab] Thumbnail generated successfully:", thumbnail ? `yes (${thumbnail.length} chars, starts with: ${thumbnail.substring(0, 50)})` : "no");
       } catch (error) {
-        console.warn("Failed to capture thumbnail:", error);
+        console.error("[ScenesTab] Failed to generate thumbnail:", error);
         // Continue without thumbnail
       }
+    } else {
+      console.warn("[ScenesTab] No controller available for thumbnail generation");
     }
     
     const sceneName = saveName.trim() || "";
@@ -110,7 +150,14 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
     
     // New scene - check for conflicts
     try {
-      saveScene(sceneName, currentState, undefined, thumbnail);
+      const savedScene = saveScene(sceneName, currentState, undefined, thumbnail);
+      console.log("[ScenesTab] Scene saved with thumbnail:", { 
+        sceneId: savedScene.id, 
+        sceneName: savedScene.name,
+        hasThumbnail: !!savedScene.thumbnail,
+        thumbnailLength: savedScene.thumbnail?.length,
+        thumbnailPreview: savedScene.thumbnail ? savedScene.thumbnail.substring(0, 50) : 'none'
+      });
       setSaveName("");
       refreshScenes();
     } catch (error) {
@@ -141,31 +188,49 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
     [onLoadScene]
   );
   
-  const handleConflictUpdate = useCallback(() => {
+  const handleConflictUpdate = useCallback(async () => {
     if (!currentState || !conflictDialog.existingSceneId) return;
     
+    // Generate thumbnail using main controller's canvas
+    let thumbnail: string | undefined;
     try {
-      saveScene(saveName.trim() || conflictDialog.existingSceneName, currentState, conflictDialog.existingSceneId);
+      thumbnail = await generateSceneThumbnail(currentState, 80, controller);
+    } catch (error) {
+      console.warn("Failed to generate thumbnail:", error);
+      // Continue without thumbnail
+    }
+    
+    try {
+      saveScene(saveName.trim() || conflictDialog.existingSceneName, currentState, conflictDialog.existingSceneId, thumbnail);
       setSaveName("");
       setConflictDialog({ isOpen: false, existingSceneId: "", existingSceneName: "" });
       refreshScenes();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Failed to update scene");
     }
-  }, [currentState, conflictDialog, saveName, refreshScenes]);
+  }, [currentState, conflictDialog, saveName, refreshScenes, controller]);
   
-  const handleConflictSaveNew = useCallback((newName: string) => {
+  const handleConflictSaveNew = useCallback(async (newName: string) => {
     if (!currentState) return;
     
+    // Generate thumbnail using main controller's canvas
+    let thumbnail: string | undefined;
     try {
-      saveScene(newName, currentState);
+      thumbnail = await generateSceneThumbnail(currentState, 80, controller);
+    } catch (error) {
+      console.warn("Failed to generate thumbnail:", error);
+      // Continue without thumbnail
+    }
+    
+    try {
+      saveScene(newName, currentState, undefined, thumbnail);
       setSaveName("");
       setConflictDialog({ isOpen: false, existingSceneId: "", existingSceneName: "" });
       refreshScenes();
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Failed to save scene");
     }
-  }, [currentState, refreshScenes]);
+  }, [currentState, refreshScenes, controller]);
 
   const handleDelete = useCallback(
     (id: string) => {
@@ -191,6 +256,58 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
     a.click();
     URL.revokeObjectURL(url);
   }, []);
+
+  const handleGenerateMissingThumbnails = useCallback(async () => {
+    if (!controller) {
+      setSaveError("Controller not available. Please ensure the canvas is loaded.");
+      return;
+    }
+
+    const allScenes = getAllScenes();
+    const scenesWithoutThumbnails = allScenes.filter(scene => !scene.thumbnail);
+    
+    if (scenesWithoutThumbnails.length === 0) {
+      setImportSuccess("All scenes already have thumbnails!");
+      return;
+    }
+
+    setIsGeneratingThumbnails(true);
+    setThumbnailProgress({ current: 0, total: scenesWithoutThumbnails.length });
+    setSaveError(null);
+    setImportSuccess(null);
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < scenesWithoutThumbnails.length; i++) {
+      const scene = scenesWithoutThumbnails[i];
+      setThumbnailProgress({ current: i + 1, total: scenesWithoutThumbnails.length });
+
+      try {
+        const thumbnail = await generateSceneThumbnail(scene.state, 80, controller);
+        if (thumbnail) {
+          updateScene(scene.id, scene.name, scene.state, thumbnail);
+          successCount++;
+        }
+      } catch (error) {
+        console.error(`Failed to generate thumbnail for scene "${scene.name}":`, error);
+        errorCount++;
+      }
+
+      // Small delay between thumbnails to avoid overwhelming the system
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    setIsGeneratingThumbnails(false);
+    setThumbnailProgress(null);
+    refreshScenes();
+
+    if (successCount > 0) {
+      setImportSuccess(`Generated ${successCount} thumbnail(s)${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+    } else {
+      setSaveError(`Failed to generate thumbnails${errorCount > 0 ? ` (${errorCount} error(s))` : ''}`);
+    }
+  }, [controller, refreshScenes]);
 
   const handleExportScene = useCallback(
     (scene: Scene) => {
@@ -267,7 +384,13 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
                   }
                 }}
               />
-              <Button onClick={handleSave} disabled={!saveName.trim()}>
+              <Button 
+                onClick={() => {
+                  console.log("[ScenesTab] Save button clicked!");
+                  handleSave();
+                }} 
+                disabled={!saveName.trim()}
+              >
                 Save scene
               </Button>
             </div>
@@ -293,6 +416,26 @@ export function ScenesTab({ currentState, onLoadScene, controller }: ScenesTabPr
               </p>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleGenerateMissingThumbnails}
+                disabled={isGeneratingThumbnails || !controller}
+                title={!controller ? "Controller not available" : "Generate thumbnails for scenes missing them"}
+              >
+                {isGeneratingThumbnails ? (
+                  <>
+                    <span className="mr-2">
+                      {thumbnailProgress ? `${thumbnailProgress.current}/${thumbnailProgress.total}` : '...'}
+                    </span>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate thumbnails
+                  </>
+                )}
+              </Button>
               <Button variant="outline" onClick={handleImport}>
                 <Upload className="h-4 w-4 mr-2" />
                 Import

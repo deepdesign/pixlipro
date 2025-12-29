@@ -305,6 +305,44 @@ export function DisplayTab({ onAspectRatioChange }: DisplayTabProps) {
           </div>
         </div>
       </div>
+
+      {/* Projector Fill Mode Card */}
+      <div className="bg-theme-panel rounded-lg border border-theme-card shadow-sm">
+        <div className="p-6 border-b border-theme-card">
+          <div>
+            <h3 className="text-base font-semibold text-theme-primary">Projector fill mode</h3>
+            <p className="text-sm text-theme-muted mt-1">
+              Control how the canvas fills the projector window when aspect ratios don't match.
+            </p>
+          </div>
+        </div>
+        <div className="p-6">
+          <Field>
+            <Label>Fill mode</Label>
+            <Description>
+              Choose how the canvas fills the projector window. Cover fills the entire window (may crop edges), while Contain shows the full canvas (may show black bars).
+            </Description>
+            <div data-slot="control" className="mt-4">
+              <Select
+                value={settings.projectorFillMode || "cover"}
+                onValueChange={(value) => {
+                  const newSettings = { ...settings, projectorFillMode: value as AppSettings["projectorFillMode"] };
+                  setSettings(newSettings);
+                  saveSettings(newSettings);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cover">Cover - Fill entire window (may crop edges)</SelectItem>
+                  <SelectItem value="contain">Contain - Show full canvas (may show black bars)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </Field>
+        </div>
+      </div>
     </div>
   );
 }

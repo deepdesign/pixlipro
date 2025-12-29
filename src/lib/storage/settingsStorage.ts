@@ -45,6 +45,7 @@ export interface AppSettings {
   remoteControlPort: number;
   canvasBlackBackground: boolean;
   projectorMaxResolution: "720p" | "1080p" | "1440p" | "4k" | "unlimited";
+  projectorFillMode: "cover" | "contain"; // How canvas fills projector window: cover (crop) or contain (no crop)
   integrations: IntegrationSettings;
 }
 
@@ -58,6 +59,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   remoteControlPort: 8080,
   canvasBlackBackground: false,
   projectorMaxResolution: "1080p",
+  projectorFillMode: "cover", // Default to cover (fill with possible cropping)
   integrations: {
     osc: {
       enabled: false,

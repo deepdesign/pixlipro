@@ -6620,6 +6620,59 @@ html[data-theme="dark"] .export-quick-section {
   padding: 0 !important;
 }
 
+/* Projector Page - Canvas fills window with CSS scaling */
+/* The canvas is created at capped resolution but scaled to fill the window */
+.projector-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.projector-container .sketch-container {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+}
+
+/* Cover mode - Fill entire window, may crop edges */
+.projector-fill-cover .sketch-container canvas {
+  position: relative !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover !important; /* Fill entire window, may crop slightly to maintain aspect ratio */
+  image-rendering: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  min-width: 100vw !important;
+  min-height: 100vh !important;
+}
+
+/* Contain mode - Show full canvas, may show black bars */
+.projector-fill-contain .sketch-container canvas {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important; /* Show full canvas, may show black bars to maintain aspect ratio */
+  image-rendering: auto !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+}
+
 /* Fullscreen HUD */
 .fullscreen-hud {
   position: fixed;

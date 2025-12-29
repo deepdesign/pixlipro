@@ -8,6 +8,15 @@ interface SceneThumbnailProps {
 }
 
 function SceneThumbnailComponent({ state, size = 80, thumbnail }: SceneThumbnailProps) {
+  // Debug logging
+  if (thumbnail) {
+    console.log("[SceneThumbnail] Rendering with thumbnail:", {
+      hasThumbnail: !!thumbnail,
+      thumbnailLength: thumbnail.length,
+      thumbnailStart: thumbnail.substring(0, 50),
+      size
+    });
+  }
 
   return (
     <div 
@@ -25,6 +34,13 @@ function SceneThumbnailComponent({ state, size = 80, thumbnail }: SceneThumbnail
           alt="Scene preview"
           className="rounded border border-theme-panel"
           style={{ width: size, height: size, objectFit: "cover" }}
+          onError={(e) => {
+            console.error("[SceneThumbnail] Image load error:", e);
+            console.error("[SceneThumbnail] Thumbnail data:", thumbnail.substring(0, 100));
+          }}
+          onLoad={() => {
+            console.log("[SceneThumbnail] Image loaded successfully");
+          }}
         />
       ) : (
         <div
@@ -45,6 +61,11 @@ export const SceneThumbnail = memo(SceneThumbnailComponent, (prevProps, nextProp
   // Check size first (cheapest comparison)
   if (prevProps.size !== nextProps.size) {
     return false; // Props changed, should re-render
+  }
+  
+  // Check thumbnail prop (important for displaying stored thumbnails)
+  if (prevProps.thumbnail !== nextProps.thumbnail) {
+    return false; // Thumbnail changed, should re-render
   }
   
   // Handle null/undefined states

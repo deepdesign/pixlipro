@@ -17,6 +17,7 @@ export function ProjectorPage() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [controllerReady, setControllerReady] = useState(false);
   const controllerReadyRef = useRef(false);
+  const [fillMode, setFillMode] = useState<"cover" | "contain">("cover");
 
   // Apply active theme on projector page load
   useEffect(() => {
@@ -24,6 +25,38 @@ export function ProjectorPage() {
     if (activeTheme) {
       applyTheme(activeTheme);
     }
+  }, []);
+
+  // Load projector fill mode setting and listen for changes
+  useEffect(() => {
+    const updateFillMode = () => {
+      const settings = loadSettings();
+      setFillMode(settings.projectorFillMode || "cover");
+    };
+    
+    // Load initial setting
+    updateFillMode();
+    
+    // Listen for storage changes (when settings are updated in another tab/window)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "pixli-settings") {
+        updateFillMode();
+      }
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    
+    // Also check on window focus in case settings changed in same window
+    const handleFocus = () => {
+      updateFillMode();
+    };
+    
+    window.addEventListener("focus", handleFocus);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   // Initialize sprite controller (only once on mount)
@@ -274,11 +307,15 @@ export function ProjectorPage() {
   return (
     <div 
       ref={containerRef}
-      className="h-screen w-screen bg-theme-bg-base overflow-hidden"
+      className={`projector-container projector-fill-${fillMode} h-screen w-screen bg-theme-bg-base overflow-hidden`}
       style={{
         position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
+      <div className="sketch-container absolute inset-0" />
       {!isConnected && (
         <div className="absolute inset-0 flex items-center justify-center bg-theme-bg-base text-theme-primary z-10">
           <div className="text-center">

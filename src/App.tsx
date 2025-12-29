@@ -1118,6 +1118,7 @@ const App = () => {
         <ScenesPage
           currentState={spriteState}
           onLoadScene={handleLoadPreset}
+          controller={controller}
         />
         )}
     
@@ -1383,6 +1384,7 @@ const App = () => {
           currentState={spriteState}
           onLoadScene={handleLoadPreset}
           onClose={() => setShowSceneManager(false)}
+          controller={controller}
         />
           </Suspense>
         </ErrorBoundary>

@@ -225,8 +225,9 @@ export function LivePreviewCanvas({ currentState, isPlaying, transition, transit
       // Trigger a resize on the p5 instance
       const p5Instance = controllerRef.current?.getP5Instance();
       if (p5Instance && typeof p5Instance.windowResized === 'function') {
-        // Call windowResized to trigger p5.js resize logic
-        p5Instance.windowResized();
+        // Call windowResized with a proper UIEvent to satisfy Zod validation
+        const resizeEvent = new UIEvent('resize', { bubbles: false, cancelable: false });
+        p5Instance.windowResized(resizeEvent);
       }
     };
 

@@ -14,20 +14,23 @@ import {
   checkSceneNameConflict,
   type Scene,
 } from "@/lib/storage";
-import type { GeneratorState } from "@/generator";
+import type { GeneratorState, SpriteController } from "@/generator";
 import { SceneThumbnail } from "@/components/SequenceManager/SceneThumbnail";
 import { SceneNameConflictDialog } from "@/components/SceneNameConflictDialog";
+import { generateSceneThumbnail } from "@/lib/services/thumbnailService";
 
 interface SceneManagerProps {
   currentState: GeneratorState | null;
   onLoadScene: (state: GeneratorState) => void;
   onClose: () => void;
+  controller?: SpriteController | null;
 }
 
 export const SceneManager = ({
   currentState,
   onLoadScene,
   onClose,
+  controller,
 }: SceneManagerProps) => {
   const [scenes, setScenes] = useState<Scene[]>(getAllScenes());
   const [saveName, setSaveName] = useState("");
@@ -48,11 +51,22 @@ export const SceneManager = ({
     setScenes(getAllScenes());
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!currentState) {
       return;
     }
     setSaveError(null);
+    
+    // Generate thumbnail using main controller's canvas
+    let thumbnail: string | undefined;
+    if (controller) {
+      try {
+        thumbnail = await generateSceneThumbnail(currentState, 80, controller);
+      } catch (error) {
+        console.error("[SceneManager] Failed to generate thumbnail:", error);
+        // Continue without thumbnail
+      }
+    }
     
     const sceneName = saveName.trim() || "";
     
@@ -76,7 +90,7 @@ export const SceneManager = ({
         
         // Update the loaded scene
         try {
-          saveScene(nameToUse, currentState, loadedSceneId);
+          saveScene(nameToUse, currentState, loadedSceneId, thumbnail);
           setSaveName("");
           refreshScenes();
           if (saveButtonRef.current) {
@@ -94,7 +108,7 @@ export const SceneManager = ({
     
     // New scene - check for conflicts
     try {
-      saveScene(sceneName, currentState);
+      saveScene(sceneName, currentState, undefined, thumbnail);
       setSaveName("");
       refreshScenes();
       if (saveButtonRef.current) {
@@ -118,7 +132,7 @@ export const SceneManager = ({
         }
       }
     }
-  }, [currentState, saveName, refreshScenes, loadedSceneId, scenes]);
+  }, [currentState, saveName, refreshScenes, loadedSceneId, scenes, controller]);
 
   const handleLoad = useCallback(
     (scene: Scene) => {
@@ -393,7 +407,7 @@ export const SceneManager = ({
                     >
                       {sceneState && (
                         <div className="flex-shrink-0">
-                          <SceneThumbnail state={sceneState} size={60} />
+                          <SceneThumbnail state={sceneState} size={60} thumbnail={scene.thumbnail} />
                         </div>
                       )}
                       <span style={{ flex: 1, fontSize: "0.875rem", textTransform: "uppercase", fontWeight: 500 }}>
@@ -415,7 +429,7 @@ export const SceneManager = ({
                       title="Export scene as JSON"
                       aria-label="Export scene"
                     >
-                      <Download className="h-6 w-6" />
+                      <Download className="h-4 w-4" />
                     </Button>
                     <Button
                       ref={(el) => {
@@ -431,7 +445,7 @@ export const SceneManager = ({
                       aria-label="Delete scene"
                       className="btn-error"
                     >
-                      <Trash2 className="h-6 w-6" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                   );
