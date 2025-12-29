@@ -17,6 +17,8 @@ import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/ut
 import { applyNoiseOverlay } from "./lib/utils/fxNoise";
 import { applyPixelationEffects } from "./lib/utils/fxPixelation";
 import { stepSprite, initSpritePosition, type Vec2 } from "./lib/utils/parallax-math-robust";
+import { getAnimationById } from "./lib/storage/animationStorage";
+import { executeCodeFunctionSync } from "./lib/utils/codeSandbox";
 
 const MIN_TILE_SCALE = 0.12;
 const MAX_TILE_SCALE = 5.5; // Allow large sprites, but positioning will be adjusted
@@ -189,6 +191,7 @@ export interface GeneratorState {
   spriteMode: SpriteMode; // DEPRECATED: kept for backward compatibility, use selectedSprites instead
   selectedSprites: string[]; // Array of sprite identifiers: svgPath for SVG sprites
   movementMode: MovementMode;
+  customAnimationId?: string; // ID of custom animation to use (if set, overrides movementMode)
   backgroundMode: BackgroundMode;
   backgroundHueShift: number;
   backgroundSaturation: number; // Canvas saturation adjustment (0-200, 100 = normal)
@@ -640,6 +643,87 @@ const blendModePool: BlendModeKey[] = [
  */
 // Helper function for clamping scale values - used in both computeMovementOffsets and draw
 const clampScale = (value: number) => Math.max(0.35, value);
+
+/**
+ * Compute movement offsets using custom animation code if available, otherwise use movement mode
+ */
+const computeMovementOffsetsWithCustom = (
+  currentState: GeneratorState,
+  data: {
+    time: number;
+    phase: number;
+    motionScale: number;
+    layerIndex: number;
+    baseUnit: number;
+    layerTileSize: number;
+    speedFactor: number;
+  },
+): { offsetX: number; offsetY: number; scaleMultiplier: number } => {
+  // Check for custom animation first
+  if (currentState.customAnimationId) {
+    try {
+      const animation = getAnimationById(currentState.customAnimationId);
+      if (animation && !animation.isDefault) {
+        const customAnim = animation as any; // CustomAnimation type
+        
+        // Normalize time based on duration (0-1 range)
+        // If loop is false and time exceeds duration, clamp to 1.0
+        // For preview animations (IDs starting with "preview-"), use a longer effective duration
+        // to prevent rapid resets, but still normalize to 0-1 range
+        let normalizedTime: number;
+        const isPreview = customAnim.id?.startsWith("preview-");
+        const effectiveDuration = isPreview ? Math.max(customAnim.duration, 10.0) : customAnim.duration; // Min 10s for previews
+        
+        if (customAnim.loop) {
+          normalizedTime = (data.time % effectiveDuration) / effectiveDuration;
+        } else {
+          normalizedTime = Math.min(data.time / effectiveDuration, 1.0);
+        }
+        
+        // Execute path function
+        if (customAnim.codeFunctions?.path) {
+          const pathFn = executeCodeFunctionSync(customAnim.codeFunctions.path, {
+            t: normalizedTime,
+            phase: data.phase,
+            layerIndex: data.layerIndex,
+            baseUnit: data.baseUnit,
+            motionScale: data.motionScale,
+          });
+          
+          // pathFn should be a function that takes (t, phase) and returns {x, y}
+          const pos = typeof pathFn === 'function' ? pathFn(normalizedTime, data.phase) : pathFn;
+          
+          // Execute scale function if available
+          let scaleMultiplier = 1.0;
+          if (customAnim.codeFunctions?.scale) {
+            const scaleFn = executeCodeFunctionSync(customAnim.codeFunctions.scale, {
+              t: normalizedTime,
+              phase: data.phase,
+              layerIndex: data.layerIndex,
+              baseUnit: data.baseUnit,
+              motionScale: data.motionScale,
+            });
+            // scaleFn should be a function that takes (t) and returns a number
+            const scale = typeof scaleFn === 'function' ? scaleFn(normalizedTime) : scaleFn;
+            scaleMultiplier = clampScale(typeof scale === 'number' ? scale : 1.0);
+          }
+          
+          return {
+            offsetX: (pos?.x || 0) * data.baseUnit * data.motionScale,
+            offsetY: (pos?.y || 0) * data.baseUnit * data.motionScale,
+            scaleMultiplier,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Failed to execute custom animation:", error);
+      // Fall through to default movement mode
+    }
+  }
+  
+  // Fall back to movement mode
+  return computeMovementOffsets(currentState.movementMode, data);
+};
 
 const computeMovementOffsets = (
   mode: MovementMode,
@@ -1359,7 +1443,8 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
       // For line sprites, calculate v based on line sprite index (not all tiles)
       // CRITICAL: Only count line sprites for uniform distribution, not all tiles
       // This ensures line sprites are evenly distributed even when mixed with other sprite types
-      if (hasLineSprite && spriteInfo && isLineSprite(spriteInfo.svgSprite.id)) {
+      // NOTE: Check spriteInfo.svgSprite.id directly (not via isLineSprite which expects a path)
+      if (hasLineSprite && spriteInfo && spriteInfo.svgSprite.id === "line") {
         // Use current globalTileIndex value, then increment for next tile
         const currentIndex = globalTileIndex;
         lineSpriteCount++; // Count this line sprite
@@ -1591,9 +1676,6 @@ const computeSprite = (state: GeneratorState, overridePalette?: { id: string; co
           tile.v = index / (lineSpriteCount - 1); // Map [0, lineSpriteCount-1] to [0, 1]
         } else {
           tile.v = 0.5; // Center if only one line sprite
-        }
-        if (process.env.NODE_ENV === 'development' && index < 5) {
-          console.log(`[computeSprite] Normalized line sprite v=${tile.v.toFixed(3)} for index ${index} (total line sprites: ${lineSpriteCount})`);
         }
       }
     });
@@ -3357,7 +3439,7 @@ export const createSpriteController = (
               if (tile.kind === "svg") {
                 const baseSpriteSize =
                   baseLayerSize * tile.scale * (1 + layerIndex * 0.08);
-                const movement = computeMovementOffsets(currentState.movementMode, {
+                const movement = computeMovementOffsetsWithCustom(currentState, {
                   time: scaledAnimationTime * tile.animationTimeMultiplier,
                   phase: tileIndex * 7,
                   motionScale,
@@ -3575,8 +3657,8 @@ export const createSpriteController = (
                 scaleMultiplier: 1.0, // No scale animation for parallax mode
               };
             } else {
-              // Non-parallax mode: use standard movement calculation
-              movement = computeMovementOffsets(currentState.movementMode, {
+              // Non-parallax mode: use standard movement calculation (with custom animation support)
+              movement = computeMovementOffsetsWithCustom(currentState, {
                 time: scaledAnimationTime * tile.animationTimeMultiplier,
                 phase: tileIndex * 7,
                 motionScale,
@@ -3599,20 +3681,6 @@ export const createSpriteController = (
                 ? normalizedV * p.height  // Line sprites: v=0 → Y=0 (top), v=1 → Y=p.height (bottom)
                 : offsetY + normalizedV * p.height + movement.offsetY;  // Other sprites: include offsets
             
-            // DEBUG: Log first few line sprites to verify values (remove after debugging)
-            if (isLineSpriteTile && tileIndex < 5 && layerIndex === 0 && process.env.NODE_ENV === 'development') {
-              console.log(`[draw] Line sprite tileIndex=${tileIndex}, layerIndex=${layerIndex}:`, {
-                tileV: tile.v,
-                tileVType: typeof tile.v,
-                normalizedV: normalizedV,
-                pHeight: p.height,
-                calculatedY: baseY,
-                movementMode: currentState.movementMode,
-                spriteId: tile.spriteId,
-                // Check if tile object has been modified
-                tileKeys: Object.keys(tile)
-              });
-            }
             
             const finalMovement = movement;
             const svgSize = baseSvgSize * finalMovement.scaleMultiplier;
