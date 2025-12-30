@@ -358,14 +358,19 @@ async function processSvgContent(svgText: string): Promise<string> {
     }
     
     if (pathDataArray.length > 0) {
-      // Extract original viewBox to get dimensions
+      // Extract original viewBox to get dimensions (BEFORE tightening)
+      // This is critical for Path2D rendering since path coordinates use original system
       const viewBoxMatch = processedSvg.match(/viewBox=["']?([0-9.\s-]+)["']?/i);
+      let viewBoxX = 0;
+      let viewBoxY = 0;
       let viewBoxWidth = 24;
       let viewBoxHeight = 24;
       
       if (viewBoxMatch) {
         const viewBoxParts = viewBoxMatch[1].trim().split(/[\s,]+/);
         if (viewBoxParts.length >= 4) {
+          viewBoxX = parseFloat(viewBoxParts[0]) || 0;
+          viewBoxY = parseFloat(viewBoxParts[1]) || 0;
           viewBoxWidth = parseFloat(viewBoxParts[2]) || 24;
           viewBoxHeight = parseFloat(viewBoxParts[3]) || 24;
         }
@@ -567,6 +572,23 @@ export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement
         return response.text();
       })
       .then(async svgText => {
+        // Extract ORIGINAL viewBox from raw SVG BEFORE any processing
+        // This is critical because processSvgContent may create a "tight" viewBox
+        // but Path2D coordinates still use the original coordinate system
+        let originalViewBox: { x: number; y: number; width: number; height: number } | undefined;
+        const origViewBoxMatch = svgText.match(/viewBox=["']?([0-9.\s-]+)["']?/i);
+        if (origViewBoxMatch) {
+          const parts = origViewBoxMatch[1].trim().split(/[\s,]+/);
+          if (parts.length >= 4) {
+            originalViewBox = {
+              x: parseFloat(parts[0]) || 0,
+              y: parseFloat(parts[1]) || 0,
+              width: parseFloat(parts[2]) || 24,
+              height: parseFloat(parts[3]) || 24
+            };
+          }
+        }
+        
         // Skip SVGO optimization for blob URLs (custom sprites) - they're already optimized
         // This avoids the os.EOL warnings for custom sprites
         const isBlobUrl = svgPath.startsWith('blob:');
@@ -635,6 +657,8 @@ export async function loadSpriteImage(svgPath: string): Promise<HTMLImageElement
             if (svgAspectRatio !== undefined) {
               (img as any).__svgAspectRatio = svgAspectRatio;
               (img as any).__svgViewBox = svgViewBox;
+              // Store ORIGINAL viewBox for Path2D rendering (path coords use original system)
+              (img as any).__svgOriginalViewBox = originalViewBox;
               // Extract ALL path data from processed SVG for direct canvas rendering
               // Check if this SVG uses fill-rule="evenodd" for boolean shapes
               // Also check for multiple paths (boolean shapes) even if fill-rule isn't explicitly set

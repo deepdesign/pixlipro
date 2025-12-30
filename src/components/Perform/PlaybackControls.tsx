@@ -81,7 +81,7 @@ const SortableSceneRow = memo(function SortableSceneRow({ item, index, scene, is
 
       {/* Thumbnail - match SequenceManager pattern exactly (no wrapper div, no key) */}
       {sceneState ? (
-        <SceneThumbnail state={sceneState} size={60} />
+        <SceneThumbnail state={sceneState} size={60} thumbnail={scene?.thumbnail} />
       ) : (
         <div className="w-[60px] h-[60px] bg-theme-panel rounded border border-theme-card flex items-center justify-center flex-shrink-0">
           <span className="text-xs text-theme-subtle">No preview</span>
@@ -287,7 +287,7 @@ export function PlaybackControls({
   const handleNext = useCallback(() => {
     const items = sequenceItemsRef.current;
     const idx = currentIndexRef.current;
-    
+
     if (!localSequence || items.length === 0) return;
 
     const nextIndex = (idx + 1) % items.length;
@@ -305,7 +305,7 @@ export function PlaybackControls({
   const handlePrevious = useCallback(() => {
     const items = sequenceItemsRef.current;
     const idx = currentIndexRef.current;
-    
+
     if (!localSequence || items.length === 0) return;
 
     const prevIndex = idx > 0 ? idx - 1 : items.length - 1;
@@ -340,7 +340,7 @@ export function PlaybackControls({
 
   // Track if component is mounted to handle returning from navigation
   const isMountedRef = useRef(false);
-  
+
   // Start playback timer
   useEffect(() => {
     isMountedRef.current = true;

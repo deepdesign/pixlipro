@@ -346,6 +346,77 @@ export function FxControls({
           />
         )}
       </div>
+
+      {/* Halftone Section */}
+      <div className="section section--spaced">
+        <hr className="section-divider border-t" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TextWithTooltip
+              id="halftone-tip"
+              text="Convert image to halftone dots, like newspaper printing. Darker areas have larger dots."
+            >
+              <h3 className="section-title">Halftone</h3>
+            </TextWithTooltip>
+          </div>
+          <Switch
+            checked={spriteState.halftoneEnabled}
+            onCheckedChange={(checked) =>
+              controller?.setHalftoneEnabled(checked)
+            }
+            disabled={!ready}
+            aria-label="Enable halftone"
+          />
+        </div>
+        {spriteState.halftoneEnabled && (
+          <>
+            <ControlSlider
+              id="halftone-dot-size"
+              label="Dot size"
+              min={1}
+              max={64}
+              value={Math.round(spriteState.halftoneDotSize)}
+              displayValue={`${Math.round(spriteState.halftoneDotSize)}px`}
+              onChange={(value) => controller?.setHalftoneDotSize(value)}
+              disabled={!ready}
+              tooltip="Maximum size of halftone dots. Larger values create more visible dots."
+            />
+            <ControlSlider
+              id="halftone-spacing"
+              label="Dot spacing"
+              min={2}
+              max={50}
+              value={Math.round(spriteState.halftoneSpacing)}
+              displayValue={`${Math.round(spriteState.halftoneSpacing)}px`}
+              onChange={(value) => controller?.setHalftoneSpacing(value)}
+              disabled={!ready}
+              tooltip="Distance between dot centers. Lower values create denser patterns."
+            />
+            <ControlSelect
+              id="halftone-shape"
+              label="Dot shape"
+              value={spriteState.halftoneShape}
+              onChange={(value) =>
+                controller?.setHalftoneShape(value as "circle" | "square" | "diamond")
+              }
+              disabled={!ready}
+              options={[
+                { value: "circle", label: "Circle" },
+                { value: "square", label: "Square" },
+                { value: "diamond", label: "Diamond" },
+              ]}
+              tooltip="Shape of the halftone dots."
+              currentLabel={
+                spriteState.halftoneShape === "circle"
+                  ? "Circle"
+                  : spriteState.halftoneShape === "square"
+                  ? "Square"
+                  : "Diamond"
+              }
+            />
+          </>
+        )}
+      </div>
     </>
   );
 }

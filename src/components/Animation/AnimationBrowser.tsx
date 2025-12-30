@@ -10,6 +10,7 @@ interface AnimationBrowserProps {
   onDuplicateAnimation?: (animation: Animation) => void;
   onDeleteAnimation?: (animationId: string) => void;
   onEditAnimation?: (animationId: string) => void;
+  filter?: "default" | "custom";
 }
 
 export function AnimationBrowser({
@@ -18,24 +19,40 @@ export function AnimationBrowser({
   onDuplicateAnimation,
   onDeleteAnimation,
   onEditAnimation,
+  filter,
 }: AnimationBrowserProps) {
-  // Combine default and custom animations
-  const allAnimations = useMemo(() => {
-    const defaults = getAllDefaultAnimations();
-    const customs = getAllCustomAnimations();
-    return [...defaults, ...customs];
-  }, []);
+  // Get default and custom animations separately
+  const defaultAnimations = useMemo(() => getAllDefaultAnimations(), []);
+  const customAnimations = useMemo(() => getAllCustomAnimations(), []);
 
-  // Filter animations (can be extended later for search/filter)
+  // Filter animations based on active tab
   const filteredAnimations = useMemo(() => {
-    return allAnimations;
-  }, [allAnimations]);
+    if (filter === "default") {
+      return defaultAnimations;
+    } else if (filter === "custom") {
+      return customAnimations;
+    }
+    // No filter: show all
+    return [...defaultAnimations, ...customAnimations];
+  }, [defaultAnimations, customAnimations, filter]);
 
   if (filteredAnimations.length === 0) {
+    if (filter === "custom") {
+      return (
+        <div className="w-full py-12 text-center">
+          <p className="text-theme-muted mb-4">
+            No custom animations yet.
+          </p>
+          <p className="text-sm text-theme-subtle">
+            Create your first custom animation or duplicate a default one to get started.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="w-full py-12 text-center">
         <p className="text-theme-muted">
-          No animations available. Create your first custom animation to get started.
+          No animations available.
         </p>
       </div>
     );

@@ -16,6 +16,7 @@ import { loadSpriteImage, getCachedSpriteImage, preloadSpriteImages } from "./li
 import { interpolateGeneratorState, calculateTransitionProgress } from "./lib/utils/animationTransition";
 import { applyNoiseOverlay } from "./lib/utils/fxNoise";
 import { applyPixelationEffects } from "./lib/utils/fxPixelation";
+import { applyHalftone } from "./lib/utils/fxHalftone";
 import { stepSprite, initSpritePosition, type Vec2 } from "./lib/utils/parallax-math-robust";
 import { getAnimationById } from "./lib/storage/animationStorage";
 import { executeCodeFunctionSync } from "./lib/utils/codeSandbox";
@@ -269,6 +270,12 @@ export interface GeneratorState {
   pixelationGridPaletteColorIndex: number; // Index of palette color to use for grid (0-based)
   colorQuantizationEnabled: boolean;
   colorQuantizationBits: number; // 4, 8, 16, or 24 (bit depth)
+  // Halftone
+  halftoneEnabled: boolean;
+  halftoneDotSize: number; // 1-64 pixels
+  halftoneSpacing: number; // 2-50 pixels
+  halftoneAngle: number; // 0-360 degrees
+  halftoneShape: "circle" | "square" | "diamond";
   // Thumbnail mode settings (for animation thumbnails)
   thumbnailMode?: {
     primaryColorIndex: number; // Color index for primary sprite (e.g., 0 for slate-50)
@@ -399,6 +406,12 @@ export const DEFAULT_STATE: GeneratorState = {
   pixelationGridPaletteColorIndex: 0, // Default: first palette color
   colorQuantizationEnabled: false,
   colorQuantizationBits: 24, // Default 24-bit (full quality)
+  // Halftone defaults
+  halftoneEnabled: false,
+  halftoneDotSize: 4, // Default: 4 pixels
+  halftoneSpacing: 8, // Default: 8 pixels
+  halftoneAngle: 45, // Default: 45 degrees
+  halftoneShape: "circle", // Default: circle dots
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -1905,6 +1918,12 @@ export interface SpriteController {
   randomizePixelationGridColor: () => void;
   setColorQuantizationEnabled: (enabled: boolean) => void;
   setColorQuantizationBits: (bits: number) => void;
+  // Halftone
+  setHalftoneEnabled: (enabled: boolean) => void;
+  setHalftoneDotSize: (size: number) => void;
+  setHalftoneSpacing: (spacing: number) => void;
+  setHalftoneAngle: (angle: number) => void;
+  setHalftoneShape: (shape: "circle" | "square" | "diamond") => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
   applyMinimalGridPreset: () => void;
@@ -3933,14 +3952,19 @@ export const createSpriteController = (
               // The sprite's aspect ratio is INDEPENDENT of canvas aspect ratio - it should NEVER change
               const svgPathData = (cachedImg as any).__svgPathData;
               const svgViewBox = (cachedImg as any).__svgViewBox;
+              // CRITICAL: For Path2D rendering, use ORIGINAL viewBox since path coords are in original system
+              // The tight viewBox is used for image rendering, but Path2D needs original coords
+              const svgOriginalViewBox = (cachedImg as any).__svgOriginalViewBox;
               
               let vbWidth: number;
               let vbHeight: number;
               
-              if (svgViewBox) {
+              // For Path2D, use original viewBox dimensions; for image fallback, use tight viewBox
+              const viewBoxForPath = svgOriginalViewBox || svgViewBox;
+              if (viewBoxForPath) {
                 // Use viewBox dimensions directly - these are the sprite's true dimensions
-                vbWidth = svgViewBox.width;
-                vbHeight = svgViewBox.height;
+                vbWidth = viewBoxForPath.width;
+                vbHeight = viewBoxForPath.height;
               } else {
                 // Fallback to natural image dimensions
                 vbWidth = cachedImg.naturalWidth || cachedImg.width || 1;
@@ -3984,10 +4008,10 @@ export const createSpriteController = (
                 }
               }
               
-              if (svgPathData && svgViewBox) {
-                // Get viewBox origin for positioning
-                const vbX = svgViewBox.x || 0;
-                const vbY = svgViewBox.y || 0;
+              if (svgPathData && viewBoxForPath) {
+                // Get viewBox origin for positioning - use ORIGINAL viewBox for Path2D
+                const vbX = viewBoxForPath.x || 0;
+                const vbY = viewBoxForPath.y || 0;
                 
                 // Check if outline mode is enabled
                 // When mixed mode is enabled, use per-tile outline state; otherwise use global state
@@ -4299,6 +4323,20 @@ export const createSpriteController = (
         }
       }
       
+      // Apply Halftone if enabled (after pixelation, before noise)
+      if (currentState.halftoneEnabled && hasCanvas(p5Instance)) {
+        const canvas = p5Instance.canvas as HTMLCanvasElement;
+        if (canvas) {
+          applyHalftone(
+            canvas,
+            currentState.halftoneDotSize,
+            currentState.halftoneSpacing,
+            currentState.halftoneAngle,
+            currentState.halftoneShape
+          );
+        }
+      }
+
       // Apply Noise/Grain overlay if enabled (after all sprites and bloom are drawn)
       if (currentState.noiseEnabled && hasCanvas(p5Instance)) {
         const canvas = p5Instance.canvas as HTMLCanvasElement;
@@ -5062,6 +5100,22 @@ export const createSpriteController = (
         Math.abs(curr - bits) < Math.abs(prev - bits) ? curr : prev
       );
       applyState({ colorQuantizationBits: clampedBits }, { recompute: false });
+    },
+    // Halftone
+    setHalftoneEnabled: (enabled: boolean) => {
+      applyState({ halftoneEnabled: enabled }, { recompute: false });
+    },
+    setHalftoneDotSize: (size: number) => {
+      applyState({ halftoneDotSize: clamp(size, 1, 64) }, { recompute: false });
+    },
+    setHalftoneSpacing: (spacing: number) => {
+      applyState({ halftoneSpacing: clamp(spacing, 2, 50) }, { recompute: false });
+    },
+    setHalftoneAngle: (angle: number) => {
+      applyState({ halftoneAngle: clamp(angle, 0, 360) }, { recompute: false });
+    },
+    setHalftoneShape: (shape: "circle" | "square" | "diamond") => {
+      applyState({ halftoneShape: shape }, { recompute: false });
     },
     setSpriteCollection: (collectionId: string) => {
       const collection = getCollection(collectionId);

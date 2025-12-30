@@ -5,11 +5,15 @@
  * Follows the same pattern as customPaletteStorage.ts and sequenceStorage.ts
  */
 
-import type { CustomAnimation, Animation } from "@/types/animations";
+import type { CustomAnimation, Animation, DefaultAnimation } from "@/types/animations";
 import { DEFAULT_ANIMATIONS } from "@/constants/animations";
+import { movementModeToCodeFunctions } from "@/lib/utils/movementModeToAnimation";
 
 const STORAGE_KEY = "pixli-custom-animations";
 const MAX_CUSTOM_ANIMATIONS = 50;
+
+// Temporary in-memory store for preview animations (not persisted)
+const previewAnimations = new Map<string, CustomAnimation>();
 
 /**
  * Get all custom animations from storage
@@ -89,9 +93,30 @@ export function deleteCustomAnimation(animationId: string): boolean {
  * Get animation by ID (default or custom)
  */
 export function getAnimationById(id: string): Animation | undefined {
+  // Check preview animations first (temporary in-memory animations)
+  const preview = previewAnimations.get(id);
+  if (preview) return preview;
+  
+  // Then check custom animations in storage
   const custom = getAllCustomAnimations().find(anim => anim.id === id);
   if (custom) return custom;
+  
+  // Finally check default animations
   return DEFAULT_ANIMATIONS.find(anim => anim.id === id);
+}
+
+/**
+ * Register a temporary preview animation (for editor previews)
+ */
+export function registerPreviewAnimation(animation: CustomAnimation): void {
+  previewAnimations.set(animation.id, animation);
+}
+
+/**
+ * Unregister a preview animation
+ */
+export function unregisterPreviewAnimation(id: string): void {
+  previewAnimations.delete(id);
 }
 
 /**
@@ -105,19 +130,40 @@ export function getAllAnimations(): Animation[] {
  * Duplicate an animation (default or custom) and save as new custom animation
  */
 export function duplicateAnimation(animation: Animation, newName?: string): CustomAnimation {
-  const baseName = newName?.trim() || `${animation.name} (Copy)`;
+  const baseName = newName?.trim() || `${animation.name} custom`;
 
   // Create animation data without id, createdAt, updatedAt, isDefault (saveCustomAnimation will add these)
-  const animationData: Omit<CustomAnimation, 'id' | 'createdAt' | 'updatedAt' | 'isDefault'> = {
-    name: baseName,
-    description: animation.description,
-    path: animation.isDefault ? { type: "linear", points: [], closed: false } : animation.path, // Default path for duplicated defaults
-    duration: animation.isDefault ? 10 : animation.duration, // Default duration for duplicated defaults
-    loop: animation.isDefault ? true : animation.loop, // Default loop for duplicated defaults
-    keyframes: animation.isDefault ? [] : animation.keyframes, // No keyframes for duplicated defaults
-    author: animation.isDefault ? "User" : animation.author,
-    tags: animation.isDefault ? undefined : animation.tags,
-  };
+  let animationData: Omit<CustomAnimation, 'id' | 'createdAt' | 'updatedAt' | 'isDefault'>;
+
+  if (animation.isDefault) {
+    // Convert default animation to custom animation with code functions
+    const defaultAnim = animation as DefaultAnimation;
+    const codeFunctions = movementModeToCodeFunctions(defaultAnim.movementMode);
+    
+    animationData = {
+      name: baseName,
+      description: `Custom version of ${animation.name}`,
+      codeFunctions,
+      expressionMode: "javascript",
+      duration: 2.0,
+      loop: true,
+      author: "User",
+      tags: undefined,
+    };
+  } else {
+    // Duplicate existing custom animation
+    const customAnim = animation as CustomAnimation;
+    animationData = {
+      name: baseName,
+      description: customAnim.description,
+      codeFunctions: { ...customAnim.codeFunctions },
+      expressionMode: customAnim.expressionMode,
+      duration: customAnim.duration,
+      loop: customAnim.loop,
+      author: customAnim.author,
+      tags: customAnim.tags,
+    };
+  }
 
   return saveCustomAnimation(animationData);
 }
@@ -144,9 +190,9 @@ export function exportAnimationAsJSON(animation: Animation): void {
  */
 export function importAnimationFromJSON(jsonString: string): CustomAnimation {
   const parsed = JSON.parse(jsonString);
-  // Basic validation
-  if (!parsed || typeof parsed.name !== "string" || !parsed.path) {
-    throw new Error("Invalid animation JSON structure.");
+  // Basic validation - check for codeFunctions instead of path
+  if (!parsed || typeof parsed.name !== "string" || !parsed.codeFunctions) {
+    throw new Error("Invalid animation JSON structure. Expected codeFunctions field.");
   }
 
   // Ensure it's treated as a new custom animation

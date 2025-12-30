@@ -52,7 +52,7 @@ export interface AnimationKeyframe {
 }
 
 /**
- * Custom animation definition
+ * Custom animation definition (code-based)
  */
 export interface CustomAnimation {
   id: string;
@@ -62,21 +62,20 @@ export interface CustomAnimation {
   createdAt: number;
   updatedAt: number;
   
-  // Path definition
-  path: AnimationPath;
+  // Code functions (required)
+  codeFunctions: {
+    path: string;      // JavaScript function string
+    scale?: string;     // Optional
+  };
+  expressionMode: "math" | "javascript";
   
-  // Timing
+  // Simple properties
   duration: number; // seconds
   loop: boolean;
-  
-  // Keyframes
-  keyframes: AnimationKeyframe[];
   
   // Metadata
   author?: string;
   tags?: string[];
-  
-  // Thumbnail (data URL or URL)
   thumbnail?: string;
 }
 

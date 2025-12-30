@@ -38,8 +38,8 @@ export const ButtonGroup = ({
               "relative rounded-md px-3 py-1.5 text-sm font-semibold transition",
               "focus:outline-none",
               isSelected
-                ? "bg-[var(--theme-supporting-light)] text-[var(--text-primary)] shadow-sm dark:bg-theme-card dark:text-[var(--text-primary)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-primary)]",
+                ? "bg-[var(--accent-primary)] text-[var(--accent-primary-contrast)] shadow-sm"
+                : "text-theme-muted hover:text-theme-text bg-transparent",
               disabled && "opacity-50 cursor-not-allowed"
             )}
           >

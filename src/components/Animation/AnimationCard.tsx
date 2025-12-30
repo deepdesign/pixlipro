@@ -40,14 +40,8 @@ function getWaveformInfo(animation: Animation): string {
     return getWaveformForMode(defaultAnim.movementMode);
   } else {
     const customAnim = animation as CustomAnimation;
-    // For custom animations, show the path type
-    const pathTypeMap: Record<string, string> = {
-      linear: "Linear Path",
-      bezier: "Bezier Curve",
-      spline: "Spline",
-      custom: "Custom Path",
-    };
-    return pathTypeMap[customAnim.path?.type] || "Custom Path";
+    // For custom animations, show code-based indicator
+    return customAnim.expressionMode === "math" ? "Math Expression" : "JavaScript Function";
   }
 }
 

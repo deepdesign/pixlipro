@@ -4,39 +4,39 @@ overview: Implement a layer ordering system that allows users to control how mul
 todos:
   - id: add-state-properties
     content: Add layerOrderMode, spriteLayerOrder, and globalParallaxEnabled to GeneratorState interface and DEFAULT_STATE
-    status: pending
+    status: completed
   - id: store-sprite-identifier
     content: Add spriteIdentifier property to SvgTile and populate it when creating tiles
-    status: pending
+    status: completed
   - id: implement-sorting-logic
     content: Modify rendering loop to sort tiles based on layerOrderMode (mixed by size, bands by order) and apply global parallax depth speed scaling when enabled
-    status: pending
+    status: completed
     dependencies:
       - add-state-properties
       - store-sprite-identifier
   - id: auto-init-layer-order
     content: Auto-initialize spriteLayerOrder when sprites are selected/deselected, grouped by type
-    status: pending
+    status: completed
     dependencies:
       - add-state-properties
   - id: add-controller-methods
     content: Add setLayerOrderMode, setSpriteLayerOrder, reorderSpriteLayer, randomizeSpriteLayerOrder, and setGlobalParallaxEnabled methods to SpriteController
-    status: pending
+    status: completed
     dependencies:
       - add-state-properties
   - id: create-layers-controls
     content: Create LayersControls component following established patterns (panel-heading, section structure, switch-row for buttons, TextWithTooltip, etc.) with mode toggle, global parallax toggle, drag-and-drop bands list, and randomize button
-    status: pending
+    status: completed
     dependencies:
       - add-controller-methods
   - id: add-navigation-item
     content: Add 'Layers' navigation item to AppSidebar and integrate LayersControls panel
-    status: pending
+    status: completed
     dependencies:
       - create-layers-controls
   - id: update-app-integration
     content: Update App.tsx to handle layers panel in activePanel state and handlers
-    status: pending
+    status: completed
     dependencies:
       - add-navigation-item
 ---
@@ -528,6 +528,3 @@ graph TD
 - Most likely bottleneck is rendering, not sorting
 
 ## Migration Notes
-
-- Existing scenes will default to "bands" mode with auto-generated order
-- No breaking changes to existing state structure

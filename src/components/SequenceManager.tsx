@@ -223,7 +223,7 @@ function SortableTableRow({ item, scene, scenes, onUpdate, onDelete, onEditScene
       {/* Thumbnail */}
       <td className="px-4 py-3">
         {sceneState ? (
-          <SceneThumbnail state={sceneState} size={60} />
+          <SceneThumbnail state={sceneState} size={60} thumbnail={scene?.thumbnail} />
         ) : (
           <div className="w-[60px] h-[60px] bg-theme-panel rounded border border-theme-card flex items-center justify-center">
             <span className="text-xs text-theme-subtle">No preview</span>

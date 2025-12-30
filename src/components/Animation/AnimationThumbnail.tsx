@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createSpriteController } from "@/generator";
 import type { GeneratorState } from "@/types/generator";
-import type { Animation } from "@/types/animations";
+import type { Animation, CustomAnimation } from "@/types/animations";
 import { getDefaultAnimation } from "@/constants/animations";
+import { registerPreviewAnimation, unregisterPreviewAnimation } from "@/lib/storage/animationStorage";
 
 interface AnimationThumbnailProps {
   animation: Animation;
@@ -20,9 +21,23 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
   });
 
   // Use IntersectionObserver to only initialize when thumbnail is visible
+  // For editor previews, always initialize immediately (no observer delay)
   useEffect(() => {
     if (!containerRef.current) return;
 
+    // In editor context, initialize immediately to prevent flashing
+    // Check if we're in an editor by looking for a parent with specific class or data attribute
+    const isInEditor = containerRef.current.closest('[data-animation-editor]') !== null;
+    
+    if (isInEditor) {
+      // In editor: initialize immediately, no delay
+      if (!shouldInitialize) {
+        setShouldInitialize(true);
+      }
+      return;
+    }
+
+    // Outside editor: use IntersectionObserver for lazy loading
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -75,6 +90,123 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
   useEffect(() => {
     if (!containerRef.current || !shouldInitialize) return;
 
+    // Check if we're in the editor context (for smooth updates without remounting)
+    const isInEditor = containerRef.current.closest('[data-animation-editor]') !== null;
+    
+    // If controller already exists and we're in editor, update its state instead of recreating
+    if (controllerRef.current && isInEditor) {
+      const controller = controllerRef.current;
+      
+      // Build new state from animation
+      const squareSpritePath = "/sprites/default/square.svg";
+      let state: GeneratorState;
+      
+      if (animation.isDefault) {
+        const defaultAnim = getDefaultAnimation(animation.id);
+        if (!defaultAnim) {
+          setIsReady(false);
+          return;
+        }
+        
+        state = controller.getState();
+        const scaleBaseValue = 50 / 100;
+        const MIN_TILE_SCALE = 0.12;
+        const MAX_TILE_SCALE = 5.5;
+        const basePrimaryScale = MIN_TILE_SCALE + (MAX_TILE_SCALE - MIN_TILE_SCALE) * scaleBaseValue;
+        const primaryScale = basePrimaryScale * 0.25;
+        const secondaryScale = primaryScale * 0.4;
+        const isParallax = defaultAnim.movementMode === "parallax";
+        const previewMotionSpeed = isParallax ? 1 : 25;
+        
+        state = {
+          ...state,
+          movementMode: defaultAnim.movementMode,
+          motionIntensity: 50,
+          motionSpeed: previewMotionSpeed,
+          animationEnabled: true,
+          scalePercent: 40,
+          scaleBase: 50,
+          scaleSpread: 0,
+          selectedSprites: [squareSpritePath],
+          randomSprites: false,
+          paletteId: "pastel",
+          paletteVariance: 0,
+          seed: `animation-thumbnail-${animation.id}`,
+          colorSeedSuffix: "",
+          backgroundMode: "auto",
+          backgroundBrightness: 100,
+          backgroundHueShift: 0,
+          backgroundColorIndex: 0,
+          thumbnailMode: {
+            primaryColorIndex: 0,
+            secondaryColorIndex: 0,
+            primaryScale: primaryScale,
+            secondaryScale: secondaryScale,
+            secondaryCount: 7,
+            primaryPosition: { u: 0.5, v: 0.5 },
+          },
+        };
+      } else {
+        const customAnim = animation as CustomAnimation;
+        state = controller.getState();
+        const scaleBaseValue = 50 / 100; // Same as default animations for consistency
+        const MIN_TILE_SCALE = 0.12;
+        const MAX_TILE_SCALE = 5.5;
+        const basePrimaryScale = MIN_TILE_SCALE + (MAX_TILE_SCALE - MIN_TILE_SCALE) * scaleBaseValue;
+        const primaryScale = basePrimaryScale * 0.25;
+        const secondaryScale = primaryScale * 0.4;
+        
+        state = {
+          ...state,
+          movementMode: "pulse",
+          customAnimationId: customAnim.id, // Update with new animation ID
+          motionIntensity: 50,
+          motionSpeed: 1, // Very slow for preview (1% of max speed)
+          animationEnabled: true,
+          scalePercent: 40,
+          scaleBase: 50,
+          scaleSpread: 0,
+          selectedSprites: [squareSpritePath],
+          randomSprites: false,
+          paletteId: "pastel",
+          paletteVariance: 0,
+          seed: `animation-thumbnail-${animation.id}`, // Update seed to trigger recompute
+          colorSeedSuffix: "",
+          backgroundMode: "auto",
+          backgroundBrightness: 100,
+          backgroundHueShift: 0,
+          backgroundColorIndex: 0,
+          thumbnailMode: {
+            primaryColorIndex: 0,
+            secondaryColorIndex: 0,
+            primaryScale: primaryScale,
+            secondaryScale: secondaryScale,
+            secondaryCount: 7,
+            primaryPosition: { u: 0.5, v: 0.5 },
+          },
+        };
+      }
+      
+      // Unregister old preview animation first (if it exists and ID changed)
+      if (!animation.isDefault) {
+        const oldState = controller.getState();
+        const newAnimId = (animation as CustomAnimation).id;
+        // Always unregister old one if it exists and is different
+        if (oldState.customAnimationId && oldState.customAnimationId !== newAnimId) {
+          unregisterPreviewAnimation(oldState.customAnimationId);
+        }
+        // Always re-register to ensure latest code functions are used (even if same ID, code might have changed)
+        unregisterPreviewAnimation(newAnimId); // Unregister first in case it exists
+        registerPreviewAnimation(animation as CustomAnimation);
+      }
+      
+      // Update existing controller state instead of recreating
+      controller.applyState(state, "instant");
+      setIsReady(true);
+      return;
+    }
+
+    // If controller doesn't exist or we're not in editor, create new controller
     // const isLightMode = themeMode === 'light'; // Unused
 
     // Get square sprite - use the actual SVG path, not shape identifier
@@ -82,6 +214,16 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
 
     // Create container for the animated preview - visible and square
     const container = containerRef.current;
+    
+    // If controller already exists, destroy it first
+    if (controllerRef.current) {
+      try {
+        controllerRef.current.destroy();
+      } catch (error) {
+        console.error("Error destroying old animation thumbnail:", error);
+      }
+      controllerRef.current = null;
+    }
     
     // Create sprite controller
     const controller = createSpriteController(container, {
@@ -150,24 +292,25 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
         },
       };
     } else {
-      // For custom animations, create basic state
-      // TODO: Apply custom path when path system is implemented (Phase 3)
+      // For custom animations, use the custom animation code
+      const customAnim = animation as CustomAnimation;
       state = controller.getState();
       
       // Calculate scale values: baseScale = lerp(0.12, 5.5, scaleBase/100)
-      // Make primary sprite 75% smaller
-      const scaleBaseValue = 30 / 100; // 0.3
+      // Use same scale as default animations for consistency
+      const scaleBaseValue = 50 / 100; // 0.5 (same as default animations)
       const MIN_TILE_SCALE = 0.12;
       const MAX_TILE_SCALE = 5.5;
-      const basePrimaryScale = MIN_TILE_SCALE + (MAX_TILE_SCALE - MIN_TILE_SCALE) * scaleBaseValue; // ~1.734
-      const primaryScale = basePrimaryScale * 0.25; // 75% smaller (~0.434)
-      const secondaryScale = primaryScale * 0.4; // 60% smaller than primary (~0.174)
+      const basePrimaryScale = MIN_TILE_SCALE + (MAX_TILE_SCALE - MIN_TILE_SCALE) * scaleBaseValue; // ~2.81
+      const primaryScale = basePrimaryScale * 0.25; // 75% smaller (~0.703, same as default)
+      const secondaryScale = primaryScale * 0.4; // 60% smaller than primary (~0.281, same as default)
       
       state = {
         ...state,
-        movementMode: "pulse", // Fallback until custom paths are implemented
+        movementMode: "pulse", // Fallback movement mode (custom animation will override)
+        customAnimationId: customAnim.id, // Use custom animation
         motionIntensity: 50,
-        motionSpeed: 25, // 50% of 50% = 25% speed for animation (half of current speed)
+        motionSpeed: 1, // Very slow for preview (1% of max speed)
         animationEnabled: true, // Enable animation
         // Density to show exactly 8 sprites total (1 primary + 7 secondary)
         // Use higher density to ensure we get at least 8 sprites in layer 0
@@ -199,11 +342,21 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
       };
     }
 
+    // Register the preview animation temporarily so the controller can find it
+    if (!animation.isDefault) {
+      registerPreviewAnimation(animation as CustomAnimation);
+    }
+
     // Apply the state first
     controller.applyState(state);
     
-    // Set custom aspect ratio to square (1:1) after applying state
-    controller.setCustomAspectRatio(size * 2, size * 2);
+    // Set custom aspect ratio to a fixed resolution based on size prop
+    // This ensures sprites appear the same size regardless of container width
+    // Use size prop directly (not container dimensions) for consistent sprite sizing
+    const aspectRatio = 16 / 9;
+    const width = size; // Use size prop directly (320px for both contexts)
+    const height = Math.round(width / aspectRatio); // Calculate height for 16:9
+    controller.setCustomAspectRatio(width, height);
     
     controllerRef.current = controller;
 
@@ -230,12 +383,20 @@ export function AnimationThumbnail({ animation, size = 160 }: AnimationThumbnail
 
     return () => {
       clearTimeout(timeoutId);
+      // Unregister preview animation when component unmounts or animation changes
+      if (!animation.isDefault) {
+        unregisterPreviewAnimation(animation.id);
+      }
       if (controllerRef.current) {
-        controllerRef.current.destroy();
+        try {
+          controllerRef.current.destroy();
+        } catch (error) {
+          console.error("Error destroying animation thumbnail:", error);
+        }
         controllerRef.current = null;
       }
     };
-  }, [animation, size, shouldInitialize, themeMode]);
+  }, [JSON.stringify(animation), size, shouldInitialize, themeMode]); // Use JSON.stringify to detect deep changes in animation object
 
   return (
     <div

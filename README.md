@@ -313,7 +313,25 @@ Contributions are welcome! Please follow these steps:
 
 ## 📝 Changelog
 
-### v0.3.9 Beta (Latest)
+### v0.3.11 Beta (Latest)
+
+**New Features:**
+- Added halftone effect filter with adjustable dot size (1-64px), spacing, and shape options (circle, square, diamond)
+- Halftone effect preserves original colors instead of converting to black and white
+
+**Improvements:**
+- Increased halftone dot size maximum from 20px to 64px
+- Fixed halftone shape rotation - squares and diamonds now display correctly without unwanted rotation
+
+**Removed:**
+- Removed crosshatch filter (replaced by improved halftone effect)
+
+### v0.3.10 Beta
+
+**New Features:**
+- Added halftone effect filter (initial implementation)
+
+### v0.3.9 Beta
 
 **New Features:**
 - Added default sprite collections to Sprites page with lock icons (read-only)
