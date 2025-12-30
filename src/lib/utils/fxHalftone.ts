@@ -8,9 +8,8 @@
  */
 export const applyHalftone = (
   canvas: HTMLCanvasElement,
-  dotSize: number, // 1-20 pixels
+  dotSize: number, // 1-64 pixels
   spacing: number, // 2-50 pixels
-  angle: number, // 0-360 degrees
   shape: "circle" | "square" | "diamond",
 ): HTMLCanvasElement => {
   if (dotSize <= 0 || spacing <= 0) return canvas;

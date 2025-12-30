@@ -4331,7 +4331,6 @@ export const createSpriteController = (
             canvas,
             currentState.halftoneDotSize,
             currentState.halftoneSpacing,
-            currentState.halftoneAngle,
             currentState.halftoneShape
           );
         }
