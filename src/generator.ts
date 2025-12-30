@@ -274,8 +274,11 @@ export interface GeneratorState {
   halftoneEnabled: boolean;
   halftoneDotSize: number; // 1-64 pixels
   halftoneSpacing: number; // 2-50 pixels
-  halftoneAngle: number; // 0-360 degrees
   halftoneShape: "circle" | "square" | "diamond";
+  halftoneBackgroundMode: BackgroundMode; // Palette mode for halftone background
+  halftoneBackgroundHueShift: number; // 0-100 (maps to 0-360 degrees)
+  halftoneBackgroundSaturation: number; // 0-200 (100 = normal)
+  halftoneBackgroundBrightness: number; // 0-100 (50 = normal)
   // Thumbnail mode settings (for animation thumbnails)
   thumbnailMode?: {
     primaryColorIndex: number; // Color index for primary sprite (e.g., 0 for slate-50)
@@ -410,8 +413,11 @@ export const DEFAULT_STATE: GeneratorState = {
   halftoneEnabled: false,
   halftoneDotSize: 4, // Default: 4 pixels
   halftoneSpacing: 8, // Default: 8 pixels
-  halftoneAngle: 45, // Default: 45 degrees
   halftoneShape: "circle", // Default: circle dots
+  halftoneBackgroundMode: "auto", // Default: use sprite palette
+  halftoneBackgroundHueShift: 0, // Default: no hue shift
+  halftoneBackgroundSaturation: 100, // Default: normal saturation
+  halftoneBackgroundBrightness: 50, // Default: normal brightness
 };
 
 const SEED_ALPHABET = "0123456789ABCDEF";
@@ -1922,7 +1928,10 @@ export interface SpriteController {
   setHalftoneEnabled: (enabled: boolean) => void;
   setHalftoneDotSize: (size: number) => void;
   setHalftoneSpacing: (spacing: number) => void;
-  setHalftoneAngle: (angle: number) => void;
+  setHalftoneBackgroundMode: (mode: BackgroundMode) => void;
+  setHalftoneBackgroundHueShift: (value: number) => void;
+  setHalftoneBackgroundSaturation: (value: number) => void;
+  setHalftoneBackgroundBrightness: (value: number) => void;
   setHalftoneShape: (shape: "circle" | "square" | "diamond") => void;
   applySingleTilePreset: () => void;
   applyNebulaPreset: () => void;
@@ -4327,12 +4336,38 @@ export const createSpriteController = (
       if (currentState.halftoneEnabled && hasCanvas(p5Instance)) {
         const canvas = p5Instance.canvas as HTMLCanvasElement;
         if (canvas) {
-          applyHalftone(
-            canvas,
-            currentState.halftoneDotSize,
-            currentState.halftoneSpacing,
-            currentState.halftoneShape
-          );
+          // Calculate halftone background color from palette (matching canvas background pattern)
+          const halftoneBgPaletteId = currentState.halftoneBackgroundMode === "auto" 
+            ? currentState.paletteId 
+            : currentState.halftoneBackgroundMode;
+          const halftoneBgPalette = getPalette(halftoneBgPaletteId);
+          const halftoneBgBase = halftoneBgPalette.colors[0] ?? "#000000";
+          
+          // Apply hue shift, saturation, and brightness adjustments (matching canvas pattern)
+          try {
+            const halftoneBgHueShiftDegrees = ((currentState.halftoneBackgroundHueShift ?? 0) / 100) * 360;
+            let halftoneBgColor = shiftHue(halftoneBgBase, halftoneBgHueShiftDegrees);
+            const saturation = currentState.halftoneBackgroundSaturation ?? 100;
+            const brightness = currentState.halftoneBackgroundBrightness ?? 50;
+            const brightnessPercent = brightness * 2; // Convert 0-100 to 0-200 range
+            halftoneBgColor = applyColorAdjustments(halftoneBgColor, saturation, brightnessPercent, 100); // Contrast at 100% (normal)
+            
+            // Ensure color is valid hex format
+            if (!halftoneBgColor || typeof halftoneBgColor !== 'string' || !halftoneBgColor.match(/^#[0-9A-Fa-f]{6}$/)) {
+              halftoneBgColor = "#ffffff"; // Fallback to white if invalid
+            }
+            
+            applyHalftone(
+              canvas,
+              currentState.halftoneDotSize,
+              currentState.halftoneSpacing,
+              currentState.halftoneShape,
+              halftoneBgColor
+            );
+          } catch (error) {
+            // If halftone fails, just skip it to prevent breaking the render
+            console.warn("Halftone effect failed:", error);
+          }
         }
       }
 
@@ -5110,8 +5145,17 @@ export const createSpriteController = (
     setHalftoneSpacing: (spacing: number) => {
       applyState({ halftoneSpacing: clamp(spacing, 2, 50) }, { recompute: false });
     },
-    setHalftoneAngle: (angle: number) => {
-      applyState({ halftoneAngle: clamp(angle, 0, 360) }, { recompute: false });
+    setHalftoneBackgroundMode: (mode: BackgroundMode) => {
+      applyState({ halftoneBackgroundMode: mode }, { recompute: false });
+    },
+    setHalftoneBackgroundHueShift: (value: number) => {
+      applyState({ halftoneBackgroundHueShift: clamp(value, 0, 100) }, { recompute: false });
+    },
+    setHalftoneBackgroundSaturation: (value: number) => {
+      applyState({ halftoneBackgroundSaturation: clamp(value, 0, 200) }, { recompute: false });
+    },
+    setHalftoneBackgroundBrightness: (value: number) => {
+      applyState({ halftoneBackgroundBrightness: clamp(value, 0, 100) }, { recompute: false });
     },
     setHalftoneShape: (shape: "circle" | "square" | "diamond") => {
       applyState({ halftoneShape: shape }, { recompute: false });

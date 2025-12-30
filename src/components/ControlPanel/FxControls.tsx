@@ -1,12 +1,14 @@
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 import { Switch } from "@/components/ui/switch-adapter";
 import { Button } from "@/components/Button";
 import { RefreshCw } from "lucide-react";
 import { ControlSlider, ControlSelect, TextWithTooltip } from "./shared";
 import { animatePulse } from "@/lib/utils/animations";
+import { generatePaletteOptions } from "@/lib/utils";
 import type {
   GeneratorState,
   SpriteController,
+  BackgroundMode,
 } from "@/types/generator";
 
 interface FxControlsProps {
@@ -26,6 +28,12 @@ export function FxControls({
   ready,
 }: FxControlsProps) {
   const randomizeGridColorButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Generate halftone background palette options
+  const halftoneBgPaletteOptions = useMemo(() => [
+    { value: "auto", label: "Palette (auto)" },
+    ...generatePaletteOptions(),
+  ], []);
   
   return (
     <>
@@ -414,6 +422,68 @@ export function FxControls({
                   : "Diamond"
               }
             />
+            
+            {/* Halftone Background Section */}
+            <div className="section section--spaced">
+              <hr className="section-divider border-t" />
+              <TextWithTooltip
+                id="halftone-background-tip"
+                text="Configure the background colour that shows through between halftone dots."
+              >
+                <h3 className="section-title">Halftone background</h3>
+              </TextWithTooltip>
+              <ControlSelect
+                id="halftone-background-mode"
+                label="Palette"
+                value={spriteState.halftoneBackgroundMode}
+                onChange={(value) =>
+                  controller?.setHalftoneBackgroundMode(value as BackgroundMode)
+                }
+                disabled={!ready}
+                options={halftoneBgPaletteOptions}
+                tooltip="Choose the palette for the halftone background. 'Palette (auto)' uses the sprite palette."
+                currentLabel={
+                  spriteState.halftoneBackgroundMode === "auto"
+                    ? "Palette (auto)"
+                    : halftoneBgPaletteOptions.find(
+                        (opt) => opt.value === spriteState.halftoneBackgroundMode
+                      )?.label || "Palette (auto)"
+                }
+              />
+              <ControlSlider
+                id="halftone-background-hue-shift"
+                label="Background hue shift"
+                min={0}
+                max={100}
+                value={Math.round(spriteState.halftoneBackgroundHueShift ?? 0)}
+                displayValue={`${Math.round(spriteState.halftoneBackgroundHueShift ?? 0)}%`}
+                onChange={(value) => controller?.setHalftoneBackgroundHueShift(value)}
+                disabled={!ready}
+                tooltip="Shifts the halftone background colours around the colour wheel (0–360°)."
+              />
+              <ControlSlider
+                id="halftone-background-saturation"
+                label="Background saturation"
+                min={0}
+                max={200}
+                value={Math.round(spriteState.halftoneBackgroundSaturation ?? 100)}
+                displayValue={`${Math.round(spriteState.halftoneBackgroundSaturation ?? 100)}%`}
+                onChange={(value) => controller?.setHalftoneBackgroundSaturation(value)}
+                disabled={!ready}
+                tooltip="Adjusts halftone background colour saturation (0% = grayscale, 100% = normal, 200% = max saturation)."
+              />
+              <ControlSlider
+                id="halftone-background-brightness"
+                label="Background brightness"
+                min={0}
+                max={100}
+                value={Math.round(spriteState.halftoneBackgroundBrightness ?? 50)}
+                displayValue={`${Math.round(spriteState.halftoneBackgroundBrightness ?? 50)}%`}
+                onChange={(value) => controller?.setHalftoneBackgroundBrightness(value)}
+                disabled={!ready}
+                tooltip="Adjusts the halftone background brightness (0% = darkest, 100% = brightest)."
+              />
+            </div>
           </>
         )}
       </div>

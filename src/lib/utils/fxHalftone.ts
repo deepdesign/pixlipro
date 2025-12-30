@@ -11,6 +11,7 @@ export const applyHalftone = (
   dotSize: number, // 1-64 pixels
   spacing: number, // 2-50 pixels
   shape: "circle" | "square" | "diamond",
+  backgroundColor: string, // Background color (hex format)
 ): HTMLCanvasElement => {
   if (dotSize <= 0 || spacing <= 0) return canvas;
 
@@ -19,9 +20,21 @@ export const applyHalftone = (
 
   const width = canvas.width;
   const height = canvas.height;
+  
+  // Validate dimensions
+  if (width <= 0 || height <= 0 || !isFinite(width) || !isFinite(height)) {
+    return canvas;
+  }
 
-  // Get image data
+  // Get image data - save current canvas state first
+  ctx.save();
   const imageData = ctx.getImageData(0, 0, width, height);
+  ctx.restore();
+  
+  if (!imageData || !imageData.data) {
+    return canvas;
+  }
+  
   const data = imageData.data;
 
   // Create output canvas
@@ -31,8 +44,13 @@ export const applyHalftone = (
   const outputCtx = outputCanvas.getContext("2d");
   if (!outputCtx) return canvas;
 
-  // Fill with white background (will show through between dots)
-  outputCtx.fillStyle = "#ffffff";
+  // Fill with background color (will show through between dots)
+  // Validate and ensure color is in hex format
+  let bgColor = backgroundColor;
+  if (!bgColor || typeof bgColor !== 'string' || !bgColor.match(/^#[0-9A-Fa-f]{6}$/)) {
+    bgColor = "#ffffff"; // Fallback to white if invalid
+  }
+  outputCtx.fillStyle = bgColor;
   outputCtx.fillRect(0, 0, width, height);
 
   // Calculate grid spacing
@@ -62,11 +80,18 @@ export const applyHalftone = (
         // Calculate dot radius based on brightness
         const dotRadius = (dotSize / 2) * dotScale;
 
-        if (dotRadius > 0.1) {
+        if (dotRadius > 0.1 && dotRadius < width && dotRadius < height) {
           // Draw dot at grid position, using original color
           outputCtx.save();
           outputCtx.translate(x, y);
-          outputCtx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+          
+          // Ensure color values are valid
+          const validR = Math.max(0, Math.min(255, Math.round(r)));
+          const validG = Math.max(0, Math.min(255, Math.round(g)));
+          const validB = Math.max(0, Math.min(255, Math.round(b)));
+          const validA = Math.max(0, Math.min(1, a / 255));
+          
+          outputCtx.fillStyle = `rgba(${validR}, ${validG}, ${validB}, ${validA})`;
 
           if (shape === "circle") {
             // Circle doesn't need rotation
