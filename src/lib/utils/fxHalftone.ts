@@ -25,11 +25,6 @@ export const applyHalftone = (
   const imageData = ctx.getImageData(0, 0, width, height);
   const data = imageData.data;
 
-  // Convert angle to radians
-  const angleRad = (angle * Math.PI) / 180;
-  const cos = Math.cos(angleRad);
-  const sin = Math.sin(angleRad);
-
   // Create output canvas
   const outputCanvas = document.createElement("canvas");
   outputCanvas.width = width;

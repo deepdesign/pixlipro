@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/Button";
 import { ButtonGroup } from "@/components/ui/ButtonGroup";
-import { TextWithTooltip } from "@/components/ControlPanel/shared";
 import { validateCodeFunction } from "@/lib/utils/codeSandbox";
 
 interface CodeEditorProps {
@@ -107,7 +106,7 @@ export function CodeEditor({
             {onPasteCode && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="link"
                 size="sm"
                 onClick={onPasteCode}
                 className="text-xs"
@@ -118,7 +117,7 @@ export function CodeEditor({
             {onClearCode && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="link"
                 size="sm"
                 onClick={onClearCode}
                 className="text-xs"

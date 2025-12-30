@@ -361,16 +361,15 @@ async function processSvgContent(svgText: string): Promise<string> {
       // Extract original viewBox to get dimensions (BEFORE tightening)
       // This is critical for Path2D rendering since path coordinates use original system
       const viewBoxMatch = processedSvg.match(/viewBox=["']?([0-9.\s-]+)["']?/i);
-      let viewBoxX = 0;
-      let viewBoxY = 0;
       let viewBoxWidth = 24;
       let viewBoxHeight = 24;
       
       if (viewBoxMatch) {
         const viewBoxParts = viewBoxMatch[1].trim().split(/[\s,]+/);
         if (viewBoxParts.length >= 4) {
-          viewBoxX = parseFloat(viewBoxParts[0]) || 0;
-          viewBoxY = parseFloat(viewBoxParts[1]) || 0;
+          // viewBoxX and viewBoxY are parsed but not used (kept for potential future use)
+          // parseFloat(viewBoxParts[0]) || 0; // viewBoxX
+          // parseFloat(viewBoxParts[1]) || 0; // viewBoxY
           viewBoxWidth = parseFloat(viewBoxParts[2]) || 24;
           viewBoxHeight = parseFloat(viewBoxParts[3]) || 24;
         }
