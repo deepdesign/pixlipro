@@ -112,11 +112,11 @@ export function StatusBar({
           variant="outline"
           onClick={onSaveScene}
           disabled={!ready}
-          aria-label="Save scene"
-          title="Save scene"
+          aria-label="Scenes"
+          title="Scenes"
         >
           <Save className="h-4 w-4 mr-2" />
-          Save scene
+          Scenes
         </Button>
         {onOpenProjector && !isProjectorMode && (
           <Button
