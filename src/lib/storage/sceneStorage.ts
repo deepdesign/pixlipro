@@ -1,5 +1,6 @@
 import { DEFAULT_STATE, type GeneratorState } from "@/generator";
 import { generateExportFilename } from "@/lib/services/exportService";
+import defaultScenesJson from "@/data/defaultScenes.json";
 
 type LegacySceneStateExtras = {
   iconId?: string;
@@ -16,9 +17,14 @@ export interface Scene {
 }
 
 const STORAGE_KEY = "pixli-scenes";
+const DEFAULTS_SEEDED_KEY = "pixli-default-scenes-version";
+const DEFAULT_SCENES_VERSION = "1";
 const MAX_SCENES = 50;
 
-export const getAllScenes = (): Scene[] => {
+const defaultScenes = defaultScenesJson as Scene[];
+const defaultSceneIds = new Set(defaultScenes.map((scene) => scene.id));
+
+const readStoredScenes = (): Scene[] => {
   if (typeof window === "undefined") {
     return [];
   }
@@ -32,6 +38,62 @@ export const getAllScenes = (): Scene[] => {
   } catch {
     return [];
   }
+};
+
+const limitScenes = (scenes: Scene[]): Scene[] => {
+  const next = [...scenes];
+  while (next.length > MAX_SCENES) {
+    const removableIndex = next.findIndex((scene) => !defaultSceneIds.has(scene.id));
+    if (removableIndex === -1) {
+      break;
+    }
+    next.splice(removableIndex, 1);
+  }
+  return next;
+};
+
+const seedDefaultScenes = (scenes: Scene[]): Scene[] => {
+  if (typeof window === "undefined") {
+    return scenes;
+  }
+
+  try {
+    const alreadySeeded = window.localStorage.getItem(DEFAULTS_SEEDED_KEY) === DEFAULT_SCENES_VERSION;
+    if (alreadySeeded && scenes.length > 0) {
+      return scenes;
+    }
+  } catch {
+    return scenes;
+  }
+
+  const existingIds = new Set(scenes.map((scene) => scene.id));
+  const existingNames = new Set(scenes.map((scene) => scene.name.trim().toLowerCase()));
+  const missing = defaultScenes.filter((scene) => {
+    if (!scene?.id || !scene?.name || !scene?.state) {
+      return false;
+    }
+    if (existingIds.has(scene.id)) {
+      return false;
+    }
+    return !existingNames.has(scene.name.trim().toLowerCase());
+  });
+
+  const merged = missing.length > 0 ? [...missing, ...scenes] : scenes;
+
+  try {
+    if (missing.length > 0) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    }
+    window.localStorage.setItem(DEFAULTS_SEEDED_KEY, DEFAULT_SCENES_VERSION);
+  } catch (error) {
+    console.error("Failed to seed default scenes:", error);
+  }
+
+  return merged;
+};
+
+export const getAllScenes = (): Scene[] => {
+  return seedDefaultScenes(readStoredScenes());
 };
 
 const generateSceneName = (state: GeneratorState): string => {
@@ -105,8 +167,9 @@ export const saveScene = (name: string, state: GeneratorState, updateExistingId?
   };
 
   scenes.push(scene);
-  if (scenes.length > MAX_SCENES) {
-    scenes.shift();
+  const limited = limitScenes(scenes);
+  if (limited.length !== scenes.length) {
+    scenes.splice(0, scenes.length, ...limited);
   }
 
   try {
@@ -243,7 +306,7 @@ export const importScenesFromJSON = (json: string): {
     }
 
     if (imported > 0) {
-      const allScenes = existingScenes.slice(-MAX_SCENES);
+      const allScenes = limitScenes(existingScenes);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(allScenes));
     }
 
